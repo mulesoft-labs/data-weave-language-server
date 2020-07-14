@@ -1,0 +1,27 @@
+group 'org.mule.weave.lsp'
+version '1.0-SNAPSHOT'
+
+subprojects {
+    apply plugin: "java"
+    apply plugin: "scala"
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            name "mule-releases"
+            url "http://repository.mulesoft.org/nexus/content/repositories/releases/"
+        }
+        maven {
+            name "mule-snapshots"
+            url "http://repository.mulesoft.org/nexus/content/repositories/snapshots/"
+        }
+    }
+
+    dependencies {
+        compile group: 'org.scala-lang', name: 'scala-library', version: scalaVersion
+    }
+}
+
+
+

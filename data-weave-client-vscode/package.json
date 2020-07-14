@@ -1,0 +1,67 @@
+{
+    "name": "data-weave",
+    "displayName": "DataWeave 2.0",
+    "description": "DataWeave 2.0 language support",
+    "author": "Mulesoft Inc.",
+    "license": "MIT",
+    "version": "0.0.1",
+    "publisher": "mulesoft",
+    "engines": {
+        "vscode": "^1.8.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "activationEvents": [
+        "onLanguage:data-weave"
+    ],
+    "main": "./out/src/extension",
+    "contributes": {
+        "languages": [
+            {
+                "id": "data-weave",
+                "aliases": [
+                    "DataWeave",
+                    "data-weave"
+                ],
+                "extensions": [
+                    ".dwl"
+                ],
+                "mimetypes": [
+                    "application/dw"
+                ],
+                "firstLine": "%dw 2.0",
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "data-weave",
+                "scopeName": "source.data-weave",
+                "path": "./syntaxes/data-weave.tmLanguage"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Example configuration",
+            "properties": {}
+        }
+    },
+    "dependencies": {
+        "vscode-languageclient": "^6.1.3",
+        "upath": "^1.1.2"
+    },
+    "devDependencies": {
+        "@types/mocha": "^2.2.33",
+        "@types/node": "^11.13.6",
+        "typescript": "^3.9.5",
+        "@types/vscode": "1.43.0"
+    },
+    "scripts": {
+        "compile": "tsc",
+        "vscode:prepublish": "webpack --mode production",
+        "webpack": "webpack --mode development",
+        "webpack-dev": "webpack --mode development --watch",
+        "test-compile": "tsc -p ./"
+    }
+}
