@@ -53,7 +53,7 @@ import org.mule.weave.v2.scope.Reference
 import scala.collection.JavaConverters
 import scala.collection.mutable
 
-class DataWeaveDocumentService(params: InitializeParams, workspaceFileSystem: VirtualFileSystem, client: => LanguageClient, executor: Executor) extends TextDocumentService {
+class DataWeaveDocumentService(workspaceFileSystem: VirtualFileSystem, client: => LanguageClient, executor: Executor) extends TextDocumentService {
 
   private var dwTextDocumentService: WeaveToolingService = _
   private val projectFileSystem: SimpleVirtualFileSystem = new SimpleVirtualFileSystem(mutable.Map[String, String]())

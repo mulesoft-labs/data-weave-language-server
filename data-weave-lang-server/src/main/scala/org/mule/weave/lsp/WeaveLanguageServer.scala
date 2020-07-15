@@ -15,6 +15,8 @@ import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.vfs.ClassloaderVirtualFileSystem
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
+import org.mule.weave.v2.editor.CompositeFileSystem
 
 class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
@@ -49,14 +51,16 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def getTextDocumentService: TextDocumentService = {
-    println("[DataWeave] getTextDocumentService "+ client)
     val executorService = Executors.newCachedThreadPool(
       new ThreadFactoryBuilder()
         .setNameFormat("dw-lang-server-%d\"")
         .setDaemon(true)
         .build()
     )
-    new DataWeaveDocumentService(this.params, new ClassloaderVirtualFileSystem(getClass.getClassLoader), this.client, executorService)
+
+    val classloaderVirtualFileSystem = new ClassloaderVirtualFileSystem(getClass.getClassLoader)
+    val projectClassLoader = new CompositeFileSystem(new ProjectVirtualFileSystem(this), classloaderVirtualFileSystem)
+    new DataWeaveDocumentService(projectClassLoader, this.client, executorService)
   }
 
   override def getWorkspaceService: WorkspaceService = {
