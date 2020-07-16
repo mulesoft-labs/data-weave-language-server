@@ -19,7 +19,9 @@ import org.mule.weave.lsp.services.ProjectDefinitionServiceProxy
 import org.mule.weave.lsp.services.WeaveLSPService
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.EmptyDataFormatDescriptorProvider
+import org.mule.weave.v2.editor.DefaultModuleLoaderFactory
 import org.mule.weave.v2.editor.WeaveToolingService
+import org.mule.weave.v2.module.raml.RamlModuleLoader
 
 class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
@@ -33,11 +35,13 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
   private val projectDefinitionService: ProjectDefinitionServiceProxy = new ProjectDefinitionServiceProxy()
   private val projectVirtualFileSystem: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(projectDefinitionService)
-  private val weaveService = new WeaveLSPService(createWeaveToolingService, executorService, projectVirtualFileSystem)
-  private val textDocumentService = new DataWeaveDocumentService(weaveService, executorService)
+  private val weaveService: WeaveLSPService = new WeaveLSPService(createWeaveToolingService, executorService, projectVirtualFileSystem)
+  private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(weaveService, executorService)
 
   private def createWeaveToolingService(): WeaveToolingService = {
-    new WeaveToolingService(projectVirtualFileSystem, EmptyDataFormatDescriptorProvider, Array())
+    val moduleLoader = new RamlModuleLoader()
+    moduleLoader.resolver(projectVirtualFileSystem.asResourceResolver)
+    new WeaveToolingService(projectVirtualFileSystem, EmptyDataFormatDescriptorProvider, Array(DefaultModuleLoaderFactory(moduleLoader)))
   }
 
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {

@@ -42,8 +42,7 @@ import org.mule.weave.v2.scope.Reference
 
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(weaveService: => WeaveLSPService, executor: Executor) extends TextDocumentService {
-
+class DataWeaveDocumentService(weaveService: WeaveLSPService, executor: Executor) extends TextDocumentService {
 
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
     println("[DataWeave] Open: " + openParam.getTextDocument.getUri)
@@ -130,7 +129,6 @@ class DataWeaveDocumentService(weaveService: => WeaveLSPService, executor: Execu
     }
   }
 
-
   override def documentSymbol(params: DocumentSymbolParams): CompletableFuture[util.List[messages.Either[SymbolInformation, DocumentSymbol]]] = {
     CompletableFuture.supplyAsync(() => {
       val document = params.getTextDocument
@@ -147,7 +145,6 @@ class DataWeaveDocumentService(weaveService: => WeaveLSPService, executor: Execu
       result
     }, executor)
   }
-
 
   private def openDocument(document: TextDocumentIdentifier): WeaveDocumentToolingService = {
     val uri = document.getUri
@@ -166,19 +163,20 @@ class DataWeaveDocumentService(weaveService: => WeaveLSPService, executor: Execu
       toolingService.definitionLink(offset).foreach((ll) => {
         val link = new LocationLink()
         link.setOriginSelectionRange(toRange(ll.linkLocation.location()))
-        link.setTargetRange(toRange(ll.reference.referencedNode.location()))
-        link.setTargetSelectionRange(toRange(ll.reference.referencedNode.location()))
-        if (ll.reference.isLocalReference) {
+        val reference = ll.reference
+        link.setTargetRange(toRange(reference.referencedNode.location()))
+        link.setTargetSelectionRange(toRange(reference.referencedNode.location()))
+        if (reference.isLocalReference) {
           link.setTargetUri(params.getTextDocument.getUri)
         } else {
-          //TODO add support for cross reference files
-          //          val name = NameIdentifierHelper.toWeaveFilePath(ll.reference.moduleSource.get)
-          //          Option(fileSystem.file(name)) match {
-          //            case Some(vf) => {
-          //              link.setTargetUri("zip:" + vf.path())
-          //            }
-          //            case None =>
-          //          }
+          //Cross module link
+          val resourceResolver = weaveService.vfs.asResourceResolver
+          resourceResolver.resolve(reference.moduleSource.get) match {
+            case Some(value) => {
+              link.setTargetUri(value.url())
+            }
+            case None =>
+          }
         }
         result.add(link)
       })

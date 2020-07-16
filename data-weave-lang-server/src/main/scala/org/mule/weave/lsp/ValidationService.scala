@@ -7,11 +7,13 @@ import java.util.concurrent.Executor
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.PublishDiagnosticsParams
+import org.mule.weave.lsp.LSPConverters._
 import org.mule.weave.lsp.services.WeaveLSPService
-import LSPConverters._
 
+/*
+* Service that handles validation
+*/
 class ValidationService(weaveService: WeaveLSPService, executor: Executor) {
-
 
   def triggerValidation(documentUri: String): Unit = {
     CompletableFuture.runAsync(() => {

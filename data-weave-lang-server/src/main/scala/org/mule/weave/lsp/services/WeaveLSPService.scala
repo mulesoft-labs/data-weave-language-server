@@ -17,7 +17,6 @@ class WeaveLSPService(documentServiceFactory: () => WeaveToolingService, executo
 
   lazy val documentService: WeaveToolingService = documentServiceFactory()
 
-
   def openDocument(uri: String): WeaveDocumentToolingService = {
     documentService.open(uri, ImplicitInput(), None)
   }
