@@ -8,12 +8,12 @@ import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.mule.weave.lsp.LSPConverters._
-import org.mule.weave.lsp.services.WeaveLSPService
+import org.mule.weave.lsp.services.LSPWeaveToolingService
 
 /*
 * Service that handles validation
 */
-class ValidationService(weaveService: WeaveLSPService, executor: Executor) {
+class ValidationService(weaveService: LSPWeaveToolingService, executor: Executor) {
 
   def triggerValidation(documentUri: String): Unit = {
     CompletableFuture.runAsync(() => {
@@ -26,7 +26,7 @@ class ValidationService(weaveService: WeaveLSPService, executor: Executor) {
       messages.warningMessage.foreach((message) => {
         diagnostics.add(new Diagnostic(toRange(message.location), message.message.message, DiagnosticSeverity.Warning, "DataWeave : " + message.message.category.name))
       })
-      weaveService.client.publishDiagnostics(new PublishDiagnosticsParams(documentUri, diagnostics))
+      weaveService.client().publishDiagnostics(new PublishDiagnosticsParams(documentUri, diagnostics))
     }, executor)
   }
 }

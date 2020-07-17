@@ -16,7 +16,7 @@ import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.services.ProjectDefinitionServiceFactory
 import org.mule.weave.lsp.services.ProjectDefinitionServiceProxy
-import org.mule.weave.lsp.services.WeaveLSPService
+import org.mule.weave.lsp.services.LSPWeaveToolingService
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.EmptyDataFormatDescriptorProvider
 import org.mule.weave.v2.editor.DefaultModuleLoaderFactory
@@ -35,7 +35,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
   private val projectDefinitionService: ProjectDefinitionServiceProxy = new ProjectDefinitionServiceProxy()
   private val projectVirtualFileSystem: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(projectDefinitionService)
-  private val weaveService: WeaveLSPService = new WeaveLSPService(createWeaveToolingService, executorService, projectVirtualFileSystem)
+  private val weaveService: LSPWeaveToolingService = new LSPWeaveToolingService(createWeaveToolingService, executorService, projectVirtualFileSystem)
   private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(weaveService, executorService)
 
   private def createWeaveToolingService(): WeaveToolingService = {

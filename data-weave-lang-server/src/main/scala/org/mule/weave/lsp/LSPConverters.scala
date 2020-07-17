@@ -8,8 +8,10 @@ object LSPConverters extends AnyRef {
 
   implicit def toPosition(endPosition: Position): lsp4j.Position = {
     val position = new lsp4j.Position()
-    position.setCharacter(endPosition.column - 1)
-    position.setLine(endPosition.line - 1)
+    val column = if (endPosition.column < 0) 0 else endPosition.column - 1
+    val line = if (endPosition.line < 0) 0 else endPosition.line - 1
+    position.setCharacter(column)
+    position.setLine(line)
     position
   }
 

@@ -31,7 +31,7 @@ import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.LSPConverters._
-import org.mule.weave.lsp.services.WeaveLSPService
+import org.mule.weave.lsp.services.LSPWeaveToolingService
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionType
 import org.mule.weave.v2.editor.ImplicitInput
@@ -39,20 +39,20 @@ import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.scope.Reference
+import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(weaveService: WeaveLSPService, executor: Executor) extends TextDocumentService {
+class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: Executor) extends TextDocumentService {
 
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
     println("[DataWeave] Open: " + openParam.getTextDocument.getUri)
     val textDocument = openParam.getTextDocument
     weaveService.vfs.update(textDocument.getUri, openParam.getTextDocument.getText)
-    weaveService.validationService().triggerValidation(textDocument.getUri)
   }
 
   def dwTextDocumentService: WeaveToolingService = {
-    weaveService.documentService
+    weaveService.documentService()
   }
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
@@ -61,13 +61,24 @@ class DataWeaveDocumentService(weaveService: WeaveLSPService, executor: Executor
       val offset: Int = toolingService.offsetOf(position.getPosition.getLine, position.getPosition.getCharacter)
       val suggestionResult = toolingService.completion(offset)
       val result = new util.ArrayList[CompletionItem]()
-      suggestionResult.suggestions.foreach((sug) => {
-        val item = new CompletionItem(sug.name)
+      var i = 0
+
+      val suggestions: Array[Suggestion] = suggestionResult.suggestions
+      suggestions.foreach((sug) => {
+        val index: String = i.toString
+        val prefix: String = "0" * (suggestionResult.suggestions.length - index.length)
+        val item: CompletionItem = new CompletionItem(sug.name)
+        item.setDetail(sug.wtype.map((wt) => {
+          val emitterConfig = WeaveTypeEmitterConfig(prettyPrint = false, skipAnnotations = true, nameOnly = true, generateMultiTypes = false, useLiteralType = false)
+          wt.toString(emitterConfig)
+        }).orNull)
+        item.setSortText(prefix + index)
         item.setDocumentation(new MarkupContent("markdown", sug.markdownDocumentation().getOrElse("")))
         item.setInsertText(sug.template.toVSCodeString)
         item.setInsertTextFormat(InsertTextFormat.Snippet)
         item.setKind(getCompletionType(sug))
         result.add(item)
+        i = i + 1
       })
       messages.Either.forRight(new CompletionList(false, result))
     }, executor)
@@ -171,11 +182,14 @@ class DataWeaveDocumentService(weaveService: WeaveLSPService, executor: Executor
         } else {
           //Cross module link
           val resourceResolver = weaveService.vfs.asResourceResolver
-          resourceResolver.resolve(reference.moduleSource.get) match {
+          val moduleName = reference.moduleSource.get
+          resourceResolver.resolve(moduleName) match {
             case Some(value) => {
               link.setTargetUri(value.url())
             }
-            case None =>
+            case None => {
+              println("Resource not found for " + moduleName)
+            }
           }
         }
         result.add(link)
@@ -237,7 +251,6 @@ class DataWeaveDocumentService(weaveService: WeaveLSPService, executor: Executor
     val textDocument = params.getTextDocument
     println("[DataWeave] didChange : " + textDocument.getUri)
     weaveService.vfs.update(textDocument.getUri, params.getContentChanges.get(0).getText)
-    weaveService.validationService().triggerValidation(textDocument.getUri)
   }
 
   override def didClose(params: DidCloseTextDocumentParams): Unit = {
