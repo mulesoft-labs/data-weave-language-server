@@ -3,24 +3,19 @@ package org.mule.weave.lsp.vfs
 import java.io.File
 import java.net.URL
 
-import org.mule.weave.lsp.services.ProjectDefinitionService
+import org.mule.weave.lsp.services.ProjectDefinition
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
-import org.mule.weave.v2.parser.ast.variables.NameIdentifier
-import org.mule.weave.v2.sdk.ChainedWeaveResourceResolver
-import org.mule.weave.v2.sdk.DefaultWeaveResource
-import org.mule.weave.v2.sdk.NameIdentifierHelper
-import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
-class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends VirtualFileSystem {
+class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends VirtualFileSystem {
 
-  private val inMemoryFiles: mutable.Map[String, FileBasedVirtualFile] = mutable.Map[String, FileBasedVirtualFile]()
+  private val inMemoryFiles: mutable.Map[String, ProjectVirtualFile] = mutable.Map[String, ProjectVirtualFile]()
   private val changeListeners: ArrayBuffer[ChangeListener] = ArrayBuffer[ChangeListener]()
   private val vfsChangeListeners: ArrayBuffer[VFSChangeListener] = ArrayBuffer[VFSChangeListener]()
 
@@ -34,7 +29,7 @@ class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends Virtual
         vfsChangeListeners.foreach(_.onChanged(vf))
       }
       case None => {
-        val virtualFile = new FileBasedVirtualFile(this, uri, None, Some(content))
+        val virtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
         vfsChangeListeners.foreach(_.onChanged(virtualFile))
         inMemoryFiles.put(uri, virtualFile)
       }
@@ -64,14 +59,14 @@ class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends Virtual
   def deleted(uri: String): Unit = {
     println(s"[ProjectVirtualFileSystem] deleted ${uri}")
     inMemoryFiles.remove(uri)
-    val virtualFile = new FileBasedVirtualFile(this, uri, None)
+    val virtualFile = new ProjectVirtualFile(this, uri, None)
     triggerChanges(virtualFile)
     vfsChangeListeners.foreach(_.onDeleted(virtualFile))
   }
 
   def created(uri: String): Unit = {
     println(s"[ProjectVirtualFileSystem] created ${uri}")
-    val virtualFile = new FileBasedVirtualFile(this, uri, None)
+    val virtualFile = new ProjectVirtualFile(this, uri, None)
     triggerChanges(virtualFile)
     vfsChangeListeners.foreach(_.onCreated(virtualFile))
   }
@@ -97,7 +92,7 @@ class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends Virtual
 
   def sourceRoot: Option[File] = {
     //TODO: implement support for multi source folder
-    server.sourceFolder().headOption
+    projectDefinition.sourceFolder().headOption
   }
 
   override def file(path: String): VirtualFile = {
@@ -109,30 +104,26 @@ class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends Virtual
       //It may not be a valid url then just try on nextone
       val maybeFilePath = Try(new URL(path).getFile).toOption
       if (maybeFilePath.isEmpty) {
-        dependencies.file(path)
+        null
       } else {
         val theFile = new File(maybeFilePath.get)
         if (theFile.exists()) {
-          val virtualFile = new FileBasedVirtualFile(this, path, Some(theFile))
+          val virtualFile = new ProjectVirtualFile(this, path, Some(theFile))
           inMemoryFiles.put(path, virtualFile)
           virtualFile
         } else {
-          dependencies.file(path)
+          null
         }
       }
     }
   }
 
-  private def dependencies: VirtualFileSystem = {
-    server.dependenciesVFS()
-  }
-
   override def asResourceResolver: WeaveResourceResolver = {
     val resourceResolver = sourceRoot match {
-      case Some(rootFile) => new RootDirectoryResourceResolver(rootFile, this)
+      case Some(rootFile) => new FolderWeaveResourceResolver(rootFile, this)
       case None => super.asResourceResolver
     }
-    new ChainedWeaveResourceResolver(Seq(resourceResolver, dependencies.asResourceResolver))
+    resourceResolver
   }
 
   override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
@@ -149,7 +140,7 @@ class ProjectVirtualFileSystem(server: ProjectDefinitionService) extends Virtual
           })
       }
       case None => {
-        dependencies.listFilesByNameIdentifier(filter)
+        Array()
       }
     }
   }
@@ -167,26 +158,4 @@ object FileUtils {
   }
 }
 
-class RootDirectoryResourceResolver(root: File, vfs: VirtualFileSystem) extends WeaveResourceResolver {
 
-
-  override def resolvePath(path: String): Option[WeaveResource] = {
-    val theFile = new File(root, path)
-    fileToResources(theFile)
-  }
-
-  override def resolveAll(name: NameIdentifier): Seq[WeaveResource] = super.resolveAll(name)
-
-  override def resolve(name: NameIdentifier): Option[WeaveResource] = {
-    val path = NameIdentifierHelper.toWeaveFilePath(name)
-    val theFile = new File(root, path)
-    fileToResources(theFile)
-  }
-
-  private def fileToResources(theFile: File): Option[DefaultWeaveResource] = {
-    val vsCodeUrlStyle = FileUtils.toUrl(theFile)
-    Option(vfs.file(vsCodeUrlStyle)).map((vf) => {
-      WeaveResource(vf.path(), vf.read())
-    })
-  }
-}

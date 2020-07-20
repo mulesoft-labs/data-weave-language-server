@@ -29,8 +29,6 @@ export function activate(context: ExtensionContext) {
 
 			let javaExecutablePath = findJavaExecutable('java');
 
-			
-
 			// grab a random port.
 			server.listen(() => {
 
@@ -51,7 +49,7 @@ export function activate(context: ExtensionContext) {
 				let options = { cwd: workspace.rootPath };
 				let args = [
 					'-jar',
-					'-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005',
+					'-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005',
 					weaveJarLocation,					
 					port.toString()
 				]
@@ -76,7 +74,7 @@ export function activate(context: ExtensionContext) {
         documentSelector: ['data-weave'],
         synchronize: {
           // Synchronize the setting section 'dataWeaveLS' to the server
-          configurationSection: 'dataWeaveLS',
+          configurationSection: 'data-weave',
           // Notify the server about file changes to '.clientrc files contain in the workspace
           fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml}')
         },
@@ -84,7 +82,7 @@ export function activate(context: ExtensionContext) {
       }
 
 	// Create the language client and start the client.
-	let disposable = new LanguageClient('dataWeaveLS', 'Data Weave Language Server', createServer, clientOptions).start();
+	let disposable = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions).start();
 
 	// Push the disposable to the context's subscriptions so that the 
 	// client can be deactivated on extension deactivation

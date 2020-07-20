@@ -1,4 +1,4 @@
-package org.mule.weave.lsp
+package org.mule.weave.lsp.services
 
 import java.util.concurrent.CompletableFuture
 
@@ -8,12 +8,13 @@ import org.eclipse.lsp4j.DidChangeWorkspaceFoldersParams
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.services.WorkspaceService
-import org.mule.weave.lsp.services.LSPWeaveToolingService
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 
-class DataWeaveWorkspaceService(weaveService: LSPWeaveToolingService) extends WorkspaceService {
+class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:ProjectDefinition) extends WorkspaceService {
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     println("[DataWeaveWorkspaceService] Changed Configuration: " + params.getSettings)
+    pd.updateSettings(params)
   }
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
@@ -30,13 +31,13 @@ class DataWeaveWorkspaceService(weaveService: LSPWeaveToolingService) extends Wo
       println("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
       fe.getType match {
         case FileChangeType.Created => {
-          weaveService.vfs.created(fe.getUri)
+          projectVFS.created(fe.getUri)
         }
         case FileChangeType.Changed => {
-          weaveService.vfs.changed(fe.getUri)
+          projectVFS.changed(fe.getUri)
         }
         case FileChangeType.Deleted => {
-          weaveService.vfs.deleted(fe.getUri)
+          projectVFS.deleted(fe.getUri)
         }
       }
     })

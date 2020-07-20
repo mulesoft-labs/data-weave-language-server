@@ -9,7 +9,7 @@ import org.mule.weave.v2.sdk.NameIdentifierHelper
 
 import scala.io.Source
 
-class FileBasedVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option[File], var memoryState: Option[String] = None) extends VirtualFile {
+class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option[File], var memoryState: Option[String] = None) extends VirtualFile {
 
   override def fs(): VirtualFileSystem = fs
 
@@ -34,7 +34,7 @@ class FileBasedVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Opti
     }
   }
 
-  def save(): FileBasedVirtualFile = {
+  def save(): ProjectVirtualFile = {
     memoryState = None
     this
   }
@@ -55,7 +55,7 @@ class FileBasedVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Opti
     }
   }
 
-  def closed(): FileBasedVirtualFile = {
+  def closed(): ProjectVirtualFile = {
     memoryState = None
     fs.close(url)
     this

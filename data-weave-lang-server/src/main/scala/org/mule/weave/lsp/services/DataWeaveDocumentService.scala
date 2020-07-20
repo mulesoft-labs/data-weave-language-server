@@ -1,4 +1,4 @@
-package org.mule.weave.lsp
+package org.mule.weave.lsp.services
 
 import java.util
 import java.util.concurrent.CompletableFuture
@@ -30,8 +30,8 @@ import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.services.TextDocumentService
-import org.mule.weave.lsp.LSPConverters._
-import org.mule.weave.lsp.services.LSPWeaveToolingService
+import org.mule.weave.lsp.utils.LSPConverters._
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionType
 import org.mule.weave.v2.editor.ImplicitInput
@@ -43,12 +43,12 @@ import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: Executor) extends TextDocumentService {
+class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: Executor, projectFS: ProjectVirtualFileSystem) extends TextDocumentService {
 
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
     println("[DataWeave] Open: " + openParam.getTextDocument.getUri)
     val textDocument = openParam.getTextDocument
-    weaveService.vfs.update(textDocument.getUri, openParam.getTextDocument.getText)
+    projectFS.update(textDocument.getUri, openParam.getTextDocument.getText)
   }
 
   def dwTextDocumentService: WeaveToolingService = {
@@ -181,7 +181,7 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
           link.setTargetUri(params.getTextDocument.getUri)
         } else {
           //Cross module link
-          val resourceResolver = weaveService.vfs.asResourceResolver
+          val resourceResolver = projectFS.asResourceResolver
           val moduleName = reference.moduleSource.get
           resourceResolver.resolve(moduleName) match {
             case Some(value) => {
@@ -250,19 +250,19 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
     val textDocument = params.getTextDocument
     println("[DataWeave] didChange : " + textDocument.getUri)
-    weaveService.vfs.update(textDocument.getUri, params.getContentChanges.get(0).getText)
+    projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
   }
 
   override def didClose(params: DidCloseTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
     println("[DataWeave] didClose : " + uri)
-    weaveService.vfs.close(uri)
+    projectFS.close(uri)
     dwTextDocumentService.close(uri)
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
-    weaveService.vfs.save(params.getTextDocument.getUri)
+    projectFS.save(params.getTextDocument.getUri)
     println("[DataWeave] didSave : " + uri)
   }
 }

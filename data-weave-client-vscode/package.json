@@ -6,6 +6,9 @@
     "license": "MIT",
     "version": "0.0.1",
     "publisher": "mulesoft",
+    "readme": "README.md",
+    "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
+    "icon": "assets/icon.png",
     "engines": {
         "vscode": "^1.8.0"
     },
@@ -41,10 +44,46 @@
                 "path": "./syntaxes/data-weave.tmLanguage"
             }
         ],
+        "commands": [
+            {
+                "command": "bat.runFile",
+                "title": "DataWeave: BAT: Run the current file"
+            },
+            {
+                "command": "bat.runFolder",
+                "title": "DataWeave: BAT: Run the current folder"
+            },
+            {
+                "command": "bat.installCli",
+                "title": "DataWeave: BAT: Install BAT command line interface"
+            }
+        ],
         "configuration": {
             "type": "object",
-            "title": "Example configuration",
-            "properties": {}
+            "title": "DataWeave",
+            "properties": {
+                "data-weave.wlangVersion": {
+                    "type": "string",
+                    "default": "2.3.1-SNAPSHOT",
+                    "markdownDescription": "The version of the DataWeave standar library to use.\n\n**Change only if you know what you're doing**"
+                },
+                "data-weave.languageLevel": {
+                    "type": "string",
+                    "default": "2.3.0",
+                    "markdownDescription": "The version of the DataWeave weave language.\n\n**Change only if you know what you're doing**"
+                },
+                "data-weave.validationLevel": {
+                    "type": "string",
+                    "default": "type",
+                    "enum": ["parsing", "scope", "type"],
+                    "markdownDescription": "What kind of validation level."
+                },
+                "data-weave.batVersion": {
+                    "type": "string",
+                    "default": "1.0.72",
+                    "markdownDescription": "The version of the BAT to use\n\n**Change only if you know what you're doing**"
+                }
+            }
         }
     },
     "dependencies": {

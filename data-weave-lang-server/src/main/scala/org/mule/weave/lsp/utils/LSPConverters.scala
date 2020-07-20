@@ -1,4 +1,4 @@
-package org.mule.weave.lsp
+package org.mule.weave.lsp.utils
 
 import org.eclipse.lsp4j
 import org.mule.weave.v2.parser.location.Position
