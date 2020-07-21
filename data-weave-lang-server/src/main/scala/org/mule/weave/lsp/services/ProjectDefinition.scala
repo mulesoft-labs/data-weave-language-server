@@ -81,6 +81,8 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   }
 
   private def initBatProject() = {
+
+    //TODO: Parse exchange.json
     loadLibrary(createBATArtifactId(batVersion.value()))
     registerListener(ProjectDefinition.BAT_VERSION_PROP_NAME, new PropertyChangeListener {
       override def onPropertyChanged(pce: PropertyChangeEvent): Unit = {
