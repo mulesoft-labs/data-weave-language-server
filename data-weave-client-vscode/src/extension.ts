@@ -35,7 +35,7 @@ export function activate(context: ExtensionContext) {
 				const address = server.address()
 				const port = typeof address === 'object' ? address.port : 0
 				const storagePath = context.storagePath || context.globalStoragePath
-				const weaveJarLocation = path.resolve(context.extensionPath, '..', 'data-weave-lang-server', 'build', 'libs', 'data-weave-lang-server-all.jar');
+				const weaveJarLocation = path.resolve(context.extensionPath, 'libs', 'data-weave-lang-server-all.jar');
 				let logFile = storagePath + '/vscode-data-weave-lang-server.log';
 			
 

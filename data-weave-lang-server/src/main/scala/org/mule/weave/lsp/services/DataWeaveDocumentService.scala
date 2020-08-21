@@ -1,9 +1,12 @@
 package org.mule.weave.lsp.services
 
 import java.util
+import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
+import org.eclipse.lsp4j.CodeLens
+import org.eclipse.lsp4j.CodeLensParams
 import org.eclipse.lsp4j.CompletionItem
 import org.eclipse.lsp4j.CompletionItemKind
 import org.eclipse.lsp4j.CompletionList
@@ -13,6 +16,7 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidCloseTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
 import org.eclipse.lsp4j.DidSaveTextDocumentParams
+import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.DocumentSymbol
 import org.eclipse.lsp4j.DocumentSymbolParams
 import org.eclipse.lsp4j.Hover
@@ -195,6 +199,18 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
         result.add(link)
       })
       messages.Either.forRight(result)
+    }, executor)
+  }
+
+  override def formatting(params: DocumentFormattingParams): CompletableFuture[java.util.List[_ <: TextEdit]] = {
+    CompletableFuture.supplyAsync(() => {
+      val toolingService = openDocument(params.getTextDocument.getUri)
+      toolingService.formatting() match {
+        case None => new util.ArrayList[TextEdit]()
+        case Some(value) => {
+          Collections.singletonList(new TextEdit(toRange(value.range), value.newFormat))
+        }
+      }
     }, executor)
   }
 

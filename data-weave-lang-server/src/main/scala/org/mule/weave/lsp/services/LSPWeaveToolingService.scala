@@ -3,8 +3,6 @@ package org.mule.weave.lsp.services
 
 import java.util.concurrent.Executor
 
-import org.eclipse.lsp4j.MessageParams
-import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageClientAware
 import org.mule.weave.lsp.vfs.LibrariesChangeListener
@@ -87,23 +85,7 @@ class LSPWeaveToolingService(
     })
   }
 
-  def logInfo(message: String): Unit = {
-    if (_client != null) {
-      _client.logMessage(new MessageParams(MessageType.Info, message))
-    }
-  }
 
-  def logWarning(message: String): Unit = {
-    if (_client != null) {
-      _client.logMessage(new MessageParams(MessageType.Warning, message))
-    }
-  }
-
-  def logError(message: String): Unit = {
-    if (_client != null) {
-      _client.logMessage(new MessageParams(MessageType.Error, message))
-    }
-  }
 
   def documentService(): WeaveToolingService = {
     _documentService

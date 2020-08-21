@@ -1,8 +1,12 @@
 package org.mule.weave.lsp.vfs
 
-import org.mule.weave.v2.deps.MavenDependencyAnnotationProcessor
-import org.mule.weave.v2.deps.ResourceDependencyAnnotationProcessor
+import org.mule.weave.lsp.services.MessageLoggerService
+import org.mule.weave.v2.deps.Artifact
+import org.mule.weave.v2.deps.ArtifactResolutionCallback
+import org.mule.weave.v2.deps.DependencyManager
+import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 import org.mule.weave.v2.editor.ChangeListener
+import org.mule.weave.v2.editor.EmptyVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
@@ -11,12 +15,39 @@ import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
-class LibrariesVirtualFileSystem(maven: MavenDependencyAnnotationProcessor, resources: ResourceDependencyAnnotationProcessor) extends VirtualFileSystem {
+class LibrariesVirtualFileSystem(maven: DependencyManager, logger: MessageLoggerService) extends VirtualFileSystem with ArtifactResolutionCallback {
 
   private val modules: mutable.Map[String, VirtualFileSystem] = new mutable.HashMap()
 
   private val listeners: ArrayBuffer[LibrariesChangeListener] = ArrayBuffer()
+
+  override def shouldDownload(id: String, kind: String): Boolean = {
+    val idSystem = getModule(id)
+    idSystem == null || (idSystem eq EmptyVirtualFileSystem)
+  }
+
+  override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
+    logger.logInfo(s"Artifact: ${kind}@${id} was downloaded successfully.")
+    addLibrary(id,
+      new LazyVirtualFileSystem(
+        () => {
+          new ChainedVirtualFileSystem(
+            Await.result(artifact, Duration.Inf).map((artifact) => {
+              if (!artifact.file.isDirectory) {
+                new JarVirtualFileSystem(artifact.file)
+              } else {
+                new FolderVirtualFileSystem(artifact.file)
+              }
+            })
+          )
+        }
+      )
+    )
+  }
 
   override def file(path: String): VirtualFile = {
     println(s"[DependenciesVirtualFileSystem] file ${path}")
@@ -34,9 +65,9 @@ class LibrariesVirtualFileSystem(maven: MavenDependencyAnnotationProcessor, reso
     this.listeners += (listener)
   }
 
-  def retrieveMavenArtifact(artifactId: String, errorMessage: (String) => Unit): Unit = {
+  def retrieveMavenArtifact(artifactId: String, errorMessage: DependencyManagerMessageCollector): Unit = {
     if (!modules.contains(artifactId)) {
-      maven.retrieve(artifactId, errorMessage)
+      maven.retrieve(artifactId, this, errorMessage)
     }
   }
 
@@ -112,7 +143,7 @@ class LibrariesVirtualFileSystem(maven: MavenDependencyAnnotationProcessor, reso
     }
   }
 
-  private def resourceResolver = {
+  private def resourceResolver: Iterator[WeaveResourceResolver] = {
     modules.values.iterator.map(_.asResourceResolver)
   }
 }

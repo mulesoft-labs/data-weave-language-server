@@ -2,8 +2,8 @@ plugins {
     id "com.github.node-gradle.node" version "2.2.4"
 }
 
-task runFastTest(type: NpmTask) {
-    args = ['run', 'test']
+task prepare(type: NpmTask) {
+    args = ['run', 'prepare']
 }
 
 jar.dependsOn(npmInstall)
@@ -20,5 +20,8 @@ node {
     // If true, it will download node using above parameters.
     // If false, it will try to use globally installed node.
     download = true
+}
 
+dependencies {
+    compile project(":data-weave-lang-server")
 }

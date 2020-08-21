@@ -20,30 +20,21 @@ import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.LSPWeaveToolingService
+import org.mule.weave.lsp.services.MessageLoggerService
 import org.mule.weave.lsp.services.ProjectDefinition
 import org.mule.weave.lsp.utils.DataWeaveUtils
+import org.mule.weave.lsp.vfs.ChainedVirtualFileSystem
 import org.mule.weave.lsp.vfs.ClassloaderVirtualFileSystem
-import org.mule.weave.lsp.vfs.FolderVirtualFileSystem
-import org.mule.weave.lsp.vfs.JarVirtualFileSystem
-import org.mule.weave.lsp.vfs.LazyVirtualFileSystem
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
-import org.mule.weave.lsp.vfs.ChainedVirtualFileSystem
 import org.mule.weave.v2.completion.EmptyDataFormatDescriptorProvider
-import org.mule.weave.v2.deps.Artifact
-import org.mule.weave.v2.deps.DependencyManagerController
 import org.mule.weave.v2.deps.MavenDependencyAnnotationProcessor
+import org.mule.weave.v2.deps.MavenDependencyManager
 import org.mule.weave.v2.deps.ResourceDependencyAnnotationProcessor
-import org.mule.weave.v2.editor.CompositeFileSystem
 import org.mule.weave.v2.editor.DefaultModuleLoaderFactory
-import org.mule.weave.v2.editor.EmptyVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.module.raml.RamlModuleLoader
-
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 
 class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
@@ -55,28 +46,27 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
       .build()
   )
 
-  private val dependencyManagerController = new LSPDependencyManagerController()
+  private val logger = new MessageLoggerService
 
-  private val resourceDependencyAnnotationProcessor = ResourceDependencyAnnotationProcessor(
-    new File(DataWeaveUtils.getCacheHome(), "resources"),
-    dependencyManagerController,
-    executorService
-  )
-
-  private val mavenDependencyAnnotationProcessor = new MavenDependencyAnnotationProcessor(
-    new File(DataWeaveUtils.getCacheHome(), "maven"),
-    dependencyManagerController,
+  private val dependencyManager = new MavenDependencyManager(new File(DataWeaveUtils.getCacheHome(), "maven"),
     executorService,
     new CacheLogger {
       override def downloadedArtifact(url: String, success: Boolean): Unit = {
         if (success)
-          dwTooling.logInfo(s"Downloaded: ${url}")
+          logger.logInfo(s"Downloaded: ${url}")
       }
     }
   )
 
+  private val librariesVFS = new LibrariesVirtualFileSystem(dependencyManager, logger)
 
-  private val librariesVFS = new LibrariesVirtualFileSystem(mavenDependencyAnnotationProcessor, resourceDependencyAnnotationProcessor)
+  private val resourceDependencyAnnotationProcessor = ResourceDependencyAnnotationProcessor(
+    new File(DataWeaveUtils.getCacheHome(), "resources"),
+    librariesVFS,
+    executorService
+  )
+
+  private val mavenDependencyAnnotationProcessor = new MavenDependencyAnnotationProcessor(librariesVFS, dependencyManager)
 
   private val projectDefinition = new ProjectDefinition(librariesVFS)
 
@@ -87,10 +77,9 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(dwTooling, executorService, projectVFS)
 
   private def createWeaveToolingService(): WeaveToolingService = {
+    //TODO: Remove when possible the classloader and put everything inside libraries
     val virtualFileSystems: Seq[VirtualFileSystem] = Seq(projectVFS, librariesVFS, new ClassloaderVirtualFileSystem(this.getClass.getClassLoader))
     val globalFVS = new ChainedVirtualFileSystem(virtualFileSystems)
-    //TODO: Remove when possible the classloader and put everything inside libraries
-
     val moduleLoader = new RamlModuleLoader()
     moduleLoader.resolver(globalFVS.asResourceResolver)
     val toolingService = new WeaveToolingService(globalFVS, EmptyDataFormatDescriptorProvider, Array(DefaultModuleLoaderFactory(moduleLoader)))
@@ -110,6 +99,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setHoverProvider(true)
     capabilities.setDocumentSymbolProvider(true)
     capabilities.setDefinitionProvider(true)
+    capabilities.setDocumentFormattingProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
@@ -137,33 +127,8 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     println("[DataWeave] Connect ")
     this.dwTooling.connect(client)
     this.projectDefinition.connect(client)
+    this.logger.connect(client)
   }
 
-  class LSPDependencyManagerController extends DependencyManagerController {
-
-    override def shouldDownload(id: String, kind: String): Boolean = {
-      val idSystem = librariesVFS.getModule(id)
-      idSystem == null || (idSystem eq EmptyVirtualFileSystem)
-    }
-
-    override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
-      dwTooling.logInfo("Artifact downloaded " + id + " with " + kind)
-      librariesVFS.addLibrary(id,
-        new LazyVirtualFileSystem(
-          () => {
-            new ChainedVirtualFileSystem(
-              Await.result(artifact, Duration.Inf).map((artifact) => {
-                if (!artifact.file.isDirectory) {
-                  new JarVirtualFileSystem(artifact.file)
-                } else {
-                  new FolderVirtualFileSystem(artifact.file)
-                }
-              })
-            )
-          }
-        )
-      )
-    }
-  }
 
 }

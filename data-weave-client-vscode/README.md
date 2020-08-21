@@ -1,4 +1,16 @@
-# README
-## This is the README for your extension "vscode" 
+# DataWeave Extension Support
 
-This is the extension to support DataWeave on VSCode
+This extension adds basic support for editing DataWeave scripts
+
+## Features
+
+* Autocompletion
+* Validation
+* Navigation
+* Local Rename
+* Reformat
+* Outline
+* Local Support for References
+  
+
+

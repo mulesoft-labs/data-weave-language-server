@@ -94,8 +94,8 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
 
   private def initBasicDataWeaveProject(): ProjectDefinition = {
     loadLibrary(createWLangArtifactId(wlangVersion.value()))
-//    loadLibrary(createDependencyManagerArtifactId(wlangVersion.value()))
-//    loadLibrary(createHttpModuleArtifactId("1.0.0-SNAPSHOT"))
+    //    loadLibrary(createDependencyManagerArtifactId(wlangVersion.value()))
+    //    loadLibrary(createHttpModuleArtifactId("1.0.0-SNAPSHOT"))
 
     registerListener(ProjectDefinition.WLANG_VERSION_PROP_NAME, new PropertyChangeListener {
       override def onPropertyChanged(pce: PropertyChangeEvent): Unit = {
@@ -143,8 +143,8 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   }
 
   private def loadLibrary(artifactId: String): Unit = {
-    librariesVFS.retrieveMavenArtifact(artifactId, (message) => {
-      client.logMessage(new MessageParams(MessageType.Error, message))
+    librariesVFS.retrieveMavenArtifact(artifactId, (id, message) => {
+      client.logMessage(new MessageParams(MessageType.Error, s"Error while resolving ${id} : \n" + message))
     })
   }
 
