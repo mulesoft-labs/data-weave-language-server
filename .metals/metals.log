@@ -1,0 +1,39 @@
+2020.07.21 17:26:08 INFO  started: Metals version 0.9.2 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.07.21 17:26:09 INFO  time: initialize in 0.54s
+2020.07.21 17:41:43 INFO  no build target: using presentation compiler with only scala-library
+2020.07.21 17:41:47 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/DataWeaveLanguageApp.scala
+Jul 21, 2020 5:41:47 PM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 3
+Jul 21, 2020 5:41:47 PM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 1
+2020.07.21 17:41:47 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.07.21 17:41:50 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/DataWeaveWorkspaceService.scala
+2020.07.21 17:41:51 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/DataWeaveLanguageApp.scala
+2020.07.21 17:41:51 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/DataWeaveDocumentService.scala
+2020.07.21 17:42:06 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/vfs/ClassloaderVirtualFileSystem.scala
+2020.07.21 17:42:07 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/vfs/FileBasedVirtualFile.scala
+2020.07.21 17:42:07 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/vfs/ProjectVirtualFileSystem.scala
+2020.07.21 17:43:53 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.07.21 17:44:01 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.07.22 11:48:13 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/DataWeaveLanguageApp.scala
+2020.07.22 11:48:15 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.07.22 16:40:52 INFO  shutting down Metals
+2020.08.14 16:41:44 INFO  started: Metals version 0.9.2 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.08.14 16:41:44 INFO  time: initialize in 0.53s
+2020.08.14 16:53:15 INFO  no build target: using presentation compiler with only scala-library
+2020.08.14 16:53:17 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+Aug 14, 2020 4:53:17 PM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 1
+2020.08.14 16:53:43 WARN  code navigation does not work for the file '/Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala' because it doesn't belong to a build target.
+2020.08.14 16:54:11 WARN  code navigation does not work for the file '/Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala' because it doesn't belong to a build target.
+2020.08.18 13:04:37 INFO  started: Metals version 0.9.2 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.08.18 13:04:38 INFO  time: initialize in 1.12s
+2020.08.18 13:04:43 INFO  no build target: using presentation compiler with only scala-library
+2020.08.18 13:04:45 INFO  skipping build import with status 'Requested'
+2020.08.18 13:04:46 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.08.19 20:47:40 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.08.19 20:47:45 INFO  time: initialize in 5.03s
+2020.08.19 20:47:51 INFO  skipping build import with status 'Requested'
+2020.08.20 11:40:35 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.08.20 11:40:36 INFO  time: initialize in 1.62s
+2020.08.20 11:40:42 INFO  shutting down Metals

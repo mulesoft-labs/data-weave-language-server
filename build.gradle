@@ -6,8 +6,8 @@ subprojects {
     apply plugin: "scala"
 
     repositories {
-        mavenLocal()
-        mavenCentral()
+//        mavenLocal()
+        mavenCentraDataWeaveWorkspaceServicel()
         maven {
             name "mule-releases"
             url "http://repository.mulesoft.org/nexus/content/repositories/releases/"
@@ -15,6 +15,10 @@ subprojects {
         maven {
             name "mule-snapshots"
             url "http://repository.mulesoft.org/nexus/content/repositories/snapshots/"
+        }
+        maven {
+            name "jitpack"
+            url "https://jitpack.io"
         }
     }
 

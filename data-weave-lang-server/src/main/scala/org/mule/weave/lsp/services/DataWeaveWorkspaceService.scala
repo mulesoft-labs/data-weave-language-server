@@ -10,16 +10,17 @@ import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 
-class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:ProjectDefinition) extends WorkspaceService {
+class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:ProjectDefinition, dwTooling: LSPWeaveToolingService) extends WorkspaceService {
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
-    println("[DataWeaveWorkspaceService] Changed Configuration: " + params.getSettings)
+    dwTooling.logInfo("[DataWeaveWorkspaceService] Changed Configuration: " + params.getSettings)
     pd.updateSettings(params)
   }
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
-    println("[DataWeaveWorkspaceService] executeCommand: " + params)
-    throw new UnsupportedOperationException
+    dwTooling.logInfo("[DataWeaveWorkspaceService] executeCommand: " + params)
+
+    CompletableFuture.completedFuture(null)
   }
 
   override def didChangeWorkspaceFolders(params: DidChangeWorkspaceFoldersParams): Unit = {
@@ -28,7 +29,7 @@ class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:Project
 
   override def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
     params.getChanges.forEach((fe) => {
-      println("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
+      dwTooling.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
       fe.getType match {
         case FileChangeType.Created => {
           projectVFS.created(fe.getUri)

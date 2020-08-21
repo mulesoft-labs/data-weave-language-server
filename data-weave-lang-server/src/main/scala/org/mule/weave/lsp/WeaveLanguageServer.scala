@@ -1,6 +1,7 @@
 package org.mule.weave.lsp
 
 import java.io.File
+import java.util
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 
@@ -102,6 +103,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setDocumentFormattingProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
+    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(util.Arrays.asList("bat.runFile", "bat.runFolder", "bat.installCli")))
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 
@@ -120,7 +122,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def getWorkspaceService: WorkspaceService = {
-    new DataWeaveWorkspaceService(projectVFS, projectDefinition)
+    new DataWeaveWorkspaceService(projectVFS, projectDefinition, this.dwTooling)
   }
 
   override def connect(client: LanguageClient): Unit = {

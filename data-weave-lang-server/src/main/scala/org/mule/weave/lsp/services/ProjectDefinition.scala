@@ -2,8 +2,9 @@ package org.mule.weave.lsp.services
 
 import java.io.File
 import java.util
+import java.util.Map
 
-import com.google.gson.JsonObject
+import com.google.gson.{JsonElement, JsonObject}
 import org.eclipse.lsp4j.DidChangeConfigurationParams
 import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.MessageParams
@@ -51,16 +52,16 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
     this.client = client
   }
 
-  private def loadSettings(setting: mutable.Map[String, AnyRef]): Unit = {
+  private def loadSettings(setting: JsonObject): Unit = {
     if (setting != null) {
-      updateSettings(setting.toMap, triggerUpdateNotifications = false)
+      updateSettings(setting, triggerUpdateNotifications = false)
     }
   }
 
   def initialize(params: InitializeParams): Unit = {
     val allSettings = params.getInitializationOptions.asInstanceOf[util.Map[String, AnyRef]]
     if (allSettings != null) {
-      val weaveSettings = mapAsScalaMap(allSettings.get("data-weave").asInstanceOf[util.Map[String, AnyRef]])
+      val weaveSettings = allSettings.get("data-weave").asInstanceOf[JsonObject]
       loadSettings(weaveSettings)
     }
     this.params = params
@@ -108,14 +109,14 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   def updateSettings(settings: DidChangeConfigurationParams): Unit = {
     val allSettings = settings.getSettings.asInstanceOf[JsonObject]
     if (allSettings != null) {
-      val weaveSettings: mutable.Map[String, AnyRef] = mapAsScalaMap(allSettings.get("data-weave").asInstanceOf[util.Map[String, AnyRef]])
-      updateSettings(weaveSettings)
+      val element: JsonObject = allSettings.get("data-weave").asInstanceOf[JsonObject]
+      updateSettings(element)
     }
   }
 
-  def updateSettings(settings: mutable.Map[String, AnyRef]): Unit = {
+  def updateSettings(settings: JsonObject): Unit = {
     if (settings != null) {
-      updateSettings(settings.toMap, triggerUpdateNotifications = true)
+      updateSettings(settings, triggerUpdateNotifications = true)
     }
   }
 
@@ -131,11 +132,11 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
     })
   }
 
-  private def updateSettings(setting: Map[String, AnyRef], triggerUpdateNotifications: Boolean): Unit = {
-    wlangVersion.updateValue(setting)
-    wlangVersion.updateValue(setting)
-    wlangVersion.updateValue(setting)
-    languageLevelVersion.updateValue(setting)
+  private def updateSettings(jsonObject: JsonObject, triggerUpdateNotifications: Boolean): Unit = {
+    wlangVersion.updateValue(jsonObject)
+    wlangVersion.updateValue(jsonObject)
+    wlangVersion.updateValue(jsonObject)
+    languageLevelVersion.updateValue(jsonObject)
   }
 
   def dwLanguageLevel: String = {
@@ -166,7 +167,7 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
 
 
   private def createBATArtifactId(version: String): String = {
-    "com.mulesoft.bat:bat-bdd:" + version
+    "com.mulesoft.bat:bdd-core:" + version
   }
 
   def isTypeLevel: Boolean = validationLevel.value() == TYPE_LEVEL
@@ -182,10 +183,10 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
 
     def value(): T = valueHolder
 
-    def updateValue(v: Map[String, AnyRef]): Unit = {
-      v.get(propertyName) match {
+    def updateValue(v: JsonObject): Unit = {
+      Option(v.get(propertyName)) match {
         case Some(value) => {
-          val newValue = value.asInstanceOf[T]
+          val newValue = value.getAsString.asInstanceOf[T]
           if (!newValue.equals(valueHolder)) {
             val oldValue: T = valueHolder
             valueHolder = newValue
@@ -209,7 +210,7 @@ trait PropertyChangeListener {
 
 object ProjectDefinition {
   val DEFAULT_VERSION: String = "2.3.1-SNAPSHOT"
-  val DEFAULT_BAT_VERSION = "1.0.72"
+  val DEFAULT_BAT_VERSION = "1.0.88"
   val TYPE_LEVEL = "type"
   val SCOPE_LEVEL = "scope"
   val PARSE_LEVEL = "parse"

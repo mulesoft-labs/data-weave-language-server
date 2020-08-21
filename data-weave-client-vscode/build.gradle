@@ -8,7 +8,7 @@ task prepare(type: NpmTask) {
 
 jar.dependsOn(npmInstall)
 
-test.dependsOn(runFastTest)
+//test.dependsOn(runFastTest)
 
 node {
     // Version of node to use.
