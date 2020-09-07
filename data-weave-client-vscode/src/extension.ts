@@ -2,128 +2,144 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-'use strict';
+'use strict'
 
-import * as fs from "fs"
-import * as path from 'path';
-import * as net from 'net';
-import * as child_process from "child_process";
+import * as fs from 'fs'
+import * as path from 'path'
+import * as net from 'net'
+import * as child_process from 'child_process'
 
-import { workspace, Disposable, ExtensionContext } from 'vscode';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, StreamInfo } from 'vscode-languageclient';
+import { workspace, ExtensionContext, commands, window, Uri } from 'vscode'
+import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-languageclient'
+import { BatRunner } from './batRunner'
 
 export function activate(context: ExtensionContext) {
 
-	function createServer(): Promise<StreamInfo> {
-		return new Promise((resolve, reject) => {
-			const server = net.createServer(socket => {
-				console.log("[DataWeave] Socket created")
 
-				resolve({
-					reader: socket,
-					writer: socket,
-				});
+  function createServer(): Promise<StreamInfo> {
+    return new Promise((resolve, reject) => {
+      const server = net.createServer(socket => {
+        console.log('[DataWeave] Socket created')
 
-				socket.on('end', () => console.log("[DataWeave] Disconnected"))
-			}).on('error', (err) => { throw err })
+        resolve({
+          reader: socket,
+          writer: socket,
+        })
 
-			let javaExecutablePath = findJavaExecutable('java');
+        socket.on('end', () => console.log('[DataWeave] Disconnected'))
+      }).on('error', (err) => { throw err })
 
-			// grab a random port.
-			server.listen(() => {
+      let javaExecutablePath = findJavaExecutable('java')
 
-				const address = server.address()
-				const port = typeof address === 'object' ? address.port : 0
-				const storagePath = context.storagePath || context.globalStoragePath
-				const weaveJarLocation = path.resolve(context.extensionPath, 'libs', 'data-weave-lang-server-all.jar');
-				let logFile = storagePath + '/vscode-data-weave-lang-server.log';
-			
+      // grab a random port.
+      server.listen(() => {
 
-				console.log("[DataWeave] Storage path: " + storagePath)
-				console.log("[DataWeave] Jar path: " + weaveJarLocation)
-				console.log("[DataWeave] PORT: " + port)
-				console.log("[DataWeave] Log File: " + logFile)
-				console.log("[DataWeave] Java Location: " + javaExecutablePath)
+        const address = server.address()
+        const port = typeof address === 'object' ? address.port : 0
+        const storagePath = context.storagePath || context.globalStoragePath
+        const weaveJarLocation = path.resolve(context.extensionPath, 'libs', 'data-weave-lang-server-all.jar')
+        let logFile = storagePath + '/vscode-data-weave-lang-server.log'
 
-				// Start the child java process
-				let options = { cwd: workspace.rootPath };
-				let args = [
-					'-jar',
-					// '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005',
-					weaveJarLocation,					
-					port.toString()
-				]
+        console.log('[DataWeave] Storage path: ' + storagePath)
+        console.log('[DataWeave] Jar path: ' + weaveJarLocation)
+        console.log('[DataWeave] PORT: ' + port)
+        console.log('[DataWeave] Log File: ' + logFile)
+        console.log('[DataWeave] Java Location: ' + javaExecutablePath)
 
-				console.log("[DataWeave] Spawning at port: " + port);
-				const process = child_process.spawn(javaExecutablePath, args, options)
+        // Start the child java process
+        let options = {cwd: workspace.rootPath}
+        let args = [
+          '-jar',
+          // '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005',
+          weaveJarLocation,
+          port.toString()
+        ]
 
-				if (!fs.existsSync(storagePath))
-					fs.mkdirSync(storagePath)
+        console.log('[DataWeave] Spawning at port: ' + port)
+       const process = child_process.spawn(javaExecutablePath, args, options)
 
-				const logStream = fs.createWriteStream(logFile, { flags: 'w' })
+        if (!fs.existsSync(storagePath))
+          fs.mkdirSync(storagePath)
 
-				process.stdout.pipe(logStream)
-				process.stderr.pipe(logStream)
-			});
-		});
-	};
+        const logStream = fs.createWriteStream(logFile, {flags: 'w'})
 
-	// Options to control the language client
-    let clientOptions: LanguageClientOptions = {
-        // Register the server for plain text documents
-        documentSelector: ['data-weave'],
-        synchronize: {
-          // Synchronize the setting section 'dataWeaveLS' to the server
-          configurationSection: 'data-weave',
-          // Notify the server about file changes to '.clientrc files contain in the workspace
-          fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml}')
-        },
-        diagnosticCollectionName: 'DataWeave'
-      }
+        const batRunner = new BatRunner(process)
+        const batCommands = batRunner.registerCommands()
+        const outputChannel = batRunner.getOutputChannel()
+        outputChannel.append("registering outputs");
+        this.process.stdout.on("data", (data) => {
+          outputChannel.appendLine(data.toString());
+          logStream._write(data.toString(), "utf-8", (error) => {})
+        });
 
-	// Create the language client and start the client.
-	let disposable = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions).start();
+        this.process.stderr.on("data", (data) => {
+          outputChannel.appendLine(data.toString());
+        });
 
-	// Push the disposable to the context's subscriptions so that the 
-	// client can be deactivated on extension deactivation
-	context.subscriptions.push(disposable);
+        process.stderr.pipe(logStream)
+        process.stdout.pipe(logStream)
+
+        context.subscriptions.push(batCommands)
+
+      })
+    })
+
+  }
+
+  // Options to control the language client
+  let clientOptions: LanguageClientOptions = {
+    // Register the server for plain text documents
+    documentSelector: ['data-weave'],
+    synchronize: {
+      // Synchronize the setting section 'dataWeaveLS' to the server
+      configurationSection: 'data-weave',
+      // Notify the server about file changes to '.clientrc files contain in the workspace
+      fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml}')
+    },
+    diagnosticCollectionName: 'DataWeave'
+  }
+  // Create the language client and start the client.
+  const client = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions).start()
+  // Push the disposable to the context's subscriptions so that the
+  // client can be deactivated on extension deactivation
+  context.subscriptions.push(client)
+
 
 }
-
 
 // MIT Licensed code from: https://github.com/georgewfraser/vscode-javac
 function findJavaExecutable(binname: string) {
-	binname = correctBinname(binname);
+  binname = correctBinname(binname)
 
-	// First search each JAVA_HOME bin folder
-	if (process.env['JAVA_HOME']) {
-		let workspaces = process.env['JAVA_HOME'].split(path.delimiter);
-		for (let i = 0; i < workspaces.length; i++) {
-			let binpath = path.join(workspaces[i], 'bin', binname);
-			if (fs.existsSync(binpath)) {
-				return binpath;
-			}
-		}
-	}
+  // First search each JAVA_HOME bin folder
+  if (process.env['JAVA_HOME']) {
+    let workspaces = process.env['JAVA_HOME'].split(path.delimiter)
+    for (let i = 0; i < workspaces.length; i++) {
+      let binpath = path.join(workspaces[i], 'bin', binname)
+      if (fs.existsSync(binpath)) {
+        return binpath
+      }
+    }
+  }
 
-	// Then search PATH parts
-	if (process.env['PATH']) {
-		let pathparts = process.env['PATH'].split(path.delimiter);
-		for (let i = 0; i < pathparts.length; i++) {
-			let binpath = path.join(pathparts[i], binname);
-			if (fs.existsSync(binpath)) {
-				return binpath;
-			}
-		}
-	}
+  // Then search PATH parts
+  if (process.env['PATH']) {
+    let pathparts = process.env['PATH'].split(path.delimiter)
+    for (let i = 0; i < pathparts.length; i++) {
+      let binpath = path.join(pathparts[i], binname)
+      if (fs.existsSync(binpath)) {
+        return binpath
+      }
+    }
+  }
 
-	// Else return the binary name directly (this will likely always fail downstream) 
-	return null;
+  // Else return the binary name directly (this will likely always fail downstream)
+  return null
 }
 
 function correctBinname(binname: string) {
-	if (process.platform === 'win32')
-		return binname + '.exe';
-	else
-		return binname;
+  if (process.platform === 'win32')
+    return binname + '.exe'
+  else
+    return binname
 }

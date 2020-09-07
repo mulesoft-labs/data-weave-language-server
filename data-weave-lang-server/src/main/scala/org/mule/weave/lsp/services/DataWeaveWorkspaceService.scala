@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.services
 
+import java.util
 import java.util.concurrent.CompletableFuture
 
 import org.eclipse.lsp4j.DidChangeConfigurationParams
@@ -10,16 +11,21 @@ import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 
-class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:ProjectDefinition, dwTooling: LSPWeaveToolingService) extends WorkspaceService {
+import scala.collection.JavaConverters._
+
+class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd: ProjectDefinition, logger: MessageLoggerService) extends WorkspaceService {
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
-    dwTooling.logInfo("[DataWeaveWorkspaceService] Changed Configuration: " + params.getSettings)
+    logger.logInfo("[DataWeaveWorkspaceService] Changed Configuration: " + params.getSettings)
     pd.updateSettings(params)
   }
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
-    dwTooling.logInfo("[DataWeaveWorkspaceService] executeCommand: " + params)
-
+    logger.logInfo("[DataWeaveWorkspaceService] executeCommand: " + params)
+    if(params.getCommand == "bat.runCurrentBatTest"){
+      val arguments = params.getArguments.asScala
+      pd.batProjectManager.run(arguments.head.toString, arguments.tail.head.toString)
+    }
     CompletableFuture.completedFuture(null)
   }
 
@@ -29,17 +35,11 @@ class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd:Project
 
   override def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
     params.getChanges.forEach((fe) => {
-      dwTooling.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
+      logger.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
       fe.getType match {
-        case FileChangeType.Created => {
-          projectVFS.created(fe.getUri)
-        }
-        case FileChangeType.Changed => {
-          projectVFS.changed(fe.getUri)
-        }
-        case FileChangeType.Deleted => {
-          projectVFS.deleted(fe.getUri)
-        }
+        case FileChangeType.Created => projectVFS.created(fe.getUri)
+        case FileChangeType.Changed => projectVFS.changed(fe.getUri)
+        case FileChangeType.Deleted => projectVFS.deleted(fe.getUri)
       }
     })
   }

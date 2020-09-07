@@ -37,3 +37,62 @@ WARNING: Unmatched cancel notification for request id 1
 2020.08.20 11:40:35 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
 2020.08.20 11:40:36 INFO  time: initialize in 1.62s
 2020.08.20 11:40:42 INFO  shutting down Metals
+2020.09.03 15:07:55 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.03 15:07:57 INFO  time: initialize in 2.04s
+2020.09.03 20:10:27 INFO  shutting down Metals
+2020.09.04 11:11:46 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 11:11:47 INFO  time: initialize in 0.63s
+Sep 04, 2020 11:21:25 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
+Sep 04, 2020 11:22:51 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
+2020.09.04 11:23:46 INFO  shutting down Metals
+2020.09.04 11:26:45 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 11:26:45 INFO  time: initialize in 0.65s
+2020.09.04 11:26:47 INFO  skipping build import with status 'Requested'
+Sep 04, 2020 11:28:00 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
+2020.09.04 11:28:02 INFO  shutting down Metals
+2020.09.04 13:14:22 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 13:14:23 INFO  time: initialize in 0.94s
+2020.09.04 13:14:25 INFO  no build target: using presentation compiler with only scala-library
+2020.09.04 13:14:27 INFO  skipping build import with status 'Requested'
+2020.09.04 13:14:31 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+2020.09.04 13:15:35 INFO  shutting down Metals
+2020.09.04 13:15:59 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 13:15:59 INFO  time: initialize in 0.54s
+2020.09.04 13:16:01 INFO  skipping build import with status 'Requested'
+2020.09.04 13:16:11 INFO  shutting down Metals
+2020.09.04 13:17:48 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 13:17:49 INFO  time: initialize in 0.88s
+2020.09.04 13:17:52 INFO  skipping build import with status 'Requested'
+2020.09.04 16:11:20 INFO  shutting down Metals
+2020.09.04 16:16:20 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.04 16:16:21 INFO  time: initialize in 0.83s
+2020.09.04 16:16:23 INFO  skipping build import with status 'Requested'
+2020.09.04 18:42:41 INFO  no build target: using presentation compiler with only scala-library
+2020.09.04 18:42:45 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+Sep 04, 2020 6:42:46 PM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 1
+Sep 04, 2020 6:42:46 PM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 3
+2020.09.07 10:34:43 INFO  shutting down Metals
+2020.09.07 10:35:18 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.07 10:35:18 INFO  time: initialize in 0.79s
+2020.09.07 10:35:23 INFO  skipping build import with status 'Requested'
+2020.09.07 10:37:14 INFO  shutting down Metals
+2020.09.07 10:38:12 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.07 10:38:13 INFO  time: initialize in 0.86s
+2020.09.07 10:38:15 INFO  skipping build import with status 'Requested'
+2020.09.07 10:38:57 INFO  no build target: using presentation compiler with only scala-library
+2020.09.07 10:38:59 WARN  no build target for: /Users/nbattiato/mulesoft/data-weave-language-server/data-weave-lang-server/src/main/scala/org/mule/weave/lsp/WeaveLanguageServer.scala
+Sep 07, 2020 10:38:59 AM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 1
+2020.09.07 10:39:10 INFO  shutting down Metals
+2020.09.07 10:41:39 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.07 10:41:40 INFO  time: initialize in 1s
+2020.09.07 10:41:43 INFO  skipping build import with status 'Requested'
+2020.09.07 13:43:55 INFO  shutting down Metals
+2020.09.07 13:44:24 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.07 13:44:25 INFO  time: initialize in 0.85s
+2020.09.07 13:44:27 INFO  skipping build import with status 'Requested'

@@ -7,7 +7,7 @@ subprojects {
 
     repositories {
 //        mavenLocal()
-        mavenCentraDataWeaveWorkspaceServicel()
+        mavenCentral()
         maven {
             name "mule-releases"
             url "http://repository.mulesoft.org/nexus/content/repositories/releases/"
@@ -24,6 +24,7 @@ subprojects {
 
     dependencies {
         compile group: 'org.scala-lang', name: 'scala-library', version: scalaVersion
+        testCompile group: 'org.scalatest', name: 'scalatest_2.12', version: '3.0.1'
     }
 }
 

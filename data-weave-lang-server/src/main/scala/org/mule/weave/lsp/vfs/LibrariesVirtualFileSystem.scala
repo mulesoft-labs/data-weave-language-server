@@ -1,5 +1,7 @@
 package org.mule.weave.lsp.vfs
 
+import java.io.File
+
 import org.mule.weave.lsp.services.MessageLoggerService
 import org.mule.weave.v2.deps.Artifact
 import org.mule.weave.v2.deps.ArtifactResolutionCallback
@@ -31,7 +33,7 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, logger: MessageLogger
   }
 
   override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
-    logger.logInfo(s"Artifact: ${kind}@${id} was downloaded successfully.")
+    logger.logInfo(s"Artifact: $kind@$id was downloaded successfully.")
     addLibrary(id,
       new LazyVirtualFileSystem(
         () => {

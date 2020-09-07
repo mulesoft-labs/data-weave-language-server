@@ -46,6 +46,10 @@
         ],
         "commands": [
             {
+                "command": "bat.runCurrentBatTest.invoked",
+                "title": "BAT: Run current test"
+            },
+            {
                 "command": "bat.runFile",
                 "title": "DataWeave: BAT: Run the current file"
             },
@@ -58,6 +62,15 @@
                 "title": "DataWeave: BAT: Install BAT command line interface"
             }
         ],
+        "menus": {
+            "editor/context": [
+                {
+                    "when": "!inOutput && editorLangId == data-weave",
+                    "command": "bat.runCurrentBatTest.invoked",
+                    "group": "navigation"
+                }
+            ]
+        },
         "configuration": {
             "type": "object",
             "title": "DataWeave",
