@@ -1,15 +1,14 @@
-name: DataWeave LSP CI
+name: Build DataWeave LSP CI
 on:
   push:
-    branches: [ master ]
-    tags:
-      - '*'
+    branches:
+      - master
   pull_request:
     branches: [ master ]
 
 
 jobs:
-  build:
+  BUILD_EXTENSION:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -21,10 +20,4 @@ jobs:
       run: ./gradlew data-weave-lang-server:assembleShadowDist
     - name: Build Extension
       run:  ./gradlew data-weave-client-vscode:packageExtension
-    - name: Publish Extension
-      if: success() && startsWith( github.ref, 'refs/tags/releases/') && matrix.os == 'ubuntu-latest'
-      run: |
-        export EXTENSION_VERSION=$(echo "${{github.ref}}" | sed -e 's,.*/\(.*\),\1,')
-        ./gradlew data-weave-client-vscode:publishExtension
-      env:
-        VSCE_PAT: ${{secrets.VSCE_PAT}}
+
