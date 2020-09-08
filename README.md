@@ -18,3 +18,8 @@ This project contains the first basic implementation of a DataWeave LSP
 
 ``` 
 This is going to generate the vsix on the `data-weave-client-vscode` directory that you can later install it in your vscode.
+
+3. Release a version
+
+In order to release just create a tag with releases/<next_version> example if we want to release 0.0.4
+we just need to create release/0.0.4 and push the tag. The CI should take care of the rest
