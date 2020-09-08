@@ -31,15 +31,15 @@ This extension is build on a Mac and we haven't yet tested on Windows or Linux
 
 ### Completion
 
-![Completion](images/completion.png)
+![Completion](https://raw.githubusercontent.com/mulesoft-labs/data-weave-language-server/master/data-weave-client-vscode/images/completion.png)
 
 
 ### Hover
-![Completion](images/hover.png)
+![Completion](https://raw.githubusercontent.com/mulesoft-labs/data-weave-language-server/master/data-weave-client-vscode/images/hover.png)
 
 
 ### Rename
-![Completion](images/rename.png) 
+![Completion](https://raw.githubusercontent.com/mulesoft-labs/data-weave-language-server/master/data-weave-client-vscode/images/rename.png) 
 
   
 
