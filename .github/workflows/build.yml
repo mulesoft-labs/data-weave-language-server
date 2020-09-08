@@ -2,8 +2,11 @@ name: DataWeave LSP CI
 on:
   push:
     branches: [ master ]
+    tags:
+      - '*'
   pull_request:
     branches: [ master ]
+
 
 jobs:
   build:
