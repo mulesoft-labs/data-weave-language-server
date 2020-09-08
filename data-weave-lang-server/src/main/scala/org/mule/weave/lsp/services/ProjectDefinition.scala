@@ -4,28 +4,16 @@ import java.io.File
 import java.util
 
 import com.google.gson.JsonObject
-import org.eclipse.lsp4j.DidChangeConfigurationParams
-import org.eclipse.lsp4j.InitializeParams
-import org.eclipse.lsp4j.MessageParams
-import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.services.LanguageClient
-import org.mule.weave.lsp.services.ProjectDefinition.BAT_VERSION_PROP_NAME
-import org.mule.weave.lsp.services.ProjectDefinition.DEFAULT_BAT_VERSION
-import org.mule.weave.lsp.services.ProjectDefinition.DEFAULT_VERSION
-import org.mule.weave.lsp.services.ProjectDefinition.LANGUAGE_LEVEL_PROP_NAME
-import org.mule.weave.lsp.services.ProjectDefinition.PARSE_LEVEL
-import org.mule.weave.lsp.services.ProjectDefinition.SCOPE_LEVEL
-import org.mule.weave.lsp.services.ProjectDefinition.TYPE_LEVEL
-import org.mule.weave.lsp.services.ProjectDefinition.VALIDATION_LEVEL_PROP_NAME
-import org.mule.weave.lsp.services.ProjectDefinition.WLANG_VERSION_PROP_NAME
+import org.eclipse.lsp4j.{DidChangeConfigurationParams, InitializeParams, MessageParams, MessageType}
+import org.mule.weave.lsp.bat.BatProjectManager
+import org.mule.weave.lsp.services.ProjectDefinition._
 import org.mule.weave.lsp.utils.RootFolderUtils
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
+class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem, val batProjectManager: BatProjectManager) {
 
   var client: LanguageClient = _
 
@@ -33,6 +21,7 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   var languageLevelVersion: Property[String] = Property(LANGUAGE_LEVEL_PROP_NAME, DEFAULT_VERSION)
   var validationLevel: Property[String] = Property(VALIDATION_LEVEL_PROP_NAME, TYPE_LEVEL)
   var batVersion: Property[String] = Property(BAT_VERSION_PROP_NAME, DEFAULT_BAT_VERSION)
+  var batWrapperVersion: Property[String] = Property(BAT_WRAPPER_VERSION_PROP_NAME, DEFAULT_BAT_WRAPPER_VERSION)
   var params: InitializeParams = _
 
   private val listeners: ArrayBuffer[(String, PropertyChangeListener)] = ArrayBuffer()
@@ -51,16 +40,16 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
     this.client = client
   }
 
-  private def loadSettings(setting: mutable.Map[String, AnyRef]): Unit = {
+  private def loadSettings(setting: JsonObject): Unit = {
     if (setting != null) {
-      updateSettings(setting.toMap, triggerUpdateNotifications = false)
+      updateSettings(setting, triggerUpdateNotifications = false)
     }
   }
 
   def initialize(params: InitializeParams): Unit = {
     val allSettings = params.getInitializationOptions.asInstanceOf[util.Map[String, AnyRef]]
     if (allSettings != null) {
-      val weaveSettings = mapAsScalaMap(allSettings.get("data-weave").asInstanceOf[util.Map[String, AnyRef]])
+      val weaveSettings = allSettings.get("data-weave").asInstanceOf[JsonObject]
       loadSettings(weaveSettings)
     }
     this.params = params
@@ -81,7 +70,7 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   }
 
   private def initBatProject() = {
-
+    batProjectManager.setupBat()
     //TODO: Parse exchange.json
     loadLibrary(createBATArtifactId(batVersion.value()))
     registerListener(ProjectDefinition.BAT_VERSION_PROP_NAME, new PropertyChangeListener {
@@ -108,14 +97,14 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
   def updateSettings(settings: DidChangeConfigurationParams): Unit = {
     val allSettings = settings.getSettings.asInstanceOf[JsonObject]
     if (allSettings != null) {
-      val weaveSettings: mutable.Map[String, AnyRef] = mapAsScalaMap(allSettings.get("data-weave").asInstanceOf[util.Map[String, AnyRef]])
-      updateSettings(weaveSettings)
+      val element: JsonObject = allSettings.get("data-weave").asInstanceOf[JsonObject]
+      updateSettings(element)
     }
   }
 
-  def updateSettings(settings: mutable.Map[String, AnyRef]): Unit = {
+  def updateSettings(settings: JsonObject): Unit = {
     if (settings != null) {
-      updateSettings(settings.toMap, triggerUpdateNotifications = true)
+      updateSettings(settings, triggerUpdateNotifications = true)
     }
   }
 
@@ -131,11 +120,11 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
     })
   }
 
-  private def updateSettings(setting: Map[String, AnyRef], triggerUpdateNotifications: Boolean): Unit = {
-    wlangVersion.updateValue(setting)
-    wlangVersion.updateValue(setting)
-    wlangVersion.updateValue(setting)
-    languageLevelVersion.updateValue(setting)
+  private def updateSettings(jsonObject: JsonObject, triggerUpdateNotifications: Boolean): Unit = {
+    wlangVersion.updateValue(jsonObject)
+    wlangVersion.updateValue(jsonObject)
+    wlangVersion.updateValue(jsonObject)
+    languageLevelVersion.updateValue(jsonObject)
   }
 
   def dwLanguageLevel: String = {
@@ -166,7 +155,7 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
 
 
   private def createBATArtifactId(version: String): String = {
-    "com.mulesoft.bat:bat-bdd:" + version
+    "com.mulesoft.bat:bdd-core:" + version
   }
 
   def isTypeLevel: Boolean = validationLevel.value() == TYPE_LEVEL
@@ -182,10 +171,10 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem) {
 
     def value(): T = valueHolder
 
-    def updateValue(v: Map[String, AnyRef]): Unit = {
-      v.get(propertyName) match {
+    def updateValue(v: JsonObject): Unit = {
+      Option(v.get(propertyName)) match {
         case Some(value) => {
-          val newValue = value.asInstanceOf[T]
+          val newValue = value.getAsString.asInstanceOf[T]
           if (!newValue.equals(valueHolder)) {
             val oldValue: T = valueHolder
             valueHolder = newValue
@@ -209,7 +198,9 @@ trait PropertyChangeListener {
 
 object ProjectDefinition {
   val DEFAULT_VERSION: String = "2.3.1-SNAPSHOT"
-  val DEFAULT_BAT_VERSION = "1.0.72"
+  val DEFAULT_BAT_VERSION = "1.0.88"
+  val DEFAULT_BAT_WRAPPER_VERSION = "1.0.58"
+  val DEFAULT_BAT_HOME = ".bat"
   val TYPE_LEVEL = "type"
   val SCOPE_LEVEL = "scope"
   val PARSE_LEVEL = "parse"
@@ -217,5 +208,6 @@ object ProjectDefinition {
   val LANGUAGE_LEVEL_PROP_NAME = "languageLevel"
   val VALIDATION_LEVEL_PROP_NAME = "validationLevel"
   val BAT_VERSION_PROP_NAME = "batVersion"
+  val BAT_WRAPPER_VERSION_PROP_NAME = "batWrapperVersion"
 }
 

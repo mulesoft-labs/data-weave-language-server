@@ -1,6 +1,7 @@
 package org.mule.weave.lsp
 
 import java.io.File
+import java.util
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 
@@ -17,6 +18,7 @@ import org.eclipse.lsp4j.services.LanguageClientAware
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
+import org.mule.weave.lsp.bat.BatProjectManager
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.LSPWeaveToolingService
@@ -46,7 +48,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
       .build()
   )
 
-  private val logger = new MessageLoggerService
+  private val logger: MessageLoggerService = new MessageLoggerService
 
   private val dependencyManager = new MavenDependencyManager(new File(DataWeaveUtils.getCacheHome(), "maven"),
     executorService,
@@ -68,7 +70,9 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
   private val mavenDependencyAnnotationProcessor = new MavenDependencyAnnotationProcessor(librariesVFS, dependencyManager)
 
-  private val projectDefinition = new ProjectDefinition(librariesVFS)
+  private val batProjectManager: BatProjectManager = new BatProjectManager(dependencyManager, logger)
+
+  private val projectDefinition = new ProjectDefinition(librariesVFS, batProjectManager)
 
   private val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(projectDefinition)
 
@@ -89,8 +93,8 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
-    println("[DataWeave] Root URI: " + params.getRootUri)
-    println("[DataWeave] Initialization Option: " + params.getInitializationOptions)
+    logger.logInfo("[DataWeave] Root URI: " + params.getRootUri)
+    logger.logInfo("[DataWeave] Initialization Option: " + params.getInitializationOptions)
     this.projectDefinition.initialize(params)
     val capabilities = new ServerCapabilities
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions())
@@ -102,16 +106,17 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setDocumentFormattingProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
+    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(util.Arrays.asList("bat.runCurrentBatTest", "bat.runFolder", "bat.installCli")))
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 
   override def shutdown(): CompletableFuture[AnyRef] = {
-    println("[DataWeave] ShutDown")
+    logger.logInfo("[DataWeave] ShutDown")
     CompletableFuture.completedFuture(null)
   }
 
   override def exit(): Unit = {
-    println("[DataWeave] Exit")
+    logger.logInfo("[DataWeave] Exit")
     System.exit(0)
   }
 
@@ -120,15 +125,14 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def getWorkspaceService: WorkspaceService = {
-    new DataWeaveWorkspaceService(projectVFS, projectDefinition)
+    new DataWeaveWorkspaceService(projectVFS, projectDefinition, this.logger)
   }
 
   override def connect(client: LanguageClient): Unit = {
-    println("[DataWeave] Connect ")
+    logger.logInfo("[DataWeave] Connect ")
     this.dwTooling.connect(client)
     this.projectDefinition.connect(client)
     this.logger.connect(client)
   }
-
 
 }

@@ -16,10 +16,15 @@ subprojects {
             name "mule-snapshots"
             url "http://repository.mulesoft.org/nexus/content/repositories/snapshots/"
         }
+        maven {
+            name "jitpack"
+            url "https://jitpack.io"
+        }
     }
 
     dependencies {
         compile group: 'org.scala-lang', name: 'scala-library', version: scalaVersion
+        testCompile group: 'org.scalatest', name: 'scalatest_2.12', version: '3.0.1'
     }
 }
 

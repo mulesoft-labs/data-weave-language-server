@@ -5,6 +5,7 @@ import java.util.zip.ZipFile
 
 import org.mule.weave.v2.editor.ReadOnlyVirtualFile
 import org.mule.weave.v2.editor.VirtualFile
+import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import scala.io.Source
 
@@ -13,7 +14,7 @@ class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with
   lazy val zipFile = new ZipFile(jarFile)
 
   override def file(path: String): VirtualFile = {
-    println(s"[JarVirtualFileSystem] file ${path} in ${jarFile.getAbsolutePath}")
+    println(s"[JarVirtualFileSystem] file $path in ${jarFile.getAbsolutePath}")
     val zipEntryPath = if (path.startsWith("/")) {
       path.substring(1)
     } else {
@@ -32,6 +33,8 @@ class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with
       case None => null
     }
   }
-  
+
+  override def asResourceResolver: WeaveResourceResolver = super.asResourceResolver
+
   override def close(): Unit = zipFile.close()
 }
