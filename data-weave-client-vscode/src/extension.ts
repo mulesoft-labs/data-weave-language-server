@@ -12,6 +12,7 @@ import * as child_process from 'child_process'
 import { workspace, ExtensionContext, commands, window, Uri } from 'vscode'
 import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-languageclient'
 import { BatRunner } from './batRunner'
+import { PassThrough } from 'stream'
 
 export function activate(context: ExtensionContext) {
 
@@ -64,22 +65,22 @@ export function activate(context: ExtensionContext) {
         const logStream = fs.createWriteStream(logFile, {flags: 'w'})
 
         const batRunner = new BatRunner(process)
-        const batCommands = batRunner.registerCommands()
+        batRunner.registerCommands(context)
         const outputChannel = batRunner.getOutputChannel()
-        outputChannel.append("registering outputs");
-        this.process.stdout.on("data", (data) => {
-          outputChannel.appendLine(data.toString());
-          logStream._write(data.toString(), "utf-8", (error) => {})
-        });
+        const consoleStream = new PassThrough();
 
-        this.process.stderr.on("data", (data) => {
-          outputChannel.appendLine(data.toString());
+        consoleStream.on("data", (data) => {
+          const rawMessage: string = data.toString()
+          if (rawMessage.lastIndexOf("[BAT]") !== -1){
+            const printableMessage = rawMessage.replace(new RegExp("\\[BAT\\]", 'g'), '')
+            outputChannel.append(printableMessage);
+          }
         });
 
         process.stderr.pipe(logStream)
         process.stdout.pipe(logStream)
-
-        context.subscriptions.push(batCommands)
+        process.stderr.pipe(consoleStream)
+        process.stdout.pipe(consoleStream)
 
       })
     })

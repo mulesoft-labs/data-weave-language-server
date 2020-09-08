@@ -19,13 +19,22 @@ trait BatSupport {
   val logger: MessageLoggerService
   val NEXUS: String
   private val isWindows: Boolean = System.getProperty("os.name").toLowerCase.contains("win")
-  def run(workdir: String, testPath: String): String = {
+
+  def run(workdir: String, testPath: Option[String]): String = {
     val workspacePath = workdir.replaceAll("\"", "")
     println(s"Starting BAT execution: $testPath in folder $workspacePath" )
     val workspaceFile = new File(workspacePath)
     val executableName: String = if(isWindows) s"$wrapperFolder${separator}bin${separator}bat.bat" else s"$wrapperFolder${separator}bin${separator}bat"
-    val stream: Stream[String] = Process(Seq(executableName,testPath.replaceAll("\"", "")), workspaceFile).lineStream
-    stream.foreach(println)
+    val stream: Stream[String] =
+    if (testPath.isDefined)
+      Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream
+    else
+      Process(executableName, workspaceFile).lineStream
+    stream.foreach(out => {
+      val ansiCharacters = "\u001B\\[[;\\d]*m"
+      val msg = out.replaceAll(ansiCharacters, "")
+      println(s"$msg[BAT]")
+    })
     stream.mkString
   }
 
@@ -59,9 +68,9 @@ trait BatSupport {
     unzipWrapper(wrapperFile)
     val installed = isBatInstalled
     if(installed)
-      print("BAT CLI installed successfully")
+      println("BAT CLI installed successfully")
     else
-      print("BAT CLI wasn't installed")
+      println("BAT CLI wasn't installed")
     installed
   }
 

@@ -40,8 +40,9 @@ class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport wit
   }
 
   "BatProjectManager" should "run bat" in {
-    run("/tmp","--version")
+    val bool = downloadAndInstall()
+    bool shouldBe true
+    run("/tmp",Some("--version"))
   }
-
 
 }

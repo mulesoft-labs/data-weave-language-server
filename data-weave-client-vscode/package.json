@@ -47,15 +47,11 @@
         "commands": [
             {
                 "command": "bat.runCurrentBatTest.invoked",
-                "title": "BAT: Run current test"
+                "title": "DataWeave: BAT: Run current file"
             },
             {
-                "command": "bat.runFile",
-                "title": "DataWeave: BAT: Run the current file"
-            },
-            {
-                "command": "bat.runFolder",
-                "title": "DataWeave: BAT: Run the current folder"
+                "command": "bat.runFolder.invoked",
+                "title": "DataWeave: BAT: Run project folder"
             },
             {
                 "command": "bat.installCli",

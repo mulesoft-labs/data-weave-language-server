@@ -96,3 +96,7 @@ WARNING: Unmatched cancel notification for request id 1
 2020.09.07 13:44:24 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
 2020.09.07 13:44:25 INFO  time: initialize in 0.85s
 2020.09.07 13:44:27 INFO  skipping build import with status 'Requested'
+2020.09.08 10:53:47 INFO  shutting down Metals
+2020.09.08 10:56:42 INFO  started: Metals version 0.9.3 in workspace '/Users/nbattiato/mulesoft/data-weave-language-server' for client vscode.
+2020.09.08 10:56:43 INFO  time: initialize in 1.83s
+2020.09.08 10:56:48 INFO  skipping build import with status 'Requested'

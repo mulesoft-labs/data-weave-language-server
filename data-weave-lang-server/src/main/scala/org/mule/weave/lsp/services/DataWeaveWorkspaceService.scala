@@ -22,9 +22,15 @@ class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem, pd: Projec
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
     logger.logInfo("[DataWeaveWorkspaceService] executeCommand: " + params)
-    if(params.getCommand == "bat.runCurrentBatTest"){
+    val command = params.getCommand
+    if(command == "bat.runCurrentBatTest"){
       val arguments = params.getArguments.asScala
-      pd.batProjectManager.run(arguments.head.toString, arguments.tail.head.toString)
+      pd.batProjectManager.run(arguments.head.toString, arguments.tail.headOption.map(_.toString))
+    } else if(command == "bat.runFolder"){
+      val arguments = params.getArguments.asScala
+      pd.batProjectManager.run(arguments.head.toString, None)
+    } else if(command == "bat.installCli"){
+      pd.batProjectManager.setupBat()
     }
     CompletableFuture.completedFuture(null)
   }
