@@ -18,6 +18,8 @@ The following table shows the status of various features.
 | Find references       |   ✅   |  Works only on local file                                                                                                |
 | Highlight             |   ✅   |                                                                                                  |
 | Rename symbol         |   ✅   |     Works only on local file                                                                                             |
+| BAT Run Tests         |   ✅   |                                                                                             |
+
 
 ## Requirements
 

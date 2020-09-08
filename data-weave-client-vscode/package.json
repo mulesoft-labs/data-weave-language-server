@@ -4,7 +4,7 @@
     "description": "DataWeave 2.0 language support",
     "author": "DataWeave",
     "license": "MIT",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "publisher": "dataweave",
     "readme": "README.md",
     "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
@@ -121,6 +121,7 @@
         "prepare": "mkdir libs & cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
         "vscode:prepublish": "tsc -b",
         "compile": "tsc -b -w",
-        "package": "npm run prepare & vsce package"
+        "package": "npm run prepare & vsce package",
+        "publish": "vsce publish ${EXTENSION_VERSION}"
     }
 }

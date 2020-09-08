@@ -175,7 +175,7 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
       val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val offset: Int = toolingService.offsetOf(params.getPosition.getLine, params.getPosition.getCharacter)
       val result = new util.ArrayList[LocationLink]()
-      toolingService.definitionLink(offset).foreach((ll) => {
+      toolingService.definitions(offset).foreach((ll) => {
         val link = new LocationLink()
         link.setOriginSelectionRange(toRange(ll.linkLocation.location()))
         val reference = ll.reference
