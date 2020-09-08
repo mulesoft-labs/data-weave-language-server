@@ -20,7 +20,7 @@ jobs:
         run:  ./gradlew data-weave-client-vscode:packageExtension
       - name: Publish Extension
         run: |
-          export EXTENSION_VERSION=$(echo "${{github.ref}}" | sed -e 's,.*/v\(.*\),\1,')
+          ::set-env EXTENSION_VERSION=$(echo "${{github.ref}}" | sed -e 's,.*/v\(.*\),\1,')
           ./gradlew data-weave-client-vscode:publishExtension
         env:
           VSCE_PAT: ${{secrets.VSCE_PAT}}
