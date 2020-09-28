@@ -16,8 +16,6 @@ jobs:
           java-version: 1.8
       - name: Build Server
         run: ./gradlew data-weave-lang-server:assembleShadowDist
-      - name: Build Extension
-        run:  ./gradlew data-weave-client-vscode:packageExtension
       - name: Publish Extension
         id: publish_release
         run: |
@@ -26,6 +24,10 @@ jobs:
           ./gradlew data-weave-client-vscode:publishExtension
         env:
           VSCE_PAT: ${{secrets.VSCE_PAT}}
+      - name: Build Extension
+          run: ./gradlew data-weave-client-vscode:packageExtension
+          env:
+            EXTENSION_VERSION: ${{env.EXTENSION_VERSION}}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -44,5 +46,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./data-weave-client-vscode/data-weave-${{env.EXTENSION_VERSION}}.vslx
-          asset_name: data-weave-${{steps.publish_release.outputs.EXTENSION_VERSION}}.vslx
+          asset_name: data-weave-${{env.EXTENSION_VERSION}}.vslx
           asset_content_type: application/zip
