@@ -25,9 +25,10 @@ jobs:
         env:
           VSCE_PAT: ${{secrets.VSCE_PAT}}
       - name: Build Extension
-          run: ./gradlew data-weave-client-vscode:packageExtension
-          env:
-            EXTENSION_VERSION: ${{env.EXTENSION_VERSION}}
+        run: |
+          ./gradlew data-weave-client-vscode:packageExtension
+        env:
+          EXTENSION_VERSION: ${{env.EXTENSION_VERSION}}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
