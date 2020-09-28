@@ -19,6 +19,7 @@ jobs:
       - name: Build Extension
         run:  ./gradlew data-weave-client-vscode:packageExtension
       - name: Publish Extension
+        id: publish_release
         run: |
           echo "::set-env name=EXTENSION_VERSION::$(echo '${{github.ref}}' | sed -e 's,.*/v\(.*\),\1,')"
           export EXTENSION_VERSION=$(echo '${{github.ref}}' | sed -e 's,.*/v\(.*\),\1,')
@@ -43,5 +44,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./data-weave-client-vscode/data-weave-${{env.EXTENSION_VERSION}}.vslx
-          asset_name: data-weave-${{env.EXTENSION_VERSION}}.vslx
+          asset_name: data-weave-${{steps.publish_release.outputs.EXTENSION_VERSION}}.vslx
           asset_content_type: application/zip
