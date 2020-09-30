@@ -2,6 +2,7 @@ package org.mule.weave.lsp.vfs
 
 import java.io.File
 import java.net.URL
+import java.net.URLDecoder
 
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.sdk.WeaveResourceResolver
@@ -21,7 +22,7 @@ class FolderVirtualFileSystem(folder: File) extends ReadOnlyVirtualFileSystem {
     if (maybeFilePath.isEmpty) {
       null
     } else {
-      val theFile = new File(maybeFilePath.get)
+      val theFile = new File(URLDecoder.decode(maybeFilePath.get, "UTF-8"))
       if (theFile.exists()) {
         var content: String = ""
         val source = Source.fromFile(theFile, "UTF-8")

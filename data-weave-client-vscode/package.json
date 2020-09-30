@@ -118,7 +118,7 @@
         "vsce": "1.78.0"
     },
     "scripts": {
-        "prepare": "mkdir libs & cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
+        "prepare": "rm -rf libs & mkdir libs & cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
         "vscode:prepublish": "tsc -b",
         "compile": "tsc -b -w",
         "package": "npm run prepare & vsce package",

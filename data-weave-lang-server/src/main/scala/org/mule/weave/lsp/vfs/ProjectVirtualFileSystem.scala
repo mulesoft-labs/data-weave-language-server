@@ -132,12 +132,18 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
         val parts = filter.split("::")
         val headAndLast = parts.splitAt(parts.length - 1)
         val container = new File(rootFolder, headAndLast._1.mkString(File.separator))
-        container.listFiles((f) => {
+        val files: Array[File] = container.listFiles((f) => {
           f.getName.contains(headAndLast._2.head)
         })
-          .map((f) => {
-            file(FileUtils.toUrl(f))
-          })
+        if (files != null) {
+          files
+            .map((f) => {
+              file(FileUtils.toUrl(f))
+            })
+        } else {
+          Array()
+        }
+
       }
       case None => {
         Array()
