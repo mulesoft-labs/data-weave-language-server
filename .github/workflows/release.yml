@@ -20,9 +20,9 @@ jobs:
         run: ./gradlew data-weave-lang-server:assembleShadowDist
 
       - name: Guess Extension Version
-          id: publish_release
-          run: |
-            echo "::set-env name=EXTENSION_VERSION::$(echo '${{github.ref}}' | sed -e 's,.*/v\(.*\),\1,')"
+        id: publish_release
+        run: |
+          echo "::set-env name=EXTENSION_VERSION::$(echo '${{github.ref}}' | sed -e 's,.*/v\(.*\),\1,')"
 
       - name: Build Extension
           run: |
