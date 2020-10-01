@@ -25,10 +25,10 @@ jobs:
           echo "::set-env name=EXTENSION_VERSION::$(echo '${{github.ref}}' | sed -e 's,.*/v\(.*\),\1,')"
 
       - name: Build Extension
-          run: |
-            ./gradlew data-weave-client-vscode:packageExtension
-          env:
-            EXTENSION_VERSION: ${{env.EXTENSION_VERSION}}
+        run: |
+          ./gradlew data-weave-client-vscode:packageExtension
+        env:
+          EXTENSION_VERSION: ${{env.EXTENSION_VERSION}}
 
       - name: Publish Extension
         id: publish_release
