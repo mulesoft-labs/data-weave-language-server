@@ -20,4 +20,9 @@ jobs:
       run: ./gradlew data-weave-lang-server:assembleShadowDist
     - name: Build Extension
       run:  ./gradlew data-weave-client-vscode:packageExtension
-
+      # Upload the generated artifact
+    - name: Upload generated script
+      uses: actions/upload-artifact@v2
+      with:
+        name: data-weave-SNAPSHOT.vslx
+        path: ./data-weave-client-vscode/data-weave-100.100.100.vslx
