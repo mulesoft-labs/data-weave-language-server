@@ -106,7 +106,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setDocumentFormattingProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
-    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(util.Arrays.asList("bat.runCurrentBatTest", "bat.runFolder", "bat.installCli")))
+    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 

@@ -21,6 +21,49 @@
     ],
     "main": "./out/src/extension",
     "contributes": {
+        "breakpoints": [
+            {
+                "language": "data-weave"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "data-weave-debugger",
+                "label": "DataWeave Remote Debugger",
+                "languages": [
+                    "data-weave"
+                ],
+                "configurationAttributes": {
+                   "attach": {
+                      "properties": {
+                            "hostName": {
+                                "type": "string",
+                                "default": "localhost",
+                                "description": "Host"
+                            },
+                            "port": {
+                                "type": "number",
+                                "default": "6565",
+                                "description": "Data Weave port"
+                            }
+                        }
+                    }
+                },
+                "configurationSnippets": [
+                    {
+                        "label": "DataWeave Remote Debugger",
+                        "description": "A new configuration for 'debugging' a running data-weave.",
+                        "body": {
+                            "type": "data-weave-debugger",
+                            "request": "attach",
+                            "name": "DataWeave Remote debugger",
+                            "hostName": "localhost",
+                            "port": "6565"
+                        }
+                    }
+                ]
+            }
+        ],
         "languages": [
             {
                 "id": "data-weave",
@@ -119,10 +162,10 @@
         "vsce": "1.78.0"
     },
     "scripts": {
-        "prepare": "rm -rf libs & mkdir libs & cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
+        "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
         "vscode:prepublish": "tsc -b",
         "compile": "tsc -b -w",
-        "package": "npm run prepare & vsce package",
+        "package": "npm run prepare; vsce package",
         "publish": "vsce publish ${EXTENSION_VERSION}"
     }
 }

@@ -13,10 +13,17 @@ import { workspace, ExtensionContext, commands, window, Uri } from 'vscode'
 import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-languageclient'
 import { BatRunner } from './batRunner'
 import { PassThrough } from 'stream'
+import * as vscode from 'vscode';
+import { DataWeaveDebugAdapterDescriptorFactory, DataWeaveDebuggerConfigurationProvider } from './debuggerAdapter'
+import { findJavaExecutable } from './javaUtils'
 
 export function activate(context: ExtensionContext) {
+  console.log('Registering registerDebugAdapterDescriptorFactory')  
+  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-debugger', new DataWeaveDebugAdapterDescriptorFactory()));
+  console.log('Registering registerDebugConfigurationProvider')
+  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-debugger', new DataWeaveDebuggerConfigurationProvider())); 
 
-
+   
   function createServer(): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
       const server = net.createServer(socket => {
@@ -51,7 +58,7 @@ export function activate(context: ExtensionContext) {
         let options = {cwd: workspace.rootPath}
         let args = [
           '-jar',
-          // '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005',
+          // '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5010',
           weaveJarLocation,
           port.toString()
         ]
@@ -108,39 +115,3 @@ export function activate(context: ExtensionContext) {
 
 }
 
-// MIT Licensed code from: https://github.com/georgewfraser/vscode-javac
-function findJavaExecutable(binname: string) {
-  binname = correctBinname(binname)
-
-  // First search each JAVA_HOME bin folder
-  if (process.env['JAVA_HOME']) {
-    let workspaces = process.env['JAVA_HOME'].split(path.delimiter)
-    for (let i = 0; i < workspaces.length; i++) {
-      let binpath = path.join(workspaces[i], 'bin', binname)
-      if (fs.existsSync(binpath)) {
-        return binpath
-      }
-    }
-  }
-
-  // Then search PATH parts
-  if (process.env['PATH']) {
-    let pathparts = process.env['PATH'].split(path.delimiter)
-    for (let i = 0; i < pathparts.length; i++) {
-      let binpath = path.join(pathparts[i], binname)
-      if (fs.existsSync(binpath)) {
-        return binpath
-      }
-    }
-  }
-
-  // Else return the binary name directly (this will likely always fail downstream)
-  return null
-}
-
-function correctBinname(binname: string) {
-  if (process.platform === 'win32')
-    return binname + '.exe'
-  else
-    return binname
-}
