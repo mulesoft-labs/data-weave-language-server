@@ -32,6 +32,7 @@ import org.mule.weave.v2.debugger.KeyDebuggerValue
 import org.mule.weave.v2.debugger.ObjectDebuggerValue
 import org.mule.weave.v2.debugger.SimpleDebuggerValue
 import org.mule.weave.v2.debugger.WeaveBreakpoint
+import org.mule.weave.v2.debugger.WeaveExceptionBreakpoint
 import org.mule.weave.v2.debugger.client.DebuggerClient
 import org.mule.weave.v2.debugger.client.DebuggerClientListener
 import org.mule.weave.v2.debugger.client.ScriptEvaluationListener
@@ -69,8 +70,6 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
     capabilities.setSupportsConditionalBreakpoints(true)
     capabilities.setSupportsStepInTargetsRequest(true)
     capabilities.setSupportsGotoTargetsRequest(false)
-
-
     CompletableFuture.completedFuture(capabilities)
   }
 
@@ -94,9 +93,9 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
           val stackTrace = new StringWriter()
           e.printStackTrace(new PrintWriter(stackTrace))
           logger.logError("Unable to connect to client: \n" + stackTrace.toString)
-          val exitedEventArguments = new TerminatedEventArguments
-          exitedEventArguments.setRestart(true)
-          protocolClient.terminated(exitedEventArguments)
+          val arguments = new ExitedEventArguments
+          arguments.setExitCode(-1)
+          protocolClient.exited(arguments)
         }
       }
       null
@@ -191,6 +190,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
   }
 
   override def next(args: NextArguments): CompletableFuture[Void] = {
+    println("next" + args)
     CompletableFuture.supplyAsync(() => {
       debuggerClient.nextStep()
       null
@@ -198,6 +198,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
   }
 
   override def stepIn(args: StepInArguments): CompletableFuture[Void] = {
+    println("stepIn" + args)
     CompletableFuture.supplyAsync(() => {
       debuggerClient.stepInto()
       null
@@ -206,7 +207,15 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
 
 
   override def setExceptionBreakpoints(args: SetExceptionBreakpointsArguments): CompletableFuture[Void] = {
-    CompletableFuture.completedFuture(null)
+    println("setExceptionBreakpoints" + args)
+    CompletableFuture.completedFuture({
+      debuggerClient.addExceptionBreakpoints({
+        args.getFilters.map((f) => {
+          WeaveExceptionBreakpoint(f)
+        })
+      })
+      null
+    })
   }
 
   override def stackTrace(args: StackTraceArguments): CompletableFuture[StackTraceResponse] = {
@@ -283,6 +292,14 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
   }
 
 
+  override def stepOut(args: StepOutArguments): CompletableFuture[Void] = {
+    println("[DWDebuggerAdapter] variables : " + args)
+    CompletableFuture.supplyAsync(() => {
+      debuggerClient.stepOut()
+      null
+    })
+  }
+
   override def variables(args: VariablesArguments): CompletableFuture[VariablesResponse] = {
     println("[DWDebuggerAdapter] variables : " + args)
     CompletableFuture.supplyAsync(() => {
@@ -324,16 +341,16 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
 
   private def setChildNumbers(debuggerVariable: DebuggerValue, variable: Variable): Unit = {
     debuggerVariable match {
-      case ObjectDebuggerValue(fields, _) => {
+      case ObjectDebuggerValue(fields, _, _) => {
         variable.setNamedVariables(fields.length)
       }
-      case ArrayDebuggerValue(values, _) => {
+      case ArrayDebuggerValue(values, _, _) => {
         variable.setIndexedVariables(values.length)
       }
       case _ =>
     }
 
-    if(hasChildren(debuggerVariable)){
+    if (hasChildren(debuggerVariable)) {
       variable.setVariablesReference(addToVariableRegistry(debuggerVariable))
     }
   }
@@ -367,7 +384,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
 
   private def getChildVariablesOf(value: DebuggerValue): Array[Variable] = {
     value match {
-      case FieldDebuggerValue(key, value) => {
+      case FieldDebuggerValue(key, value, location) => {
         getVariablesOf(key) ++ getVariablesOf(value)
       }
       case at: AttributeDebuggerValue => {
@@ -394,7 +411,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
 
   private def getVariablesOf(value: DebuggerValue): Array[Variable] = {
     value match {
-      case fd@FieldDebuggerValue(key, value) => {
+      case fd@FieldDebuggerValue(key, value, _) => {
         val variable = new Variable()
         variable.setName(key.name)
         variable.setType(value.typeName())
@@ -403,19 +420,19 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
         variable.setPresentationHint(createVariableKind(VariablePresentationHintKind.DATA))
         Array(variable)
       }
-      case AttributeDebuggerValue(name, value) => {
+      case AttributeDebuggerValue(name, value, _) => {
         val variable = new Variable()
         variable.setName("@" + name)
         variable.setPresentationHint(createVariableKind(VariablePresentationHintKind.PROPERTY))
         variable.setValue(value.toString)
         Array(variable)
       }
-      case ObjectDebuggerValue(fields, _) => {
+      case ObjectDebuggerValue(fields, _, _) => {
         fields.flatMap((f) => {
           getVariablesOf(f)
         })
       }
-      case ArrayDebuggerValue(values, _) => {
+      case ArrayDebuggerValue(values, _, _) => {
         values.zipWithIndex.map((v) => {
           val itemValue = v._1
           val variable = new Variable
@@ -427,11 +444,10 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, log
           variable
         })
       }
-      case SimpleDebuggerValue(value, typeName) => {
-
+      case _: SimpleDebuggerValue => {
         Array()
       }
-      case KeyDebuggerValue(name, attr) => {
+      case KeyDebuggerValue(_, attr, _) => {
         attr.flatMap((attr) => getVariablesOf(attr))
       }
       case df: DebuggerFunction => {
