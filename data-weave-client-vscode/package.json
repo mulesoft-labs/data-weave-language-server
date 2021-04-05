@@ -34,8 +34,8 @@
                     "data-weave"
                 ],
                 "configurationAttributes": {
-                   "attach": {
-                      "properties": {
+                    "attach": {
+                        "properties": {
                             "hostName": {
                                 "type": "string",
                                 "default": "localhost",
