@@ -25,4 +25,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: data-weave-SNAPSHOT.vslx
-        path: ./data-weave-client-vscode/data-weave-100.100.100.vslx
+        path: ./data-weave-client-vscode/data-weave-100.100.100.vsix
