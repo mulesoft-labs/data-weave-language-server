@@ -2,11 +2,11 @@ package org.mule.weave.lsp.vfs
 
 import java.io.File
 import java.util.zip.ZipFile
-
 import org.mule.weave.v2.editor.ReadOnlyVirtualFile
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.io.IOException
 import scala.io.Source
 
 class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with AutoCloseable {
@@ -23,10 +23,17 @@ class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with
     val zipEntry = zipFile.getEntry(zipEntryPath)
     Option(zipEntry) match {
       case Some(entry) => {
-        val source = Source.fromInputStream(zipFile.getInputStream(entry))
+        val source = Source.fromInputStream(zipFile.getInputStream(entry), "UTF-8")
         try {
           new ReadOnlyVirtualFile(path, source.mkString, this)
-        } finally {
+        } catch {
+          case e: IOException => {
+            println(s"[JarVirtualFileSystem] Error while trying to read `${path}` in ${jarFile.getAbsolutePath} : ${e.getMessage}")
+            e.printStackTrace()
+            null
+          }
+        }
+        finally {
           source.close()
         }
       }
