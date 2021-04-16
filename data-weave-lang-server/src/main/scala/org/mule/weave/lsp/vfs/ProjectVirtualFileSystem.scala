@@ -1,92 +1,134 @@
 package org.mule.weave.lsp.vfs
 
-import java.io.File
-import java.net.URL
-
 import org.mule.weave.lsp.services.ProjectDefinition
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
+import org.mule.weave.v2.parser.ast.variables.NameIdentifier
+import org.mule.weave.v2.sdk.ChainedWeaveResourceResolver
+import org.mule.weave.v2.sdk.NameIdentifierHelper
+import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.io.File
+import java.net.URL
+import java.nio.file.Paths
+import java.util.logging.Level
+import java.util.logging.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
+/**
+ * This Virtual File System handles the project interactions.
+ *
+ * There are two kind of files:
+ *
+ *  - InMemory ones, this is when a File was either modified or created by still not being saved in the persisted FS.
+ *  - Persisted Files, this are the files that are haven't been modified and are the one persisted in the FS
+ *
+ * @param projectDefinition
+ */
 class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends VirtualFileSystem {
 
   private val inMemoryFiles: mutable.Map[String, ProjectVirtualFile] = mutable.Map[String, ProjectVirtualFile]()
-  private val changeListeners: ArrayBuffer[ChangeListener] = ArrayBuffer[ChangeListener]()
-  private val vfsChangeListeners: ArrayBuffer[VFSChangeListener] = ArrayBuffer[VFSChangeListener]()
+
+  private val vfsChangeListeners: ArrayBuffer[ChangeListener] = ArrayBuffer[ChangeListener]()
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
 
   def update(uri: String, content: String): Unit = {
-    println(s"[ProjectVirtualFileSystem] update ${uri} -> ${content}")
+    logger.log(Level.INFO, s"update ${uri} -> ${content}")
 
     Option(file(uri)) match {
       case Some(vf) => {
-        vf.write(content)
-        vfsChangeListeners.foreach(_.onChanged(vf))
+        val written = vf.write(content)
+        if (written) {
+          triggerChanges(vf)
+        }
       }
       case None => {
         val virtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
-        vfsChangeListeners.foreach(_.onChanged(virtualFile))
         inMemoryFiles.put(uri, virtualFile)
+        triggerChanges(virtualFile)
       }
     }
   }
 
-  def addVFSChangeListener(listener: VFSChangeListener): Unit = {
-    vfsChangeListeners.+=(listener)
-  }
 
-  def close(uri: String): Unit = {
-    println(s"[ProjectVirtualFileSystem] close ${uri}")
+  /**
+   * Mark the specified Uri as closed. All memory representation should be cleaned
+   *
+   * @param uri The Uri of the file
+   */
+  def closed(uri: String): Unit = {
+    logger.log(Level.INFO, s"closed ${uri}")
     inMemoryFiles.remove(uri)
   }
 
-  def save(uri: String): Unit = {
+  /**
+   * Mark the given uri as saved into the persisted FS
+   *
+   * @param uri The uri to be marked as saved
+   */
+  def saved(uri: String): Unit = {
     inMemoryFiles.get(uri).map(_.save())
   }
 
+  /**
+   * Mark a given uri was changed by an external even
+   *
+   * @param uri The uri to be marked as changed
+   */
   def changed(uri: String): Unit = {
-    println(s"[ProjectVirtualFileSystem] changed ${uri}")
+    logger.log(Level.INFO, s"logger.log(Level.INFO, changed ${uri}")
     val virtualFile = file(uri)
     triggerChanges(virtualFile)
+    //TODO should we remove the inMemoryRepresentation!
     vfsChangeListeners.foreach(_.onChanged(virtualFile))
   }
 
+  /**
+   * Mark a given uri was deleted by an external event
+   *
+   * @param uri The uri to be deleted
+   */
   def deleted(uri: String): Unit = {
-    println(s"[ProjectVirtualFileSystem] deleted ${uri}")
+    logger.log(Level.INFO, s"deleted ${uri}")
     inMemoryFiles.remove(uri)
     val virtualFile = new ProjectVirtualFile(this, uri, None)
     triggerChanges(virtualFile)
-    vfsChangeListeners.foreach(_.onDeleted(virtualFile))
+    vfsChangeListeners.foreach((listener) => {
+      listener.onDeleted(virtualFile)
+    })
   }
 
   def created(uri: String): Unit = {
-    println(s"[ProjectVirtualFileSystem] created ${uri}")
+    logger.log(Level.INFO, s"created ${uri}")
     val virtualFile = new ProjectVirtualFile(this, uri, None)
     triggerChanges(virtualFile)
-    vfsChangeListeners.foreach(_.onCreated(virtualFile))
+    vfsChangeListeners.foreach((listener) => {
+      listener.onCreated(virtualFile)
+    })
   }
 
   override def changeListener(cl: ChangeListener): Unit = {
-    changeListeners.+=(cl)
+    vfsChangeListeners.+=(cl)
   }
 
   override def onChanged(vf: VirtualFile): Unit = {
     triggerChanges(vf)
   }
 
-  private def triggerChanges(vf: VirtualFile) = {
-    changeListeners.foreach((cl) => {
-      cl.onChanged(vf)
+  private def triggerChanges(vf: VirtualFile): Unit = {
+    vfsChangeListeners.foreach((listener) => {
+      listener.onChanged(vf)
     })
   }
 
   override def removeChangeListener(service: ChangeListener): Unit = {
-    changeListeners.remove(changeListeners.indexOf(service))
+    vfsChangeListeners.remove(vfsChangeListeners.indexOf(service))
   }
 
 
@@ -96,19 +138,18 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
   }
 
   override def file(path: String): VirtualFile = {
-    println(s"[ProjectVirtualFileSystem] file ${path}")
+    logger.log(Level.INFO, s"file ${path}")
     //absolute path
     if (inMemoryFiles.contains(path)) {
       inMemoryFiles(path)
     } else {
       //It may not be a valid url then just try on nextone
-      val maybeFilePath = Try(new URL(path).getFile).toOption
-      if (maybeFilePath.isEmpty) {
+      val maybeFile = Try(Paths.get(new URL(path).toURI).toFile).toOption
+      if (maybeFile.isEmpty) {
         null
       } else {
-        val theFile = new File(maybeFilePath.get)
-        if (theFile.exists()) {
-          val virtualFile = new ProjectVirtualFile(this, path, Some(theFile))
+        if (maybeFile.get.exists()) {
+          val virtualFile = new ProjectVirtualFile(this, path, Some(maybeFile.get))
           inMemoryFiles.put(path, virtualFile)
           virtualFile
         } else {
@@ -120,8 +161,14 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
 
   override def asResourceResolver: WeaveResourceResolver = {
     val resourceResolver = sourceRoot match {
-      case Some(rootFile) => new FolderWeaveResourceResolver(rootFile, this)
-      case None => super.asResourceResolver
+      case Some(rootFile) => {
+        val folderWeaveResourceResolver = new FolderWeaveResourceResolver(rootFile, this)
+        val inMemoryResourceResolver = new InMemoryVirtualFileResourceResolver(sourceRoot, inMemoryFiles)
+        new ChainedWeaveResourceResolver(Seq(inMemoryResourceResolver, folderWeaveResourceResolver))
+      }
+      case None => {
+        new InMemoryVirtualFileResourceResolver(sourceRoot, inMemoryFiles)
+      }
     }
     resourceResolver
   }
@@ -141,14 +188,41 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
               file(FileUtils.toUrl(f))
             })
         } else {
-          Array()
+          inMemoryFiles.values.filter((vfs) => {
+            vfs.getNameIdentifier.toString().contains(filter)
+          }).toArray
         }
-
       }
       case None => {
-        Array()
+        inMemoryFiles.values.filter((vfs) => {
+          vfs.getNameIdentifier.toString().contains(filter)
+        }).toArray
       }
     }
+  }
+}
+
+class InMemoryVirtualFileResourceResolver(rootFile: Option[File], inMemoryFiles: mutable.Map[String, ProjectVirtualFile]) extends WeaveResourceResolver {
+
+  override def resolvePath(path: String): Option[WeaveResource] = {
+    val str = rootFile.map((rf) => {
+      val relativePath = if (path.startsWith("/")) {
+        path.substring(1)
+      } else {
+        path
+      }
+      Paths.get(rf.getPath).resolve(relativePath).toUri.toString
+    }).getOrElse(path)
+    this.inMemoryFiles.get(str).map((f) => WeaveResource(f))
+  }
+
+  override def resolveAll(name: NameIdentifier): Seq[WeaveResource] = {
+    super.resolveAll(name)
+  }
+
+  override def resolve(name: NameIdentifier): Option[WeaveResource] = {
+    val path: String = NameIdentifierHelper.toWeaveFilePath(name, "/")
+    resolvePath(path)
   }
 }
 

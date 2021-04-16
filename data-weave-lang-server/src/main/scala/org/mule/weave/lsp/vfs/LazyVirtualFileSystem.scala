@@ -5,12 +5,17 @@ import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.util.logging.Level
+import java.util.logging.Logger
+
 class LazyVirtualFileSystem(delegate: () => VirtualFileSystem) extends VirtualFileSystem {
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
   private lazy val vfs: VirtualFileSystem = delegate()
 
   override def file(path: String): VirtualFile = {
-    println(s"[LazyVirtualFileSystem] file ${path}")
+    logger.log(Level.INFO, s"file ${path}")
     vfs.file(path)
   }
 

@@ -1,12 +1,10 @@
 package org.mule.weave.lsp.services
 
-import java.util
-import java.util.Collections
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executor
-
+import org.eclipse.lsp4j.CodeAction
+import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeLens
 import org.eclipse.lsp4j.CodeLensParams
+import org.eclipse.lsp4j.Command
 import org.eclipse.lsp4j.CompletionItem
 import org.eclipse.lsp4j.CompletionItemKind
 import org.eclipse.lsp4j.CompletionList
@@ -19,6 +17,8 @@ import org.eclipse.lsp4j.DidSaveTextDocumentParams
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.DocumentSymbol
 import org.eclipse.lsp4j.DocumentSymbolParams
+import org.eclipse.lsp4j.FoldingRange
+import org.eclipse.lsp4j.FoldingRangeRequestParams
 import org.eclipse.lsp4j.Hover
 import org.eclipse.lsp4j.HoverParams
 import org.eclipse.lsp4j.InsertTextFormat
@@ -30,10 +30,13 @@ import org.eclipse.lsp4j.RenameParams
 import org.eclipse.lsp4j.SymbolInformation
 import org.eclipse.lsp4j.SymbolKind
 import org.eclipse.lsp4j.TextDocumentIdentifier
+import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
+import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.eclipse.lsp4j.services.TextDocumentService
+import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.utils.LSPConverters._
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
@@ -45,18 +48,28 @@ import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
+import java.util
+import java.util.Collections
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.logging.Level
+import java.util.logging.Logger
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: Executor, projectFS: ProjectVirtualFileSystem) extends TextDocumentService {
+class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Executor, projectFS: ProjectVirtualFileSystem) extends TextDocumentService {
+
+  private val codeActions = new CodeActions(toolingServices)
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
-    println("[DataWeave] Open: " + openParam.getTextDocument.getUri)
-    val textDocument = openParam.getTextDocument
-    projectFS.update(textDocument.getUri, openParam.getTextDocument.getText)
+    logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
+    val textDocument: TextDocumentItem = openParam.getTextDocument
+    val uri: String = textDocument.getUri
+    projectFS.update(uri, openParam.getTextDocument.getText)
   }
 
   def dwTextDocumentService: WeaveToolingService = {
-    weaveService.documentService()
+    toolingServices.documentService()
   }
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
@@ -86,6 +99,32 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
       })
       messages.Either.forRight(new CompletionList(false, result))
     }, executor)
+  }
+
+
+  override def codeLens(params: CodeLensParams): CompletableFuture[util.List[_ <: CodeLens]] = super.codeLens(params)
+
+  override def resolveCodeLens(unresolved: CodeLens): CompletableFuture[CodeLens] = super.resolveCodeLens(unresolved)
+
+  override def foldingRange(params: FoldingRangeRequestParams): CompletableFuture[util.List[FoldingRange]] = super.foldingRange(params)
+
+  override def codeAction(params: CodeActionParams): CompletableFuture[util.List[JEither[Command, CodeAction]]] = {
+    logger.log(Level.INFO, "code: " + params)
+
+    CompletableFuture.supplyAsync(() => {
+      val actions = codeActions
+        .actionsFor(params)
+        .flatMap((actionProvider) => {
+          actionProvider.actions(params)
+        })
+
+      val result = new util.ArrayList[JEither[Command, CodeAction]]()
+      actions.foreach((a) => {
+        result.add(JEither.forRight[Command, CodeAction](a))
+      })
+      result
+    })
+
   }
 
   override def resolveCompletionItem(unresolved: CompletionItem): CompletableFuture[CompletionItem] = {
@@ -192,7 +231,7 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
               link.setTargetUri(value.url())
             }
             case None => {
-              println("Resource not found for " + moduleName)
+              logger.log(Level.INFO, "Resource not found for " + moduleName)
             }
           }
         }
@@ -265,20 +304,20 @@ class DataWeaveDocumentService(weaveService: LSPWeaveToolingService, executor: E
 
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
     val textDocument = params.getTextDocument
-    println("[DataWeave] didChange : " + textDocument.getUri)
+    logger.log(Level.INFO, "didChange : " + textDocument.getUri)
     projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
   }
 
   override def didClose(params: DidCloseTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
-    println("[DataWeave] didClose : " + uri)
-    projectFS.close(uri)
+    logger.log(Level.INFO, "didClose : " + uri)
+    projectFS.closed(uri)
     dwTextDocumentService.close(uri)
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
-    projectFS.save(params.getTextDocument.getUri)
-    println("[DataWeave] didSave : " + uri)
+    projectFS.saved(params.getTextDocument.getUri)
+    logger.log(Level.INFO, "didSave : " + uri)
   }
 }

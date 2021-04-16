@@ -5,6 +5,9 @@ import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageClientAware
 
+/**
+ * Handles the logging to the client
+ */
 class MessageLoggerService extends LanguageClientAware {
 
   private var _client: LanguageClient = _

@@ -1,20 +1,30 @@
 package org.mule.weave.lsp.vfs
 
-import java.io.File
-import java.util.zip.ZipFile
 import org.mule.weave.v2.editor.ReadOnlyVirtualFile
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.io.File
 import java.io.IOException
+import java.util.logging.Level
+import java.util.logging.Logger
+import java.util.zip.ZipFile
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
+/**
+ * Represents a file system based on a JAR
+ *
+ * @param jarFile The Jar that backups this file
+ */
 class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with AutoCloseable {
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
   lazy val zipFile = new ZipFile(jarFile)
 
   override def file(path: String): VirtualFile = {
-    println(s"[JarVirtualFileSystem] file $path in ${jarFile.getAbsolutePath}")
+    logger.log(Level.INFO, s"file $path in ${jarFile.getAbsolutePath}")
     val zipEntryPath = if (path.startsWith("/")) {
       path.substring(1)
     } else {
@@ -28,7 +38,7 @@ class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with
           new ReadOnlyVirtualFile(path, source.mkString, this)
         } catch {
           case e: IOException => {
-            println(s"[JarVirtualFileSystem] Error while trying to read `${path}` in ${jarFile.getAbsolutePath} : ${e.getMessage}")
+            logger.log(Level.INFO, s"Error while trying to read `${path}` in ${jarFile.getAbsolutePath} : ${e.getMessage}")
             e.printStackTrace()
             null
           }
@@ -39,6 +49,24 @@ class JarVirtualFileSystem(jarFile: File) extends ReadOnlyVirtualFileSystem with
       }
       case None => null
     }
+  }
+
+
+  override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
+    val entries = zipFile.entries()
+    val result = new ArrayBuffer[VirtualFile]()
+    while (entries.hasMoreElements) {
+      val zipEntry = entries.nextElement()
+      if (!zipEntry.isDirectory && zipEntry.getName.contains(filter)) {
+        val source = Source.fromInputStream(zipFile.getInputStream(zipEntry), "UTF-8")
+        try {
+          result.+=(new ReadOnlyVirtualFile(zipEntry.getName, source.mkString, this))
+        } finally {
+          source.close()
+        }
+      }
+    }
+    result.toArray
   }
 
   override def asResourceResolver: WeaveResourceResolver = super.asResourceResolver

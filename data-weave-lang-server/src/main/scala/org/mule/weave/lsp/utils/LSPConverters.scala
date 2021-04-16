@@ -1,9 +1,15 @@
 package org.mule.weave.lsp.utils
 
 import org.eclipse.lsp4j
+import org.eclipse.lsp4j.Diagnostic
+import org.eclipse.lsp4j.DiagnosticSeverity
+import org.mule.weave.v2.editor.ValidationMessage
 import org.mule.weave.v2.parser.location.Position
 import org.mule.weave.v2.parser.location.WeaveLocation
 
+/**
+ * Utilities function to convert DW Tooling Object to LSP Objects
+ */
 object LSPConverters extends AnyRef {
 
   implicit def toPosition(endPosition: Position): lsp4j.Position = {
@@ -22,4 +28,13 @@ object LSPConverters extends AnyRef {
     range
   }
 
+  def toDiagnostic(message: ValidationMessage, severity: DiagnosticSeverity): Diagnostic = {
+    val diagnostic = new Diagnostic(toRange(message.location), message.message.message, severity, "DataWeave : " + message.message.category.name)
+    diagnostic.setCode(toDiagnosticKind(message))
+    diagnostic
+  }
+
+  def toDiagnosticKind(message: ValidationMessage): String = {
+    message.message.getClass.getSimpleName
+  }
 }

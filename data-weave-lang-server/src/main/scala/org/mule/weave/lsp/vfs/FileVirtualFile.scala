@@ -21,7 +21,9 @@ class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolde
     }
   }
 
-  override def write(content: String): Unit = {}
+  override def write(content: String): Boolean = {
+    false
+  }
 
   override def readOnly(): Boolean = true
 
@@ -32,4 +34,9 @@ class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolde
   override def getNameIdentifier: NameIdentifier = {
     NameIdentifierHelper.fromWeaveFilePath(rootFolder.toPath.relativize(file.toPath).toString)
   }
+
+}
+
+object FileVirtualFile {
+  def apply(file: File, fs: VirtualFileSystem, path: String, rootFolder: File): FileVirtualFile = new FileVirtualFile(file, fs, path, rootFolder)
 }

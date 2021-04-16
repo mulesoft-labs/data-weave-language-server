@@ -18,14 +18,14 @@ trait MavenSupport {
       .build()
   )
 
-  val logger: MessageLoggerService = new MessageLoggerService
+  val messageLoggerService: MessageLoggerService = new MessageLoggerService
 
   val dependencyManager = new MavenDependencyManager(new File(DataWeaveUtils.getCacheHome(), "maven"),
     executorService,
     new CacheLogger {
       override def downloadedArtifact(url: String, success: Boolean): Unit = {
         if (success)
-          logger.logInfo(s"Downloaded: ${url}")
+          messageLoggerService.logInfo(s"Downloaded: ${url}")
       }
     }
   )

@@ -1,7 +1,5 @@
 package org.mule.weave.lsp.vfs
 
-import java.io.File
-
 import org.mule.weave.lsp.services.MessageLoggerService
 import org.mule.weave.v2.deps.Artifact
 import org.mule.weave.v2.deps.ArtifactResolutionCallback
@@ -15,13 +13,24 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.util.logging.Level
+import java.util.logging.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
-class LibrariesVirtualFileSystem(maven: DependencyManager, logger: MessageLoggerService) extends VirtualFileSystem with ArtifactResolutionCallback {
+/**
+ * A virtual file system that handles Maven Libraries. This VFS allows to load and unload libraries.
+ *
+ * @param maven                The Maven Dependency Manager
+ * @param messageLoggerService The user logger
+ */
+class LibrariesVirtualFileSystem(maven: DependencyManager, messageLoggerService: MessageLoggerService) extends VirtualFileSystem with ArtifactResolutionCallback {
+
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
   private val modules: mutable.Map[String, VirtualFileSystem] = new mutable.HashMap()
 
@@ -33,7 +42,7 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, logger: MessageLogger
   }
 
   override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
-    logger.logInfo(s"Artifact: $kind@$id was downloaded successfully.")
+    messageLoggerService.logInfo(s"Artifact: $kind@$id was downloaded successfully.")
     addLibrary(id,
       new LazyVirtualFileSystem(
         () => {
@@ -52,11 +61,11 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, logger: MessageLogger
   }
 
   override def file(path: String): VirtualFile = {
-    println(s"[DependenciesVirtualFileSystem] file ${path}")
+    logger.log(Level.INFO, s"file ${path}")
     modules
       .toStream
       .flatMap((vfs) => {
-        println("[DependenciesVirtualFileSystem] Module:" + vfs._1)
+        logger.log(Level.INFO, "Module:" + vfs._1)
         Option(vfs._2.file(path))
       })
       .headOption

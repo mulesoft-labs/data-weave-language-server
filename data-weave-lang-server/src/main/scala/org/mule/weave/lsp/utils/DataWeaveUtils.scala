@@ -1,8 +1,14 @@
 package org.mule.weave.lsp.utils
 
+import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher.getClass
+
 import java.io.File
+import java.util.logging.Level
+import java.util.logging.Logger
 
 object DataWeaveUtils {
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
   /**
    * Returns the DW home directory if exists it can be overwritten with env variable DW_HOME
    *
@@ -16,7 +22,7 @@ object DataWeaveUtils {
       home
     } else {
       if (WeaveProperties.verbose) {
-        println("[debug] Env not working trying home directory")
+        logger.log(Level.INFO,"Env not working trying home directory")
       }
       val defaultDWHomeDir = new File(homeUser, ".dw")
       if (!defaultDWHomeDir.exists()) {

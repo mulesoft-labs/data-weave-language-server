@@ -17,7 +17,6 @@ import org.mule.weave.v2.sdk.WeaveResourceResolver
  */
 class FolderWeaveResourceResolver(root: File, vfs: VirtualFileSystem) extends WeaveResourceResolver {
 
-
   override def resolvePath(path: String): Option[WeaveResource] = {
     val theFile = new File(root, path)
     fileToResources(theFile)
@@ -36,7 +35,7 @@ class FolderWeaveResourceResolver(root: File, vfs: VirtualFileSystem) extends We
   private def fileToResources(theFile: File): Option[DefaultWeaveResource] = {
     val vsCodeUrlStyle = FileUtils.toUrl(theFile)
     Option(vfs.file(vsCodeUrlStyle)).map((vf) => {
-      WeaveResource(vf.path(), vf.read())
+      WeaveResource(vf.url(), vf.read())
     })
   }
 }

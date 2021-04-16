@@ -1,11 +1,18 @@
 package org.mule.weave.lsp.utils
 
+import org.eclipse.lsp4j.InitializeParams
+
 import java.io.File
 import java.net.URL
 
-import org.eclipse.lsp4j.InitializeParams
-
 object RootFolderUtils {
+
+  /**
+   * This function has the logic to guess what is the root folder of a given project
+   *
+   * @param params The project information provided by the client
+   * @return The root folder if it was inferred
+   */
   def getRootFolder(params: InitializeParams): Option[File] = {
     Option(params.getRootUri)
       .orElse(Option(params.getRootUri))

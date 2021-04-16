@@ -4,6 +4,9 @@ import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 
+/**
+ * A Trait to mark a VFS as ReadOnly
+ */
 trait ReadOnlyVirtualFileSystem extends VirtualFileSystem {
 
   override def removeChangeListener(listener: ChangeListener): Unit = {}

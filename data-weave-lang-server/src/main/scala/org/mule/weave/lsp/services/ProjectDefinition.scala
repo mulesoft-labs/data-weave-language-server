@@ -1,18 +1,27 @@
 package org.mule.weave.lsp.services
 
-import java.io.File
-import java.util
-
 import com.google.gson.JsonObject
 import org.eclipse.lsp4j.services.LanguageClient
-import org.eclipse.lsp4j.{DidChangeConfigurationParams, InitializeParams, MessageParams, MessageType}
+import org.eclipse.lsp4j.DidChangeConfigurationParams
+import org.eclipse.lsp4j.InitializeParams
+import org.eclipse.lsp4j.MessageParams
+import org.eclipse.lsp4j.MessageType
 import org.mule.weave.lsp.bat.BatProjectManager
 import org.mule.weave.lsp.services.ProjectDefinition._
 import org.mule.weave.lsp.utils.RootFolderUtils
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
 
+import java.io.File
+import java.util
 import scala.collection.mutable.ArrayBuffer
 
+/**
+ * Project kind data.
+ *
+ * @param librariesVFS
+ * @param batProjectManager
+ */
+//TODO we need to decompose this class into different responsabilities and traits
 class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem, val batProjectManager: BatProjectManager) {
 
   var client: LanguageClient = _
@@ -47,7 +56,7 @@ class ProjectDefinition(librariesVFS: LibrariesVirtualFileSystem, val batProject
   }
 
   def initialize(params: InitializeParams): Unit = {
-    val allSettings = params.getInitializationOptions.asInstanceOf[util.Map[String, AnyRef]]
+    val allSettings: util.Map[String, AnyRef] = params.getInitializationOptions.asInstanceOf[util.Map[String, AnyRef]]
     if (allSettings != null) {
       val weaveSettings = allSettings.get("data-weave").asInstanceOf[JsonObject]
       loadSettings(weaveSettings)

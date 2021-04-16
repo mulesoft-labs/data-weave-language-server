@@ -1,16 +1,15 @@
 package org.mule.weave.lsp.bat
 
-import java.io.File
-import java.io.File.separator
-import java.nio.file.Files
-
+import org.apache.commons.io.FileUtils
 import org.mule.weave.lsp.MavenSupport
 import org.mule.weave.lsp.services.ProjectDefinition.DEFAULT_BAT_HOME
 import org.mule.weave.v2.deps.DependencyManager
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+import java.io.File
+import java.io.File.separator
+import java.nio.file.Files
 
 class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport with BatSupport {
 
@@ -21,8 +20,8 @@ class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport wit
   val NEXUS: String = "https://repository-master.mulesoft.org/nexus/content/repositories/releases"
 
   override val batHome: File = new File(Array(
-  userHome,
-  DEFAULT_BAT_HOME
+    userHome,
+    DEFAULT_BAT_HOME
   ).mkString(separator))
 
   val wrapperFolder: File = new File(batHome.getAbsolutePath + separator + "bat")
@@ -40,9 +39,10 @@ class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport wit
   }
 
   "BatProjectManager" should "run bat" in {
+    FileUtils.deleteDirectory(batHome)
     val bool = downloadAndInstall()
     bool shouldBe true
-    run("/tmp",Some("--version"))
-  }
 
+    run(batHome.getAbsolutePath, Some("--version"))
+  }
 }

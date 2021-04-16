@@ -1,5 +1,6 @@
 
 plugins {
+    id "com.github.maiflai.scalatest" version "${scalaTestPluginVersion}"
     id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
@@ -13,6 +14,8 @@ dependencies {
     compile group: 'org.mule.weave', name: 'debugger', version: weaveVersion
     compile group: 'org.mule.weave', name: 'raml-module', version: "1.0.0-SNAPSHOT"
     compile group: 'org.mule.weave', name: 'dependency-manager', version: weaveVersion
+
+    testRuntime 'org.pegdown:pegdown:1.6.0'
 }
 
 

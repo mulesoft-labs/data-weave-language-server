@@ -6,15 +6,20 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.sdk.ChainedWeaveResourceResolver
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.util.logging.Level
+import java.util.logging.Logger
+
 class ChainedVirtualFileSystem(modules: Seq[VirtualFileSystem]) extends VirtualFileSystem {
+
+  private val logger: Logger = Logger.getLogger(getClass.getName)
 
 
   override def file(path: String): VirtualFile = {
-    println(s"[DependenciesVirtualFileSystem] file ${path}")
+    logger.log(Level.INFO, s"file ${path}")
     modules
       .toStream
       .flatMap((vfs) => {
-        println("[DependenciesVirtualFileSystem] Module:" + vfs)
+        logger.log(Level.INFO, "Module:" + vfs)
         Option(vfs.file(path))
       })
       .headOption

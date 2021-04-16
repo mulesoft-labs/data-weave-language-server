@@ -1,10 +1,5 @@
 package org.mule.weave.lsp
 
-import java.io.File
-import java.util
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import coursier.cache.CacheLogger
 import org.eclipse.lsp4j.CompletionOptions
@@ -19,9 +14,10 @@ import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.bat.BatProjectManager
+import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
-import org.mule.weave.lsp.services.LSPWeaveToolingService
+import org.mule.weave.lsp.services.LSPToolingServices
 import org.mule.weave.lsp.services.MessageLoggerService
 import org.mule.weave.lsp.services.ProjectDefinition
 import org.mule.weave.lsp.utils.DataWeaveUtils
@@ -37,6 +33,10 @@ import org.mule.weave.v2.editor.DefaultModuleLoaderFactory
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.module.raml.RamlModuleLoader
+
+import java.io.File
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
@@ -74,9 +74,11 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
   private val projectDefinition = new ProjectDefinition(librariesVFS, batProjectManager)
 
+  private var weaveWorkspaceService: DataWeaveWorkspaceService = _
+
   private val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(projectDefinition)
 
-  private val dwTooling: LSPWeaveToolingService = new LSPWeaveToolingService(createWeaveToolingService, executorService, projectVFS, projectDefinition, librariesVFS)
+  private val dwTooling: LSPToolingServices = new LSPToolingServices(createWeaveToolingService, executorService, projectVFS, projectDefinition, librariesVFS)
 
   private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(dwTooling, executorService, projectVFS)
 
@@ -104,6 +106,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setDocumentSymbolProvider(true)
     capabilities.setDefinitionProvider(true)
     capabilities.setDocumentFormattingProvider(true)
+    capabilities.setCodeActionProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
@@ -111,12 +114,10 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def shutdown(): CompletableFuture[AnyRef] = {
-    logger.logInfo("[DataWeave] ShutDown")
     CompletableFuture.completedFuture(null)
   }
 
   override def exit(): Unit = {
-    logger.logInfo("[DataWeave] Exit")
     System.exit(0)
   }
 
@@ -125,11 +126,13 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   }
 
   override def getWorkspaceService: WorkspaceService = {
-    new DataWeaveWorkspaceService(projectVFS, projectDefinition, this.logger)
+    if (weaveWorkspaceService == null) {
+      weaveWorkspaceService = new DataWeaveWorkspaceService(projectVFS, projectDefinition, this.logger, dwTooling)
+    }
+    weaveWorkspaceService
   }
 
   override def connect(client: LanguageClient): Unit = {
-    logger.logInfo("[DataWeave] Connect ")
     this.dwTooling.connect(client)
     this.projectDefinition.connect(client)
     this.logger.connect(client)

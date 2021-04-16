@@ -47,7 +47,7 @@ export function activate(context: ExtensionContext) {
         const storagePath = context.storagePath || context.globalStoragePath
         const weaveJarLocation = path.resolve(context.extensionPath, 'libs', 'data-weave-lang-server-all.jar')
         let logFile = storagePath + '/vscode-data-weave-lang-server.log'
-        console.log('STARTING Data Weave LSP')  
+        console.log('[DataWeave] STARTING Data Weave LSP')
         console.log('[DataWeave] Storage path: ' + storagePath)
         console.log('[DataWeave] Jar path: ' + weaveJarLocation)
         console.log('[DataWeave] PORT: ' + port)
@@ -58,7 +58,7 @@ export function activate(context: ExtensionContext) {
         let options = {cwd: workspace.rootPath}
         let args = [
           '-jar',
-          // '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5010',
+          '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5010',
           weaveJarLocation,
           port.toString()
         ]
@@ -88,7 +88,7 @@ export function activate(context: ExtensionContext) {
         process.stdout.pipe(logStream)
         process.stderr.pipe(consoleStream)
         process.stdout.pipe(consoleStream)
-        console.log('LSP Started!')  
+        console.log('[DataWeave] LSP Started!')
       })
     })
 
