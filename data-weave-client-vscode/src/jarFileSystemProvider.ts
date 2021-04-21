@@ -45,23 +45,24 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    const archiveUri = vscode.Uri.parse(this.getJarPath(uri));
+    const jarUri = this.getJarPath(uri);
+    const archiveUri = vscode.Uri.parse(jarUri);
     const archive = await this.parse(archiveUri);
     const entries: [string, vscode.FileType][] = [];
 
+    const jarEntry = this.getEntryPath(uri);
     // Append trailing slash to meet the format used by the archive entries
-    const _path = uri.query === '/' ? uri.query : uri.query + '/';
+     const _searchPath = jarEntry.length == 0? jarEntry : jarEntry + "/"
+  
     archive.forEach((path, entry) => {
-      // Append leading slash to meet the format used by VS Code API URI
-      path = '/' + path;
 
       // Skip the entry if it is not in the subtree of the scope
-      if (!path.startsWith(_path)) {
+      if (!path.startsWith(_searchPath)) {
         return;
       }
 
       // Cut the path to contextualize it to the current scope
-      path = path.slice(_path.length, entry.dir ? -'/'.length : undefined);
+      path = path.slice(_searchPath.length, entry.dir ? -'/'.length : undefined);
 
       // Do not return self as own entry
       if (!path) {
@@ -80,8 +81,6 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
   }
 
   public createDirectory(_uri: vscode.Uri): void | Thenable<void> {
-    // TODO: Report telemetry
-    debugger;
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {

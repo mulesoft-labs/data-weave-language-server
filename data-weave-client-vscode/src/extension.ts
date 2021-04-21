@@ -16,7 +16,7 @@ import { PassThrough } from 'stream'
 import * as vscode from 'vscode';
 import { DataWeaveDebugAdapterDescriptorFactory, DataWeaveDebuggerConfigurationProvider } from './debuggerAdapter'
 import { findJavaExecutable } from './javaUtils'
-import JarFileSystemProvider from './JarFileSystemProvider'
+import JarFileSystemProvider from './jarFileSystemProvider'
 
 export function activate(context: ExtensionContext) {
   console.log('Registering registerDebugAdapterDescriptorFactory')  
