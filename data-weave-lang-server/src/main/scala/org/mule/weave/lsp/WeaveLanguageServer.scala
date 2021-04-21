@@ -78,14 +78,16 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
 
   private val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(projectDefinition)
 
+  private val virtualFileSystems: Seq[VirtualFileSystem] = Seq(projectVFS, librariesVFS, new ClassloaderVirtualFileSystem(this.getClass.getClassLoader))
+
+  private val globalFVS = new ChainedVirtualFileSystem(virtualFileSystems)
+
   private val dwTooling: LSPToolingServices = new LSPToolingServices(createWeaveToolingService, executorService, projectVFS, projectDefinition, librariesVFS)
 
-  private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(dwTooling, executorService, projectVFS)
+  private val textDocumentService: DataWeaveDocumentService = new DataWeaveDocumentService(dwTooling, executorService, projectVFS, globalFVS)
 
   private def createWeaveToolingService(): WeaveToolingService = {
-    //TODO: Remove when possible the classloader and put everything inside libraries
-    val virtualFileSystems: Seq[VirtualFileSystem] = Seq(projectVFS, librariesVFS, new ClassloaderVirtualFileSystem(this.getClass.getClassLoader))
-    val globalFVS = new ChainedVirtualFileSystem(virtualFileSystems)
+
     val moduleLoader = new RamlModuleLoader()
     moduleLoader.resolver(globalFVS.asResourceResolver)
     val toolingService = new WeaveToolingService(globalFVS, EmptyDataFormatDescriptorProvider, Array(DefaultModuleLoaderFactory(moduleLoader)))
@@ -106,6 +108,7 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setDocumentSymbolProvider(true)
     capabilities.setDefinitionProvider(true)
     capabilities.setDocumentFormattingProvider(true)
+    capabilities.setFoldingRangeProvider(true)
     capabilities.setCodeActionProvider(true)
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)

@@ -1,12 +1,11 @@
 package org.mule.weave.lsp.vfs
 
-import java.io.File
-
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.sdk.NameIdentifierHelper
 
+import java.io.File
 import scala.io.Source
 
 class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolder: File) extends VirtualFile {
@@ -23,6 +22,11 @@ class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolde
 
   override def write(content: String): Boolean = {
     false
+  }
+
+
+  override def url(): String = {
+    file.toURI.toString
   }
 
   override def readOnly(): Boolean = true

@@ -1,5 +1,4 @@
 rootProject.name = 'data-weave-language-server'
 include 'data-weave-client-vscode'
 include 'data-weave-lang-server'
-include 'data-weave-debugger-adapter'
 

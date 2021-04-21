@@ -7,16 +7,14 @@ import org.mule.weave.v2.sdk.NameIdentifierHelper
 import org.mule.weave.v2.sdk.WeaveResource
 
 import java.io.File
-import java.net.URL
-import java.nio.file.Paths
 import scala.io.Source
 
 /**
  * This project represents the VirtualFile from the ProjectVirtualFileSystem
  *
- * @param fs The file system that created this virtual file
- * @param url The Url of this File
- * @param file The underlying File if any. It may be absent if the file hasn't been persisted yet
+ * @param fs          The file system that created this virtual file
+ * @param url         The Url of this File
+ * @param file        The underlying File if any. It may be absent if the file hasn't been persisted yet
  * @param memoryState The memory state represents the state of this file that was not yet persisted.
  */
 class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option[File], var memoryState: Option[String] = None) extends VirtualFile {
@@ -47,7 +45,9 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
   }
 
 
-  override def url(): String = this.url
+  override def url(): String = {
+    this.url
+  }
 
   override def asResource(): WeaveResource = super.asResource()
 
@@ -71,12 +71,13 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
         }
       }
     } else {
+      val maybeUri = URLUtils.toPath(url)
       fs.sourceRoot match {
-        case Some(rootFolder) => {
-          val relativePath = rootFolder.toPath.relativize(Paths.get(new URL(url).toURI)).toString
+        case Some(rootFolder) if (maybeUri.isDefined) => {
+          val relativePath = rootFolder.toPath.relativize(maybeUri.get).toString
           NameIdentifierHelper.fromWeaveFilePath(relativePath)
         }
-        case None => {
+        case _ => {
           NameIdentifierHelper.fromWeaveFilePath(url)
         }
       }
@@ -94,6 +95,6 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
   }
 
   override def path(): String = {
-    url
+    URLUtils.toURI(url).map(_.getPath).getOrElse(url)
   }
 }

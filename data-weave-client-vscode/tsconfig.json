@@ -1,12 +1,18 @@
 {
 	"compilerOptions": {
-		"target": "es6",
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"outDir": "out",
-		"lib": [ "es2016" ],
-		"sourceMap": true
-	},
+      "target": "es6",
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "outDir": "out",
+      "lib": [
+        "es2016"
+      ],
+      "sourceMap": true,
+      "typeRoots": [
+        "./node_modules/@types",
+        "./types"
+      ]
+    },
 	"exclude": [
 		"node_modules",
 		"server"

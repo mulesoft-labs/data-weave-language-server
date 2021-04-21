@@ -57,7 +57,7 @@ class QuickFixCommand(weaveService: LSPToolingServices) extends WeaveCommand {
         }
 
         override def text(startLocation: Int, endLocation: Int): String = {
-          toolingService.editor.resource.content().substring(startLocation, endLocation)
+          toolingService.file.read().substring(startLocation, endLocation)
         }
       })
 

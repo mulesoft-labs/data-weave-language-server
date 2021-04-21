@@ -18,6 +18,7 @@ import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.DocumentSymbol
 import org.eclipse.lsp4j.DocumentSymbolParams
 import org.eclipse.lsp4j.FoldingRange
+import org.eclipse.lsp4j.FoldingRangeKind
 import org.eclipse.lsp4j.FoldingRangeRequestParams
 import org.eclipse.lsp4j.Hover
 import org.eclipse.lsp4j.HoverParams
@@ -42,10 +43,14 @@ import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionType
 import org.mule.weave.v2.editor.ImplicitInput
+import org.mule.weave.v2.editor.RegionKind
+import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
+import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.scope.Reference
+import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
 import java.util
@@ -56,7 +61,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Executor, projectFS: ProjectVirtualFileSystem) extends TextDocumentService {
+class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Executor, projectFS: ProjectVirtualFileSystem, vfs: VirtualFileSystem) extends TextDocumentService {
 
   private val codeActions = new CodeActions(toolingServices)
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -106,7 +111,21 @@ class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Ex
 
   override def resolveCodeLens(unresolved: CodeLens): CompletableFuture[CodeLens] = super.resolveCodeLens(unresolved)
 
-  override def foldingRange(params: FoldingRangeRequestParams): CompletableFuture[util.List[FoldingRange]] = super.foldingRange(params)
+  override def foldingRange(params: FoldingRangeRequestParams): CompletableFuture[util.List[FoldingRange]] = {
+    CompletableFuture.supplyAsync(() => {
+      val service = toolingServices.documentService().open(params.getTextDocument.getUri)
+      val regions: Array[FoldingRange] = service.foldingRegions().map((fr) => {
+        val range: FoldingRange = new FoldingRange(fr.location.startPosition.line - 1, fr.location.endPosition.line - 1)
+        val kind: String = fr.kind match {
+          case RegionKind.COMMENTS => FoldingRangeKind.Comment
+          case _ => "region"
+        }
+        range.setKind(kind)
+        range
+      })
+      util.Arrays.asList(regions: _*)
+    })
+  }
 
   override def codeAction(params: CodeActionParams): CompletableFuture[util.List[JEither[Command, CodeAction]]] = {
     logger.log(Level.INFO, "code: " + params)
@@ -224,8 +243,8 @@ class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Ex
           link.setTargetUri(params.getTextDocument.getUri)
         } else {
           //Cross module link
-          val resourceResolver = projectFS.asResourceResolver
-          val moduleName = reference.moduleSource.get
+          val resourceResolver: WeaveResourceResolver = vfs.asResourceResolver
+          val moduleName: NameIdentifier = reference.moduleSource.get
           resourceResolver.resolve(moduleName) match {
             case Some(value) => {
               link.setTargetUri(value.url())

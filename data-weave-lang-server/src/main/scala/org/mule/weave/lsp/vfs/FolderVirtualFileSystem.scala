@@ -5,16 +5,13 @@ import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
-import java.net.URL
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.Collections
 import scala.collection.mutable.ArrayBuffer
-import scala.util.Try
 
 /**
  * This virtual file system is loaded from a folder
@@ -24,7 +21,7 @@ import scala.util.Try
 class FolderVirtualFileSystem(folder: File) extends ReadOnlyVirtualFileSystem {
 
   override def file(path: String): VirtualFile = {
-    val theFile: Option[File] = Try(Paths.get(new URL(path).toURI).toFile).toOption
+    val theFile: Option[File] = URLUtils.toFile(path)
     if (theFile.isEmpty) {
       null
     } else {

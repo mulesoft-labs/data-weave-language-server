@@ -16,12 +16,15 @@ import { PassThrough } from 'stream'
 import * as vscode from 'vscode';
 import { DataWeaveDebugAdapterDescriptorFactory, DataWeaveDebuggerConfigurationProvider } from './debuggerAdapter'
 import { findJavaExecutable } from './javaUtils'
+import JarFileSystemProvider from './JarFileSystemProvider'
 
 export function activate(context: ExtensionContext) {
   console.log('Registering registerDebugAdapterDescriptorFactory')  
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-debugger', new DataWeaveDebugAdapterDescriptorFactory()));
   console.log('Registering registerDebugConfigurationProvider')
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-debugger', new DataWeaveDebuggerConfigurationProvider())); 
+
+  context.subscriptions.push(vscode.workspace.registerFileSystemProvider('jar', new JarFileSystemProvider(), { isReadonly: true, isCaseSensitive: true }));
 
    
   function createServer(): Promise<StreamInfo> {

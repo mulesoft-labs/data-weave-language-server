@@ -1,6 +1,7 @@
 package org.mule.weave.lsp.vfs
 
 import org.mule.weave.lsp.services.ProjectDefinition
+import org.mule.weave.lsp.vfs.URLUtils.toURI
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -11,13 +12,11 @@ import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
-import java.net.URL
 import java.nio.file.Paths
 import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.util.Try
 
 /**
  * This Virtual File System handles the project interactions.
@@ -39,23 +38,35 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
 
 
   def update(uri: String, content: String): Unit = {
-    logger.log(Level.INFO, s"update ${uri} -> ${content}")
-
-    Option(file(uri)) match {
-      case Some(vf) => {
-        val written = vf.write(content)
-        if (written) {
-          triggerChanges(vf)
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"update: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"update ${uri} -> ${content}")
+      Option(file(uri)) match {
+        case Some(vf) => {
+          val written = vf.write(content)
+          if (written) {
+            triggerChanges(vf)
+          }
         }
-      }
-      case None => {
-        val virtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
-        inMemoryFiles.put(uri, virtualFile)
-        triggerChanges(virtualFile)
+        case None => {
+          val virtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
+          inMemoryFiles.put(uri, virtualFile)
+          triggerChanges(virtualFile)
+        }
       }
     }
   }
 
+
+  private def isSupportedScheme(uri: String) = {
+    toURI(uri)
+      .exists((uri) => {
+        val scheme = uri.getScheme
+        scheme == "file" || scheme == "untitled"
+      })
+  }
 
   /**
    * Mark the specified Uri as closed. All memory representation should be cleaned
@@ -63,8 +74,13 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
    * @param uri The Uri of the file
    */
   def closed(uri: String): Unit = {
-    logger.log(Level.INFO, s"closed ${uri}")
-    inMemoryFiles.remove(uri)
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"closed: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"closed ${uri}")
+      inMemoryFiles.remove(uri)
+    }
   }
 
   /**
@@ -73,7 +89,13 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
    * @param uri The uri to be marked as saved
    */
   def saved(uri: String): Unit = {
-    inMemoryFiles.get(uri).map(_.save())
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"saved: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"saved: ${uri}")
+      inMemoryFiles.get(uri).map(_.save())
+    }
   }
 
   /**
@@ -82,11 +104,16 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
    * @param uri The uri to be marked as changed
    */
   def changed(uri: String): Unit = {
-    logger.log(Level.INFO, s"logger.log(Level.INFO, changed ${uri}")
-    val virtualFile = file(uri)
-    triggerChanges(virtualFile)
-    //TODO should we remove the inMemoryRepresentation!
-    vfsChangeListeners.foreach(_.onChanged(virtualFile))
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"changed: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"changed: ${uri}")
+      val virtualFile = file(uri)
+      triggerChanges(virtualFile)
+      //TODO should we remove the inMemoryRepresentation!
+      vfsChangeListeners.foreach(_.onChanged(virtualFile))
+    }
   }
 
   /**
@@ -95,22 +122,32 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
    * @param uri The uri to be deleted
    */
   def deleted(uri: String): Unit = {
-    logger.log(Level.INFO, s"deleted ${uri}")
-    inMemoryFiles.remove(uri)
-    val virtualFile = new ProjectVirtualFile(this, uri, None)
-    triggerChanges(virtualFile)
-    vfsChangeListeners.foreach((listener) => {
-      listener.onDeleted(virtualFile)
-    })
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"deleted: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"deleted ${uri}")
+      inMemoryFiles.remove(uri)
+      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      triggerChanges(virtualFile)
+      vfsChangeListeners.foreach((listener) => {
+        listener.onDeleted(virtualFile)
+      })
+    }
   }
 
   def created(uri: String): Unit = {
-    logger.log(Level.INFO, s"created ${uri}")
-    val virtualFile = new ProjectVirtualFile(this, uri, None)
-    triggerChanges(virtualFile)
-    vfsChangeListeners.foreach((listener) => {
-      listener.onCreated(virtualFile)
-    })
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"created: Ignoring ${uri} as it is not supported. Most probably is a read only")
+    } else {
+      logger.log(Level.INFO, s"created: ${uri}")
+      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      triggerChanges(virtualFile)
+      vfsChangeListeners.foreach((listener) => {
+        listener.onCreated(virtualFile)
+      })
+    }
   }
 
   override def changeListener(cl: ChangeListener): Unit = {
@@ -137,23 +174,29 @@ class ProjectVirtualFileSystem(projectDefinition: ProjectDefinition) extends Vir
     projectDefinition.sourceFolder().headOption
   }
 
-  override def file(path: String): VirtualFile = {
-    logger.log(Level.INFO, s"file ${path}")
-    //absolute path
-    if (inMemoryFiles.contains(path)) {
-      inMemoryFiles(path)
+  override def file(uri: String): VirtualFile = {
+    logger.log(Level.INFO, s"file ${uri}")
+    val supportedScheme = isSupportedScheme(uri)
+    if (!supportedScheme) {
+      logger.log(Level.INFO, s"Ignoring ${uri} as it is not supported. Most probably is a read only")
+      null
     } else {
-      //It may not be a valid url then just try on nextone
-      val maybeFile = Try(Paths.get(new URL(path).toURI).toFile).toOption
-      if (maybeFile.isEmpty) {
-        null
+      //absolute path
+      if (inMemoryFiles.contains(uri)) {
+        inMemoryFiles(uri)
       } else {
-        if (maybeFile.get.exists()) {
-          val virtualFile = new ProjectVirtualFile(this, path, Some(maybeFile.get))
-          inMemoryFiles.put(path, virtualFile)
-          virtualFile
-        } else {
+        //It may not be a valid url then just try on nextone
+        val maybeFile = URLUtils.toFile(uri)
+        if (maybeFile.isEmpty) {
           null
+        } else {
+          if (maybeFile.get.exists()) {
+            val virtualFile = new ProjectVirtualFile(this, uri, Some(maybeFile.get))
+            inMemoryFiles.put(uri, virtualFile)
+            virtualFile
+          } else {
+            null
+          }
         }
       }
     }

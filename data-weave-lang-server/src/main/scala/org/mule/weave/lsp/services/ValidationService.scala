@@ -3,7 +3,6 @@ package org.mule.weave.lsp.services
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.PublishDiagnosticsParams
-import org.eclipse.lsp4j.Range
 import org.mule.weave.lsp.utils.LSPConverters._
 import org.mule.weave.v2.editor.QuickFix
 import org.mule.weave.v2.editor.ValidationMessage
