@@ -4,10 +4,12 @@ import org.eclipse.lsp4j.DidChangeConfigurationParams
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams
 import org.eclipse.lsp4j.DidChangeWorkspaceFoldersParams
 import org.eclipse.lsp4j.ExecuteCommandParams
-import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.commands.CommandProvider
-import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
+import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.services.events.FileChangedEvent
+import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
@@ -17,18 +19,21 @@ import java.util.logging.Logger
  * DataWeave Implementation of the LSP Workspace Service
  *
  */
-class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem,
-                                pd: ProjectDefinition,
-                                messageLoggerService: MessageLoggerService,
-                                toolingService: LSPToolingServices
+class DataWeaveWorkspaceService(
+
+                                 project: Project,
+                                 eventBus: EventBus,
+                                 vfs: VirtualFileSystem,
+                                 messageLoggerService: ClientLogger,
+                                 toolingService: ValidationServices
                                ) extends WorkspaceService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val commandProvider: CommandProvider = new CommandProvider(projectVFS, pd, messageLoggerService, toolingService)
+  private val commandProvider: CommandProvider = new CommandProvider(vfs, messageLoggerService, toolingService)
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     logger.log(Level.INFO, "didChangeConfiguration: " + params.getSettings)
-    pd.updateSettings(params)
+    project.settings.update(params.getSettings)
   }
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
@@ -41,7 +46,6 @@ class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem,
     })
   }
 
-
   override def didChangeWorkspaceFolders(params: DidChangeWorkspaceFoldersParams): Unit = {
     logger.log(Level.INFO, "[DataWeaveWorkspaceService] Changed Folders: " + params.getEvent)
   }
@@ -49,11 +53,7 @@ class DataWeaveWorkspaceService(projectVFS: ProjectVirtualFileSystem,
   override def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
     params.getChanges.forEach((fe) => {
       messageLoggerService.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
-      fe.getType match {
-        case FileChangeType.Created => projectVFS.created(fe.getUri)
-        case FileChangeType.Changed => projectVFS.changed(fe.getUri)
-        case FileChangeType.Deleted => projectVFS.deleted(fe.getUri)
-      }
+      eventBus.fire(new FileChangedEvent(fe.getUri, fe.getType))
     })
   }
 }

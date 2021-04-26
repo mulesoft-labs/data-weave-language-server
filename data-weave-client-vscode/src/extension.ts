@@ -105,7 +105,7 @@ export function activate(context: ExtensionContext) {
       // Synchronize the setting section 'dataWeaveLS' to the server
       configurationSection: 'data-weave',
       // Notify the server about file changes to '.clientrc files contain in the workspace
-      fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml}')
+      fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml,xml,yaml}')
     },
     diagnosticCollectionName: 'DataWeave'
   }

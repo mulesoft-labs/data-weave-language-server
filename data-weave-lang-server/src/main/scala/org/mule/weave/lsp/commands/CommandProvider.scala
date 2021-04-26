@@ -1,20 +1,18 @@
 package org.mule.weave.lsp.commands
 
-import org.mule.weave.lsp.services.LSPToolingServices
-import org.mule.weave.lsp.services.MessageLoggerService
-import org.mule.weave.lsp.services.ProjectDefinition
-import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
+import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.ValidationServices
+import org.mule.weave.v2.editor.VirtualFileSystem
 
-class CommandProvider(projectVFS: ProjectVirtualFileSystem,
-                      pd: ProjectDefinition,
-                      messageLoggerService: MessageLoggerService,
-                      toolingService: LSPToolingServices) {
+class CommandProvider(virtualFileSystem: VirtualFileSystem,
+                      clientLogger: ClientLogger,
+                      toolingService: ValidationServices) {
 
   val commands = Seq(
-    new RunBatTestCommand(pd),
-    new RunBatFolderTestCommand(pd),
-    new InstallBatCommand(pd),
-    new LaunchDebuggerCommand(projectVFS, messageLoggerService),
+    new RunBatTestCommand(clientLogger),
+    new RunBatFolderTestCommand(clientLogger),
+    new InstallBatCommand(clientLogger),
+    new LaunchDebuggerCommand(virtualFileSystem, clientLogger),
     new QuickFixCommand(toolingService),
     new InsertDocumentationCommand(toolingService)
   )

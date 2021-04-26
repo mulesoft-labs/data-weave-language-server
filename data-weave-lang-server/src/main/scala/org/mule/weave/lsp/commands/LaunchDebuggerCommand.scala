@@ -2,14 +2,19 @@ package org.mule.weave.lsp.commands
 
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher
-import org.mule.weave.lsp.services.MessageLoggerService
+import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
+import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.io.IOException
 import java.net.ServerSocket
 import java.util.concurrent.Executors
 
-class LaunchDebuggerCommand(projectVFS: ProjectVirtualFileSystem, messageLoggerService: MessageLoggerService) extends WeaveCommand {
+//LSP .....
+// LaunchDebugger
+// [VSCODE] <-> [LSPADI] <-> [PDW]
+
+class LaunchDebuggerCommand(virtualFileSystem: VirtualFileSystem, messageLoggerService: ClientLogger) extends WeaveCommand {
 
   override def commandId(): String = Commands.DW_RUN_DEBUGGER
 
@@ -18,7 +23,7 @@ class LaunchDebuggerCommand(projectVFS: ProjectVirtualFileSystem, messageLoggerS
     val executorService = Executors.newSingleThreadExecutor();
     executorService.submit(new Runnable {
       override def run(): Unit = {
-        DataWeaveDebuggerAdapterProtocolLauncher.launch(projectVFS, messageLoggerService, port)
+        DataWeaveDebuggerAdapterProtocolLauncher.launch(virtualFileSystem, messageLoggerService, port)
       }
     })
     new Integer(port)

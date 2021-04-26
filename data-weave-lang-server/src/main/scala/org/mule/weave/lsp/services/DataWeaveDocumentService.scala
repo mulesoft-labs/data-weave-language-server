@@ -61,17 +61,43 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Executor, projectFS: ProjectVirtualFileSystem, vfs: VirtualFileSystem) extends TextDocumentService {
+class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Executor, projectFS: ProjectVirtualFileSystem, vfs: VirtualFileSystem) extends TextDocumentService {
 
   private val codeActions = new CodeActions(toolingServices)
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
+  //FS Changes
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
-    logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
+      logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
     val textDocument: TextDocumentItem = openParam.getTextDocument
     val uri: String = textDocument.getUri
+    //TODO replace with event
     projectFS.update(uri, openParam.getTextDocument.getText)
   }
+
+
+  override def didChange(params: DidChangeTextDocumentParams): Unit = {
+    val textDocument = params.getTextDocument
+    logger.log(Level.INFO, "didChange : " + textDocument.getUri)
+    //TODO replace with event
+    projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
+  }
+
+  override def didClose(params: DidCloseTextDocumentParams): Unit = {
+    val uri = params.getTextDocument.getUri
+    logger.log(Level.INFO, "didClose : " + uri)
+    //TODO replace with event
+    projectFS.closed(uri)
+    dwTextDocumentService.close(uri)
+  }
+
+  override def didSave(params: DidSaveTextDocumentParams): Unit = {
+    val uri = params.getTextDocument.getUri
+    //TODO replace with event
+    projectFS.saved(params.getTextDocument.getUri)
+    logger.log(Level.INFO, "didSave : " + uri)
+  }
+
 
   def dwTextDocumentService: WeaveToolingService = {
     toolingServices.documentService()
@@ -321,22 +347,4 @@ class DataWeaveDocumentService(toolingServices: LSPToolingServices, executor: Ex
   }
 
 
-  override def didChange(params: DidChangeTextDocumentParams): Unit = {
-    val textDocument = params.getTextDocument
-    logger.log(Level.INFO, "didChange : " + textDocument.getUri)
-    projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
-  }
-
-  override def didClose(params: DidCloseTextDocumentParams): Unit = {
-    val uri = params.getTextDocument.getUri
-    logger.log(Level.INFO, "didClose : " + uri)
-    projectFS.closed(uri)
-    dwTextDocumentService.close(uri)
-  }
-
-  override def didSave(params: DidSaveTextDocumentParams): Unit = {
-    val uri = params.getTextDocument.getUri
-    projectFS.saved(params.getTextDocument.getUri)
-    logger.log(Level.INFO, "didSave : " + uri)
-  }
 }

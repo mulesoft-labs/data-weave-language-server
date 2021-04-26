@@ -1,6 +1,7 @@
 package org.mule.weave.lsp.bat
 
-import org.mule.weave.lsp.services.MessageLoggerService
+import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.utils.OSUtils
 import org.mule.weave.v2.deps.DependencyManager
 
 import java.io.File
@@ -21,18 +22,15 @@ trait BatSupport {
   val DEFAULT_BAT_WRAPPER_VERSION: String
   val batHome: File
   val wrapperFolder: File
-  val maven: DependencyManager
-  val messageLoggerService: MessageLoggerService
+  val clientLogger: ClientLogger
   val NEXUS: String
-  private val isWindows: Boolean = System.getProperty("os.name").toLowerCase.contains("win")
 
-  private val logger: Logger = Logger.getLogger(getClass.getName)
 
   def run(workdir: String, testPath: Option[String]): String = {
     val workspacePath = workdir.replaceAll("\"", "")
-    logger.log(Level.INFO, s"Starting BAT execution: $testPath in folder $workspacePath")
+    clientLogger.logInfo(s"Starting BAT execution: $testPath in folder $workspacePath")
     val workspaceFile = new File(workspacePath)
-    val executableName: String = if (isWindows) s"$wrapperFolder${separator}bin${separator}bat.bat" else s"$wrapperFolder${separator}bin${separator}bat"
+    val executableName: String = if (OSUtils.isWindows) s"$wrapperFolder${separator}bin${separator}bat.bat" else s"$wrapperFolder${separator}bin${separator}bat"
     val stream: Stream[String] =
       if (testPath.isDefined)
         Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream
@@ -41,7 +39,7 @@ trait BatSupport {
     stream.foreach(out => {
       val ansiCharacters = "\u001B\\[[;\\d]*m"
       val msg = out.replaceAll(ansiCharacters, "")
-      logger.log(Level.INFO, s"$msg[BAT]")
+      clientLogger.logInfo(s"$msg[BAT]")
     })
     stream.mkString
   }
@@ -50,7 +48,7 @@ trait BatSupport {
     if (!isBatInstalled) {
       downloadAndInstall()
     } else
-      messageLoggerService.logInfo("BAT CLI already installed!")
+      clientLogger.logInfo("BAT CLI already installed!")
   }
 
   def isBatInstalled: Boolean = {
@@ -76,9 +74,9 @@ trait BatSupport {
     unzipWrapper(wrapperFile)
     val installed = isBatInstalled
     if (installed)
-      logger.log(Level.INFO, "BAT CLI installed successfully")
+      clientLogger.logInfo("BAT CLI installed successfully")
     else
-      logger.log(Level.INFO, "BAT CLI wasn't installed")
+      clientLogger.logInfo("BAT CLI wasn't installed")
     installed
   }
 

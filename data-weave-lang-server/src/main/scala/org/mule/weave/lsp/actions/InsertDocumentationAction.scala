@@ -4,12 +4,12 @@ import org.eclipse.lsp4j.CodeAction
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.Command
 import org.mule.weave.lsp.commands.Commands
-import org.mule.weave.lsp.services.LSPToolingServices
+import org.mule.weave.lsp.services.ValidationServices
 import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
 
 import java.util
 
-class InsertDocumentationAction(service: LSPToolingServices) extends CodeActionProvider {
+class InsertDocumentationAction(service: ValidationServices) extends CodeActionProvider {
   override def handles(action: CodeActionParams): Boolean = {
     val toolingService = service.documentService().open(action.getTextDocument.getUri)
     val maybeNode = toolingService.nodeAt(action.getRange.getStart.getLine, action.getRange.getStart.getCharacter, Some(classOf[FunctionDirectiveNode]))

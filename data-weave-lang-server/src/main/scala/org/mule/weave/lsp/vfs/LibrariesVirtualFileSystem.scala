@@ -1,12 +1,14 @@
 package org.mule.weave.lsp.vfs
 
-import org.mule.weave.lsp.services.MessageLoggerService
-import org.mule.weave.v2.deps.Artifact
-import org.mule.weave.v2.deps.ArtifactResolutionCallback
-import org.mule.weave.v2.deps.DependencyManager
-import org.mule.weave.v2.deps.DependencyManagerMessageCollector
+import org.mule.weave.lsp.project.DependencyArtifact
+import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
+import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
+import org.mule.weave.lsp.project.events.OnDependencyArtifactRemoved
+import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
+import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
 import org.mule.weave.v2.editor.ChangeListener
-import org.mule.weave.v2.editor.EmptyVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
@@ -16,10 +18,6 @@ import org.mule.weave.v2.sdk.WeaveResourceResolver
 import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 
 /**
  * A virtual file system that handles Maven Libraries. This VFS allows to load and unload libraries.
@@ -27,42 +25,37 @@ import scala.concurrent.duration.Duration
  * @param maven                The Maven Dependency Manager
  * @param messageLoggerService The user logger
  */
-class LibrariesVirtualFileSystem(maven: DependencyManager, messageLoggerService: MessageLoggerService) extends VirtualFileSystem with ArtifactResolutionCallback {
-
-
+class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger) extends VirtualFileSystem {
   private val logger: Logger = Logger.getLogger(getClass.getName)
+  private val libraries: mutable.Map[String, VirtualFileSystem] = new mutable.HashMap()
 
-  private val modules: mutable.Map[String, VirtualFileSystem] = new mutable.HashMap()
-
-  private val listeners: ArrayBuffer[LibrariesChangeListener] = ArrayBuffer()
-
-  override def shouldDownload(id: String, kind: String): Boolean = {
-    val idSystem = getModule(id)
-    idSystem == null || (idSystem eq EmptyVirtualFileSystem)
-  }
-
-  override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
-    messageLoggerService.logInfo(s"Artifact: $kind@$id was downloaded successfully.")
-    addLibrary(id,
-      new LazyVirtualFileSystem(
-        () => {
-          new ChainedVirtualFileSystem(
-            Await.result(artifact, Duration.Inf).map((artifact) => {
-              if (!artifact.file.isDirectory) {
-                new JarVirtualFileSystem(artifact.file)
-              } else {
-                new FolderVirtualFileSystem(artifact.file)
-              }
-            })
-          )
+  eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
+    override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
+      artifacts.foreach((artifact) => {
+        val libraryVFS = if (!artifact.artifact.isDirectory) {
+          new JarVirtualFileSystem(artifact.artifact)
+        } else {
+          new FolderVirtualFileSystem(artifact.artifact)
         }
-      )
-    )
-  }
+        addLibrary(artifact.artifactId, libraryVFS)
+      })
+
+      eventBus.fire(new LibrariesModifiedEvent())
+    }
+  })
+
+  eventBus.register(DependencyArtifactRemovedEvent.ARTIFACT_REMOVED, new OnDependencyArtifactRemoved {
+    override def onArtifactsRemoved(artifacts: Array[DependencyArtifact]): Unit = {
+      artifacts.foreach((a) => {
+        removeLibrary(a.artifactId)
+      })
+      eventBus.fire(new LibrariesModifiedEvent())
+    }
+  })
 
   override def file(path: String): VirtualFile = {
     logger.log(Level.INFO, s"file ${path}")
-    modules
+    libraries
       .toStream
       .flatMap((vfs) => {
         logger.log(Level.INFO, "Module:" + vfs._1)
@@ -72,47 +65,33 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, messageLoggerService:
       .orNull
   }
 
-  def registerListener(listener: LibrariesChangeListener): Unit = {
-    this.listeners += (listener)
+
+  private def removeLibrary(name: String): Unit = {
+    libraries.remove(name)
   }
 
-  def retrieveMavenArtifact(artifactId: String, errorMessage: DependencyManagerMessageCollector): Unit = {
-    if (!modules.contains(artifactId)) {
-      maven.retrieve(artifactId, this, errorMessage)
-    }
+  private def addLibrary(name: String, virtualFileSystem: VirtualFileSystem): Unit = {
+    libraries.update(name, virtualFileSystem)
   }
 
-  def removeLibrary(name: String): Boolean = {
-    val defined = modules.remove(name).isDefined
-    if (defined) {
-      listeners.foreach(_.onLibraryRemoved(name))
-    }
-    defined
+  def getLibrary(name: String): VirtualFileSystem = {
+    libraries.get(name).orNull
   }
 
-  def addLibrary(name: String, virtualFileSystem: VirtualFileSystem): Unit = {
-    modules.update(name, virtualFileSystem)
-    listeners.foreach(_.onLibraryAdded(name))
-  }
-
-  def getModule(name: String): VirtualFileSystem = {
-    modules.get(name).orNull
-  }
-
-  def getModules(): mutable.Map[String, VirtualFileSystem] = {
-    modules
+  def getLibraries(): mutable.Map[String, VirtualFileSystem] = {
+    libraries
   }
 
   override def changeListener(cl: ChangeListener): Unit = {
-    modules.foreach(_._2.changeListener(cl))
+    libraries.foreach(_._2.changeListener(cl))
   }
 
   override def onChanged(virtualFile: VirtualFile): Unit = {
-    modules.foreach(_._2.onChanged(virtualFile))
+    libraries.foreach(_._2.onChanged(virtualFile))
   }
 
   override def removeChangeListener(service: ChangeListener): Unit = {
-    modules.foreach(_._2.removeChangeListener(service))
+    libraries.foreach(_._2.removeChangeListener(service))
   }
 
   override def asResourceResolver: WeaveResourceResolver = {
@@ -120,7 +99,7 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, messageLoggerService:
   }
 
   override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
-    modules.values.flatMap(_.listFilesByNameIdentifier(filter)).toArray
+    libraries.values.flatMap(_.listFilesByNameIdentifier(filter)).toArray
   }
 
   class LibrariesWeaveResourceResolver() extends WeaveResourceResolver {
@@ -155,14 +134,8 @@ class LibrariesVirtualFileSystem(maven: DependencyManager, messageLoggerService:
   }
 
   private def resourceResolver: Iterator[WeaveResourceResolver] = {
-    modules.values.iterator.map(_.asResourceResolver)
+    libraries.values.iterator.map(_.asResourceResolver)
   }
 }
 
 
-trait LibrariesChangeListener {
-
-  def onLibraryAdded(id: String): Unit = {}
-
-  def onLibraryRemoved(id: String): Unit = {}
-}

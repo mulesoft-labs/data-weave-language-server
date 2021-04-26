@@ -1,9 +1,8 @@
 package org.mule.weave.lsp.bat
 
 import org.apache.commons.io.FileUtils
-import org.mule.weave.lsp.MavenSupport
-import org.mule.weave.lsp.services.ProjectDefinition.DEFAULT_BAT_HOME
-import org.mule.weave.v2.deps.DependencyManager
+import org.mule.weave.lsp.project.Settings.DEFAULT_BAT_HOME
+import org.mule.weave.lsp.services.ClientLogger
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 
@@ -11,7 +10,7 @@ import java.io.File
 import java.io.File.separator
 import java.nio.file.Files
 
-class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport with BatSupport {
+class BatProjectHelperSpec extends FlatSpec with Matchers with BatSupport {
 
   override val DEFAULT_BAT_WRAPPER_VERSION: String = "1.0.58"
   val userHomeFolder: File = Files.createTempDirectory("tempUserHome").toFile
@@ -26,7 +25,6 @@ class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport wit
 
   val wrapperFolder: File = new File(batHome.getAbsolutePath + separator + "bat")
   batHome.deleteOnExit()
-  override val maven: DependencyManager = dependencyManager
 
 
   "BatProjectManager" should "check bat folders ok" in {
@@ -45,4 +43,5 @@ class BatProjectManagerSpec extends FlatSpec with Matchers with MavenSupport wit
 
     run(batHome.getAbsolutePath, Some("--version"))
   }
+  override val clientLogger: ClientLogger = new ClientLogger(null)
 }

@@ -6,11 +6,11 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
-import org.mule.weave.lsp.services.LSPToolingServices
+import org.mule.weave.lsp.services.ValidationServices
 
 import java.util
 
-class InsertDocumentationCommand(toolingServices: LSPToolingServices) extends WeaveCommand {
+class InsertDocumentationCommand(toolingServices: ValidationServices) extends WeaveCommand {
   override def commandId(): String = Commands.DW_GENERATE_WEAVE_DOC
 
   override def execute(params: ExecuteCommandParams): AnyRef = {

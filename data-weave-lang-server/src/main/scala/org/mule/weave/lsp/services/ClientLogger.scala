@@ -3,14 +3,15 @@ package org.mule.weave.lsp.services
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.services.LanguageClient
-import org.eclipse.lsp4j.services.LanguageClientAware
+
+import java.io.PrintWriter
+import java.io.StringWriter
 
 /**
  * Handles the logging to the client
  */
-class MessageLoggerService extends LanguageClientAware {
+class ClientLogger(_client: LanguageClient) {
 
-  private var _client: LanguageClient = _
 
   def logInfo(message: String): Unit = {
     if (_client != null) {
@@ -30,8 +31,13 @@ class MessageLoggerService extends LanguageClientAware {
     }
   }
 
-
-  override def connect(client: LanguageClient): Unit = {
-    this._client = client
+  def logError(message: String, throwable: Throwable): Unit = {
+    if (_client != null) {
+      val stringWriter = new StringWriter()
+      throwable.printStackTrace(new PrintWriter(stringWriter))
+      _client.logMessage(new MessageParams(MessageType.Error, message + " caused by:\n" + stringWriter.toString))
+    }
   }
+
+
 }

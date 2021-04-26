@@ -1,7 +1,7 @@
 package org.mule.weave.dsp
 
 import org.eclipse.lsp4j.debug.launch.DSPLauncher
-import org.mule.weave.lsp.services.MessageLoggerService
+import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.net.ServerSocket
@@ -12,7 +12,7 @@ object DataWeaveDebuggerAdapterProtocolLauncher {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
-  def launch(virtualFileSystem: VirtualFileSystem, messageLoggerService: MessageLoggerService, port: Int) {
+  def launch(virtualFileSystem: VirtualFileSystem, messageLoggerService: ClientLogger, port: Int) {
     logger.log(Level.INFO, s"[DataWeaveDebuggerAdapterProtocolLauncher] Starting Adapter Protocol Process at ${port}.")
     val serverSocket = new ServerSocket(port)
     val socket = serverSocket.accept()

@@ -14,7 +14,7 @@ import org.eclipse.lsp4j.debug.SourceBreakpoint
 import org.eclipse.lsp4j.debug._
 import org.eclipse.lsp4j.debug.services.IDebugProtocolClient
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer
-import org.mule.weave.lsp.services.MessageLoggerService
+import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.v2.debugger.ArrayDebuggerValue
 import org.mule.weave.v2.debugger.AttributeDebuggerValue
 import org.mule.weave.v2.debugger.DebuggerFrame
@@ -47,7 +47,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.mutable.ArrayBuffer
 
-class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, messageLoggerService: MessageLoggerService) extends IDebugProtocolServer with DebuggerClientListener {
+class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem, messageLoggerService: ClientLogger) extends IDebugProtocolServer with DebuggerClientListener {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
 

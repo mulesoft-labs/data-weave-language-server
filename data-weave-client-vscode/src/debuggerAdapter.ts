@@ -35,8 +35,8 @@ export class DataWeaveDebugAdapterDescriptorFactory implements DebugAdapterDescr
         
         try {
             console.log(session)
-            console.log(executable)
-            const debugServerPort = await startDebugger();  
+            console.log(executable)           
+            const debugServerPort = await startDebugger();              
             console.log("DataWeave Language Server Started at ", debugServerPort)                      
             if (debugServerPort) {
                 return new DebugAdapterServer(debugServerPort);
