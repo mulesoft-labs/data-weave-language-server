@@ -3,10 +3,10 @@ package org.mule.weave.lsp
 import java.net.Socket
 import java.util.logging.Level
 import java.util.logging.Logger
-
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.LanguageClient
+import org.mule.weave.lsp.client.WeaveLanguageClient
 
 object DataWeaveLanguageApp extends App {
 
@@ -20,9 +20,9 @@ object DataWeaveLanguageApp extends App {
       val in = socket.getInputStream
       val out = socket.getOutputStream
       val server: WeaveLanguageServer = new WeaveLanguageServer
-      val launcher: Launcher[LanguageClient] = LSPLauncher.createServerLauncher(server, in, out)
-      val client: LanguageClient = launcher.getRemoteProxy
-      server.connect(client)
+      val launcher: Launcher[WeaveLanguageClient] = new LSPLauncher.Builder[WeaveLanguageClient].setLocalService(server).setRemoteInterface(classOf[WeaveLanguageClient]).setInput(in).setOutput(out).create
+      val client: WeaveLanguageClient = launcher.getRemoteProxy
+      server.connect(client);
       logger.log(Level.INFO,s"Starting Language Server.")
       launcher.startListening
     } catch {

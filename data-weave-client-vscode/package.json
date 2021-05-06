@@ -17,6 +17,7 @@
         "Programming Languages"
     ],
     "activationEvents": [
+        "onCommand:dw.project.create",
         "onLanguage:data-weave",
         "workspaceContains:**/*.jar",
         "onFileSystem:jar"
@@ -102,6 +103,10 @@
             {
                 "command": "bat.installCli",
                 "title": "DataWeave: BAT: Install BAT command line interface"
+            },
+            {
+                "command": "dw.project.create",
+                "title": "DataWeave: Create new project"
             }
         ],
         "menus": {
@@ -156,19 +161,21 @@
         "@types/jszip": "^3.4.1",
         "jszip": "^3.6.0",
         "upath": "^1.1.2",
-        "vscode-languageclient": "6.1.3"
+        "vscode-languageclient": "6.1.3",
+        "vscode-languageserver-protocol": "3.15.3"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.33",
         "@types/node": "^11.13.6",
-        "typescript": "^3.9.5",
+        "typescript": "4.2.4",
         "@types/vscode": "1.43.0",
-        "vsce": "1.78.0"
+        "vsce": "1.88.0"
     },
     "scripts": {
         "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
         "vscode:prepublish": "tsc -b",
         "compile": "tsc -b -w",
+        "watch": "tsc -watch -p ./",
         "package": "npm run prepare; vsce package",
         "publish": "vsce publish ${EXTENSION_VERSION}"
     }

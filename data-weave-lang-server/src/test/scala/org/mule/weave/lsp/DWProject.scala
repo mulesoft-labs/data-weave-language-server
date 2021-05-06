@@ -14,6 +14,12 @@ import org.eclipse.lsp4j.TextDocumentContentChangeEvent
 import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.services.LanguageClient
+import org.mule.weave.lsp.client.OpenWindowsParams
+import org.mule.weave.lsp.client.WeaveInputBoxParams
+import org.mule.weave.lsp.client.WeaveInputBoxResult
+import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.client.WeaveQuickPickParams
+import org.mule.weave.lsp.client.WeaveQuickPickResult
 
 import java.nio.file.Path
 import java.util
@@ -111,7 +117,7 @@ class DWProject(val workspaceRoot: Path) {
 
 
   def init(diagnosticsListener: (PublishDiagnosticsParams) => Unit): WeaveLanguageServer = {
-    init(new LanguageClient {
+    init(new WeaveLanguageClient {
       override def telemetryEvent(`object`: Any): Unit = {
 
       }
@@ -137,10 +143,28 @@ class DWProject(val workspaceRoot: Path) {
         }
         logger.log(value, message.getMessage)
       }
+
+      /**
+        * Opens an input box to ask the user for input.
+        *
+        * @return the user provided input. The future can be cancelled, meaning
+        *         the input box should be dismissed in the editor.
+        */
+      override def weaveInputBox(params: WeaveInputBoxParams): CompletableFuture[WeaveInputBoxResult] = ???
+
+      /**
+        * Opens an menu to ask the user to pick one of the suggested options.
+        *
+        * @return the user provided pick. The future can be cancelled, meaning
+        *         the input box should be dismissed in the editor.
+        */
+      override def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult] = ???
+
+      override def openWindow(params: OpenWindowsParams): Unit = ???
     })
   }
 
-  def init(client: LanguageClient): WeaveLanguageServer = {
+  def init(client: WeaveLanguageClient): WeaveLanguageServer = {
     this.lspValue = new WeaveLanguageServer()
     lspValue.connect(client)
     val initializeParams = new InitializeParams()
