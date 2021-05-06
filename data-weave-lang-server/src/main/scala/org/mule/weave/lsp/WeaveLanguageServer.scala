@@ -7,15 +7,17 @@ import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.ServerCapabilities
 import org.eclipse.lsp4j.TextDocumentSyncKind
-import org.eclipse.lsp4j.services.LanguageClient
-import org.eclipse.lsp4j.services.LanguageClientAware
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
+import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
+import org.mule.weave.lsp.project.commands.ProjectProvider
 import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDocumentService
@@ -37,11 +39,12 @@ import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.module.raml.RamlModuleLoader
 
 import java.io.File
+import java.net.URI
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
+class WeaveLanguageServer extends LanguageServer {
 
   val logger = Logger.getLogger(getClass.getName)
 
@@ -52,7 +55,8 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   private var globalFVS: VirtualFileSystem = _
 
   private val textDocumentService: TextDocumentServiceDelegate = new TextDocumentServiceDelegate()
-  private var client: LanguageClient = _
+  private var client: WeaveLanguageClient = _
+  private var workspaceUri: URI = _
 
   private def createWeaveToolingService(): WeaveToolingService = {
     val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventBus)
@@ -73,8 +77,9 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
     logger.log(Level.INFO, s"initialize(${params})")
     val clientLogger = new ClientLogger(client)
+    workspaceUri = new URI(params.getRootUri)
 
-    clientLogger.logInfo("[DataWeave] Root URI: " + params.getRootUri)
+    clientLogger.logInfo("[DataWeave] Root URI: " + workspaceUri)
     clientLogger.logInfo("[DataWeave] Initialization Option: " + params.getInitializationOptions)
     val project: Project = Project.create(params, eventBus)
     val projectKind: ProjectKind = ProjectKindDetector.detectProjectKind(project, eventBus, clientLogger)
@@ -92,7 +97,6 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     initializeProject(clientLogger, projectKind)
 
     val capabilities = new ServerCapabilities
-    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions())
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
     capabilities.setCompletionProvider(new CompletionOptions(true, java.util.Arrays.asList(".", ",")))
     capabilities.setHoverProvider(true)
@@ -104,7 +108,6 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
-
 
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
@@ -145,9 +148,14 @@ class WeaveLanguageServer extends LanguageServer with LanguageClientAware {
     weaveWorkspaceService
   }
 
-  override def connect(client: LanguageClient): Unit = {
+  def connect(client: WeaveLanguageClient): Unit = {
     logger.log(Level.INFO, "connect")
     this.client = client
   }
 
+  @JsonNotification("weave/project/create")
+  def createProject() : Unit = {
+    val projectProvider = new ProjectProvider(client,workspaceUri)
+    projectProvider.newProject()
+  }
 }

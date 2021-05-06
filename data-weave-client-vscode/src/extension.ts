@@ -17,16 +17,18 @@ import * as vscode from 'vscode';
 import { DataWeaveDebugAdapterDescriptorFactory, DataWeaveDebuggerConfigurationProvider } from './debuggerAdapter'
 import { findJavaExecutable } from './javaUtils'
 import JarFileSystemProvider from './jarFileSystemProvider'
+import { handleCustomMessages } from './weaveLanguageClient'
+import { ProjectCreation } from './interfaces/project'
 
 export function activate(context: ExtensionContext) {
-  console.log('Registering registerDebugAdapterDescriptorFactory')  
+  console.log('Registering registerDebugAdapterDescriptorFactory')
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-debugger', new DataWeaveDebugAdapterDescriptorFactory()));
   console.log('Registering registerDebugConfigurationProvider')
-  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-debugger', new DataWeaveDebuggerConfigurationProvider())); 
+  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-debugger', new DataWeaveDebuggerConfigurationProvider()));
 
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('jar', new JarFileSystemProvider(), { isReadonly: true, isCaseSensitive: true }));
 
-   
+
   function createServer(): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
       const server = net.createServer(socket => {
@@ -58,7 +60,7 @@ export function activate(context: ExtensionContext) {
         console.log('[DataWeave] Java Location: ' + javaExecutablePath)
 
         // Start the child java process
-        let options = {cwd: workspace.rootPath}
+        let options = { cwd: workspace.rootPath }
         let args = [
           '-jar',
           '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5010',
@@ -66,13 +68,13 @@ export function activate(context: ExtensionContext) {
           port.toString()
         ]
 
-       console.log('[DataWeave] Spawning at port: ' + port)
-       const process = child_process.spawn(javaExecutablePath, args, options)
+        console.log('[DataWeave] Spawning at port: ' + port)
+        const process = child_process.spawn(javaExecutablePath, args, options)
 
         if (!fs.existsSync(storagePath))
           fs.mkdirSync(storagePath)
 
-        const logStream = fs.createWriteStream(logFile, {flags: 'w'})
+        const logStream = fs.createWriteStream(logFile, { flags: 'w' })
 
         const batRunner = new BatRunner(process)
         batRunner.registerCommands(context)
@@ -81,7 +83,7 @@ export function activate(context: ExtensionContext) {
 
         consoleStream.on("data", (data) => {
           const rawMessage: string = data.toString()
-          if (rawMessage.lastIndexOf("[BAT]") !== -1){
+          if (rawMessage.lastIndexOf("[BAT]") !== -1) {
             const printableMessage = rawMessage.replace(new RegExp("\\[BAT\\]", 'g'), '')
             outputChannel.append(printableMessage);
           }
@@ -109,11 +111,22 @@ export function activate(context: ExtensionContext) {
     },
     diagnosticCollectionName: 'DataWeave'
   }
+  const client = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions)
   // Create the language client and start the client.
-  const client = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions).start()
+
+  const disposableClient = client.start()
+  client.onReady().then(() => handleCustomMessages(client));
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation
-  context.subscriptions.push(client)
+  const dwProjectCreateCommand = 'dw.project.create';
+
+  const dwProjectCreateCommandHandler = () => {
+    client.onReady().then(() => client.sendNotification(ProjectCreation.type))
+  };
+
+  context.subscriptions.push(vscode.commands.registerCommand(dwProjectCreateCommand, dwProjectCreateCommandHandler));
+  context.subscriptions.push(disposableClient)
+
 
 
 }
