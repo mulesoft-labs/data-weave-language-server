@@ -15,6 +15,7 @@ class ValidationTest extends FreeSpec with Matchers {
 
     "It should validate projects correctly" in {
       val project: DWProject = getSimpleProjectWorkspace()
+      project.waitForProjectInitialized()
       project.open(MyMappingPath)
       val errors = project.errorsFor(MyMappingPath)
       errors.size() shouldBe 0
@@ -31,7 +32,7 @@ class ValidationTest extends FreeSpec with Matchers {
 
     "It should validate new files correctly" in {
       val project: DWProject = getSimpleProjectWorkspace()
-
+      project.waitForProjectInitialized()
       project.update(MyMappingPath,
         """
           |%dw 2.0
@@ -68,6 +69,7 @@ class ValidationTest extends FreeSpec with Matchers {
 
     "It should validate projects correctly" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       project.open(MyMappingPath)
       val errors = project.errorsFor(MyMappingPath)
       errors.size() shouldBe 0
@@ -85,7 +87,7 @@ class ValidationTest extends FreeSpec with Matchers {
 
     "It should validate new files correctly" in {
       val project: DWProject = getMavenProjectWorkspace()
-
+      project.waitForProjectInitialized()
       project.update(MyMappingPath,
         """
           |%dw 2.0

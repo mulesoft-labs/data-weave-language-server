@@ -29,10 +29,14 @@ import org.mule.weave.lsp.client.WeaveInputBoxResult
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.client.WeaveQuickPickParams
 import org.mule.weave.lsp.client.WeaveQuickPickResult
+import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.events.OnProjectInitialized
+import org.mule.weave.lsp.project.events.ProjectInitializedEvent
 
 import java.nio.file.Path
 import java.util
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -42,6 +46,7 @@ import scala.io.Codec
 import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
+
 
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
 
@@ -57,6 +62,18 @@ class DWProject(val workspaceRoot: Path) {
     val openTextDocumentParams = new DidOpenTextDocumentParams(item)
     lsp().getTextDocumentService.didOpen(openTextDocumentParams)
     this
+  }
+
+  def waitForProjectInitialized(): Unit = {
+    if (!lsp().project().initialized()) {
+      val latch = new CountDownLatch(1)
+      lsp().eventBus().register(ProjectInitializedEvent.PROJECT_INITIALIZED, new OnProjectInitialized {
+        override def onProjectInitialized(project: Project): Unit = {
+          latch.countDown()
+        }
+      })
+      latch.await(10, TimeUnit.MINUTES)
+    }
   }
 
   def rename(relativePath: String, line: Int, column: Int, newName: String): WorkspaceEdit = {

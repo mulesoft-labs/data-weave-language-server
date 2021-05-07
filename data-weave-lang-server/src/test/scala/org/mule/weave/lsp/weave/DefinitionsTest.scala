@@ -12,6 +12,7 @@ class DefinitionsTest extends FreeSpec {
   "Maven Project" - {
     "should navigate to definition correctly local references" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       val definitions: util.List[_ <: LocationLink] = project.definition("src/main/dw/FunctionReference.dwl", 3, 1)
       assert(definitions.size() == 1)
       assert(definitions.get(0).getTargetUri.contains("src/main/dw/FunctionReference.dwl"))
@@ -21,6 +22,7 @@ class DefinitionsTest extends FreeSpec {
 
     "should navigate to definition correctly cross references" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       val definitions: util.List[_ <: LocationLink] = project.definition("src/main/dw/MappingUsingMyLib.dwl", 2, 1)
       assert(definitions.size() == 1)
       assert(definitions.get(0).getTargetUri.contains("src/main/dw/MyLib.dwl"))

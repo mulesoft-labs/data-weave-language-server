@@ -12,6 +12,7 @@ class RenameTest extends FreeSpec {
   "Maven Project" - {
     "should rename correctly local references" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       val workspaceEdit = project.rename("src/main/dw/FunctionReference.dwl", 1, 5, "myTest")
       val changes: util.Map[String, util.List[TextEdit]] = workspaceEdit.getChanges
       assert(changes.size() == 1)
@@ -33,6 +34,7 @@ class RenameTest extends FreeSpec {
 
     "should rename remote reference correctly" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       val workspaceEdit = project.rename("src/main/dw/MappingUsingMyLib.dwl", 2, 1, "myTest")
       assert(workspaceEdit.getChanges.size() == 2)
       val changeSets = workspaceEdit.getChanges.entrySet()

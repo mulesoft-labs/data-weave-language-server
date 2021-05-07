@@ -47,7 +47,7 @@ class WeaveLanguageServer extends LanguageServer {
 
   val logger = Logger.getLogger(getClass.getName)
 
-  private val eventBus = new EventBus(IDEExecutors.eventsExecutor())
+  private val eventbus = new EventBus(IDEExecutors.eventsExecutor())
   private val executorService = IDEExecutors.defaultExecutor()
 
   private val weaveWorkspaceService: WorkspaceServiceDelegate = new WorkspaceServiceDelegate()
@@ -60,9 +60,10 @@ class WeaveLanguageServer extends LanguageServer {
 
   private var clientLogger: ClientLogger = _
   private var indexService: LSPWeaveIndexService = _
+  private var projectValue: Project = _
 
   private def createWeaveToolingService(): WeaveToolingService = {
-    val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventBus)
+    val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventbus)
     val resourceDependencyAnnotationProcessor = ResourceDependencyAnnotationProcessor(
       new File(DataWeaveUtils.getCacheHome(), "resources"),
       artifactResolutionCallback,
@@ -80,28 +81,32 @@ class WeaveLanguageServer extends LanguageServer {
     toolingService
   }
 
+  def eventBus(): EventBus = eventbus
+
+  def project(): Project = projectValue
+
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
     logger.log(Level.INFO, s"initialize(${params})")
     workspaceUri = new URI(params.getRootUri)
     clientLogger = new ClientLogger(client)
     clientLogger.logInfo("[DataWeave] Root URI: " + workspaceUri)
     clientLogger.logInfo("[DataWeave] Initialization Option: " + params.getInitializationOptions)
-    val project: Project = Project.create(params, eventBus)
-    val projectKind: ProjectKind = ProjectKindDetector.detectProjectKind(project, eventBus, clientLogger)
+    projectValue = Project.create(params, eventbus)
+    val projectKind: ProjectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger)
     clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
 
     clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
-    val librariesVFS: LibrariesVirtualFileSystem = new LibrariesVirtualFileSystem(eventBus, clientLogger)
-    val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(eventBus, projectKind.structure())
-    indexService = new LSPWeaveIndexService(eventBus, IDEExecutors.indexingExecutor(), clientLogger, projectVFS)
+    val librariesVFS: LibrariesVirtualFileSystem = new LibrariesVirtualFileSystem(eventbus, clientLogger)
+    val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(eventbus, projectKind.structure())
+    indexService = new LSPWeaveIndexService(eventbus, IDEExecutors.indexingExecutor(), clientLogger, projectVFS)
     globalFVS = new CompositeFileSystem(projectVFS, librariesVFS)
 
-    val dwTooling = new ValidationServices(project, eventBus, client, globalFVS, createWeaveToolingService, executorService)
+    val dwTooling = new ValidationServices(projectValue, eventbus, client, globalFVS, createWeaveToolingService, executorService)
 
     textDocumentService.delegate = new DataWeaveDocumentService(dwTooling, executorService, projectVFS, globalFVS)
-    weaveWorkspaceService.delegate = new DataWeaveWorkspaceService(project, eventBus, globalFVS, clientLogger, dwTooling)
+    weaveWorkspaceService.delegate = new DataWeaveWorkspaceService(projectValue, eventbus, globalFVS, clientLogger, dwTooling)
 
-    initializeProject(project, projectKind)
+    initializeProject(projectValue, projectKind)
 
     val capabilities = new ServerCapabilities
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
@@ -132,7 +137,7 @@ class WeaveLanguageServer extends LanguageServer {
           clientLogger.logInfo("[DataWeave] Indexing initialized.")
           indexService.init()
           project.markInitialized
-          eventBus.fire(new ProjectInitializedEvent(project))
+          eventbus.fire(new ProjectInitializedEvent(project))
         } catch {
           case e: Exception => {
             clientLogger.logError("Unable to initialize project.", e)

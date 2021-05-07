@@ -20,6 +20,7 @@ class ReferenceTest extends FreeSpec {
 
     "should resolve remote reference" in {
       val project: DWProject = getMavenProjectWorkspace()
+      project.waitForProjectInitialized()
       val definitions: util.List[_ <: LocationLink] = project.definition("src/main/dw/MyMapping.dwl", 2, 11)
       assert(definitions.size() >= 1)
       val firstDefinition = definitions.get(0)
