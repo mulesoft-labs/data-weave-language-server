@@ -14,9 +14,17 @@ object IDEExecutors {
       .build()
   )
 
+
+  private val indexingService = Executors.newFixedThreadPool(8,
+    new ThreadFactoryBuilder()
+      .setNameFormat("indexing-%d\"")
+      .setDaemon(true)
+      .build()
+  )
+
   /**
-   * Event bus thread pool has only one dispatcher so the events order can be guarantied
-   */
+    * Event bus thread pool has only one dispatcher so the events order can be guarantied
+    */
   private val eventsService = Executors.newFixedThreadPool(
     1,
     new ThreadFactoryBuilder()
@@ -31,6 +39,10 @@ object IDEExecutors {
 
   def eventsExecutor(): ExecutorService = {
     eventsService
+  }
+
+  def indexingExecutor(): ExecutorService = {
+    indexingService
   }
 
 }

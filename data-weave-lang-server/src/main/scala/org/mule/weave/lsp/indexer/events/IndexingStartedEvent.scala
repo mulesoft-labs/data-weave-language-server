@@ -1,25 +1,27 @@
-package org.mule.weave.lsp.vfs.events
+package org.mule.weave.lsp.indexer.events
 
+import org.mule.weave.lsp.indexer.events.IndexingStartedEvent.INDEXING_STARTED
 import org.mule.weave.lsp.utils.{Event, EventHandler, EventType}
-import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent.LIBRARIES_MODIFIED
+import org.mule.weave.v2.editor.VirtualFileSystem
 
-class LibrariesModifiedEvent extends Event {
-  override type T = OnLibrariesModified
 
-  override def getType: EventType[OnLibrariesModified] = {
-    LIBRARIES_MODIFIED
+class IndexingStartedEvent(vfs: VirtualFileSystem) extends Event {
+  override type T = OnIndexingStarted
+
+  override def getType: EventType[OnIndexingStarted] = {
+    INDEXING_STARTED
   }
 
-  override def dispatch(handler: OnLibrariesModified): Unit = {
-    handler.onLibrariesModified()
+  override def dispatch(handler: OnIndexingStarted): Unit = {
+    handler.onIndexingStarted(vfs)
   }
 
 }
 
-object LibrariesModifiedEvent {
-  val LIBRARIES_MODIFIED: EventType[OnLibrariesModified] = EventType[OnLibrariesModified]("LIBRARIES_MODIFIED")
+object IndexingStartedEvent {
+  val INDEXING_STARTED: EventType[OnIndexingStarted] = EventType[OnIndexingStarted]("INDEXING_STARTED")
 }
 
-trait OnLibrariesModified extends EventHandler {
-  def onLibrariesModified()
+trait OnIndexingStarted extends EventHandler {
+  def onIndexingStarted(vfs: VirtualFileSystem)
 }

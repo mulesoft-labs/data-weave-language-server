@@ -79,19 +79,37 @@ https://code.visualstudio.com/api/references/extension-guidelines#editor-actions
 ### Quien Calcula el classapth?
 
 #### Option a:
+
 ```
- const script = await calculateLaunchScript(session.configuration);       
+ const script = await launchScript(session.configuration);       
  terminal(script)
 ```
+
 #### Option b:
-  - const debugServerPort = await startDebugger(session.configuration);  
+  - const debugServerPort = await launchScript(session.configuration);
 ```
+  const debugServerPort =  await launchScript(session.configuration);
    [vscode]       <->        [LSP]
-    ui/runInterminal(script) <-|
+    ui/runInterminal(script) <-| //script = java -classpath .... DWRunner -i
      debuggerPort            <-|
-```            
+```
+
+#### Option c:
+- const debugServerPort = await launchScript(session.configuration);
+
+```
+  const {port: debugServerPort, script: script} =  await launchScript(session.configuration);
+  terminal(script) //script = java -classpath .... DWRunner -i
+  return debuggerPort      
+```
+
+```
+  |VSCODE| <-> :debuggerPort                |DAP| <-> script: port |Process|
+   <-{port: debugServerPort, script: script}  |
+                                              |Loop Until process starts
 
 
+```
 
 ###  Testing
              

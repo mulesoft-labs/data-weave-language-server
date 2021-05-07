@@ -23,6 +23,4 @@ object URLUtils {
         Try(Paths.get(uri)).toOption
       })
   }
-
-
 }

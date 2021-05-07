@@ -3,25 +3,26 @@ package org.mule.weave.lsp.vfs.events
 import org.mule.weave.lsp.utils.Event
 import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType
-import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent.LIBRARIES_MODIFIED
+import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
+import org.mule.weave.lsp.vfs.events.LibraryRemovedEvent.LIBRARY_REMOVED
+import org.mule.weave.v2.editor.VirtualFileSystem
 
-class LibrariesModifiedEvent extends Event {
-  override type T = OnLibraryModified
+class LibraryRemovedEvent(lib: ArtifactVirtualFileSystem) extends Event {
+  override type T = OnLibraryRemoved
 
-  override def getType: EventType[OnLibraryModified] = {
-    LIBRARIES_MODIFIED
+  override def getType: EventType[OnLibraryRemoved] = {
+    LIBRARY_REMOVED
   }
 
-  override def dispatch(handler: OnLibraryModified): Unit = {
-    handler.onLibrariesModified()
+  override def dispatch(handler: OnLibraryRemoved): Unit = {
+    handler.onLibraryRemoved(lib)
   }
-
 }
 
-object LibrariesModifiedEvent {
-  val LIBRARIES_MODIFIED: EventType[OnLibraryModified] = EventType[OnLibraryModified]("LIBRARIES_MODIFIED")
+object LibraryRemovedEvent {
+  val LIBRARY_REMOVED: EventType[OnLibraryRemoved] = EventType[OnLibraryRemoved]("LIBRARY_REMOVED")
 }
 
-trait OnLibraryModified extends EventHandler {
-  def onLibrariesModified()
+trait OnLibraryRemoved extends EventHandler {
+  def onLibraryRemoved(lib: VirtualFileSystem)
 }

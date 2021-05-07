@@ -26,7 +26,7 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
   override def name(): String = "BAT"
 
 
-  override def init(): Unit = {
+  override def setup(): Unit = {
     val helper = new BatProjectHelper(logger)
     helper.setupBat()
   }

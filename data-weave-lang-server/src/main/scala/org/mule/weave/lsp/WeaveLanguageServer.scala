@@ -8,16 +8,17 @@ import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.ServerCapabilities
 import org.eclipse.lsp4j.TextDocumentSyncKind
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.Commands
+import org.mule.weave.lsp.indexer.LSPWeaveIndexService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
 import org.mule.weave.lsp.project.commands.ProjectProvider
+import org.mule.weave.lsp.project.events.ProjectInitializedEvent
 import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDocumentService
@@ -33,10 +34,8 @@ import org.mule.weave.v2.completion.EmptyDataFormatDescriptorProvider
 import org.mule.weave.v2.deps.MavenDependencyAnnotationProcessor
 import org.mule.weave.v2.deps.ResourceDependencyAnnotationProcessor
 import org.mule.weave.v2.editor.CompositeFileSystem
-import org.mule.weave.v2.editor.DefaultModuleLoaderFactory
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
-import org.mule.weave.v2.module.raml.RamlModuleLoader
 
 import java.io.File
 import java.net.URI
@@ -55,8 +54,12 @@ class WeaveLanguageServer extends LanguageServer {
   private var globalFVS: VirtualFileSystem = _
 
   private val textDocumentService: TextDocumentServiceDelegate = new TextDocumentServiceDelegate()
+
   private var client: WeaveLanguageClient = _
   private var workspaceUri: URI = _
+
+  private var clientLogger: ClientLogger = _
+  private var indexService: LSPWeaveIndexService = _
 
   private def createWeaveToolingService(): WeaveToolingService = {
     val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventBus)
@@ -66,19 +69,21 @@ class WeaveLanguageServer extends LanguageServer {
       executorService
     )
     val mavenDependencyAnnotationProcessor = new MavenDependencyAnnotationProcessor(artifactResolutionCallback, MavenDependencyManagerUtils.MAVEN)
-    val moduleLoader = new RamlModuleLoader()
-    moduleLoader.resolver(globalFVS.asResourceResolver)
-    val toolingService = new WeaveToolingService(globalFVS, EmptyDataFormatDescriptorProvider, Array(DefaultModuleLoaderFactory(moduleLoader)))
+    //    val moduleLoader = new RamlModuleLoader()
+    //    moduleLoader.resolver(globalFVS.asResourceResolver)
+    //    val toolingService = new WeaveToolingService(globalFVS, EmptyDataFormatDescriptorProvider, Array(DefaultModuleLoaderFactory()))
+    val toolingService = new WeaveToolingService(globalFVS, EmptyDataFormatDescriptorProvider)
     toolingService.registerParsingAnnotationProcessor(ResourceDependencyAnnotationProcessor.ANNOTATION_NAME, resourceDependencyAnnotationProcessor)
     toolingService.registerParsingAnnotationProcessor(MavenDependencyAnnotationProcessor.ANNOTATION_NAME, mavenDependencyAnnotationProcessor)
+
+    toolingService.withSymbolsIndexService(indexService)
     toolingService
   }
 
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
     logger.log(Level.INFO, s"initialize(${params})")
-    val clientLogger = new ClientLogger(client)
     workspaceUri = new URI(params.getRootUri)
-
+    clientLogger = new ClientLogger(client)
     clientLogger.logInfo("[DataWeave] Root URI: " + workspaceUri)
     clientLogger.logInfo("[DataWeave] Initialization Option: " + params.getInitializationOptions)
     val project: Project = Project.create(params, eventBus)
@@ -88,13 +93,15 @@ class WeaveLanguageServer extends LanguageServer {
     clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
     val librariesVFS: LibrariesVirtualFileSystem = new LibrariesVirtualFileSystem(eventBus, clientLogger)
     val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(eventBus, projectKind.structure())
+    indexService = new LSPWeaveIndexService(eventBus, IDEExecutors.indexingExecutor(), clientLogger, projectVFS)
     globalFVS = new CompositeFileSystem(projectVFS, librariesVFS)
 
     val dwTooling = new ValidationServices(project, eventBus, client, globalFVS, createWeaveToolingService, executorService)
+
     textDocumentService.delegate = new DataWeaveDocumentService(dwTooling, executorService, projectVFS, globalFVS)
     weaveWorkspaceService.delegate = new DataWeaveWorkspaceService(project, eventBus, globalFVS, clientLogger, dwTooling)
 
-    initializeProject(clientLogger, projectKind)
+    initializeProject(project, projectKind)
 
     val capabilities = new ServerCapabilities
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Full)
@@ -108,24 +115,32 @@ class WeaveLanguageServer extends LanguageServer {
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
-
     CompletableFuture.completedFuture(new InitializeResult(capabilities))
   }
 
 
-  private def initializeProject(clientLogger: ClientLogger, projectKind: ProjectKind) = {
-    try {
-      projectKind.init()
-      val dependencyManager = projectKind.dependencyManager()
-      clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " initializing.")
-      dependencyManager.init()
-      clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " initialized.")
-    } catch {
-      case e: Exception => {
-        clientLogger.logError("Unable to initialize project.", e)
-        ///
+  private def initializeProject(project: Project, projectKind: ProjectKind) = {
+    executorService.submit(new Runnable {
+      override def run(): Unit = {
+        try {
+          clientLogger.logInfo(s"[DataWeave] Project Kind: ${projectKind.name()} Initializing.")
+          projectKind.setup()
+          val dependencyManager = projectKind.dependencyManager()
+          clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " initializing.")
+          dependencyManager.init()
+          clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " initialized.")
+          clientLogger.logInfo("[DataWeave] Indexing initialized.")
+          indexService.init()
+          project.markInitialized
+          eventBus.fire(new ProjectInitializedEvent(project))
+        } catch {
+          case e: Exception => {
+            clientLogger.logError("Unable to initialize project.", e)
+            ///
+          }
+        }
       }
-    }
+    })
   }
 
   override def initialized(params: InitializedParams): Unit = {}
@@ -154,8 +169,8 @@ class WeaveLanguageServer extends LanguageServer {
   }
 
   @JsonNotification("weave/project/create")
-  def createProject() : Unit = {
-    val projectProvider = new ProjectProvider(client,workspaceUri)
+  def createProject(): Unit = {
+    val projectProvider = new ProjectProvider(client, workspaceUri)
     projectProvider.newProject()
   }
 }

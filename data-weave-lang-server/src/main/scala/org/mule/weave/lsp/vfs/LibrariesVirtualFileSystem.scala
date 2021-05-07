@@ -8,6 +8,8 @@ import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
+import org.mule.weave.lsp.vfs.events.LibraryAddedEvent
+import org.mule.weave.lsp.vfs.events.LibraryRemovedEvent
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -15,27 +17,32 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
+import java.util
 import java.util.logging.Level
 import java.util.logging.Logger
+import scala.collection.JavaConverters.asJavaIteratorConverter
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.mutable
 
 /**
- * A virtual file system that handles Maven Libraries. This VFS allows to load and unload libraries.
- *
- * @param maven                The Maven Dependency Manager
- * @param messageLoggerService The user logger
- */
+  * A virtual file system that handles Maven Libraries. This VFS allows to load and unload libraries.
+  *
+  * @param maven                The Maven Dependency Manager
+  * @param messageLoggerService The user logger
+  */
 class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger) extends VirtualFileSystem {
+
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val libraries: mutable.Map[String, VirtualFileSystem] = new mutable.HashMap()
+
+  private val libraries: mutable.Map[String, ArtifactVirtualFileSystem] = new mutable.HashMap()
 
   eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
     override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
       artifacts.foreach((artifact) => {
         val libraryVFS = if (!artifact.artifact.isDirectory) {
-          new JarVirtualFileSystem(artifact.artifact)
+          new JarVirtualFileSystem(artifact.artifactId, artifact.artifact)
         } else {
-          new FolderVirtualFileSystem(artifact.artifact)
+          new FolderVirtualFileSystem(artifact.artifactId, artifact.artifact)
         }
         addLibrary(artifact.artifactId, libraryVFS)
       })
@@ -67,18 +74,28 @@ class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger)
 
 
   private def removeLibrary(name: String): Unit = {
-    libraries.remove(name)
+    val maybeFileSystem: Option[ArtifactVirtualFileSystem] = libraries.remove(name)
+    maybeFileSystem.foreach((vfs) => {
+      clientLogger.logInfo(s"Artifact `${vfs.artifactId()}` was removed.")
+      eventBus.fire(new LibraryRemovedEvent(vfs))
+    })
+
   }
 
-  private def addLibrary(name: String, virtualFileSystem: VirtualFileSystem): Unit = {
-    libraries.update(name, virtualFileSystem)
+  private def addLibrary(name: String, virtualFileSystem: ArtifactVirtualFileSystem): Unit = {
+    val maybeOldFileSystem: Option[ArtifactVirtualFileSystem] = libraries.put(name, virtualFileSystem)
+    maybeOldFileSystem.foreach((vfs) => {
+      eventBus.fire(new LibraryRemovedEvent(vfs))
+    })
+    clientLogger.logInfo(s"Artifact `${virtualFileSystem.artifactId()}` was resolved.")
+    eventBus.fire(new LibraryAddedEvent(virtualFileSystem))
   }
 
   def getLibrary(name: String): VirtualFileSystem = {
     libraries.get(name).orNull
   }
 
-  def getLibraries(): mutable.Map[String, VirtualFileSystem] = {
+  def getLibraries(): mutable.Map[String, ArtifactVirtualFileSystem] = {
     libraries
   }
 
@@ -98,9 +115,11 @@ class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger)
     new LibrariesWeaveResourceResolver()
   }
 
-  override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
-    libraries.values.flatMap(_.listFilesByNameIdentifier(filter)).toArray
+
+  override def listFiles(): util.Iterator[VirtualFile] = {
+    libraries.values.toIterator.flatMap(_.listFiles().asScala).asJava
   }
+
 
   class LibrariesWeaveResourceResolver() extends WeaveResourceResolver {
 

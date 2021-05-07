@@ -7,13 +7,14 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.eclipse.lsp4j.services.LanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.Settings
+import org.mule.weave.lsp.project.events.OnProjectInitialized
 import org.mule.weave.lsp.project.events.OnSettingsChanged
+import org.mule.weave.lsp.project.events.ProjectInitializedEvent
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
-import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
-import org.mule.weave.lsp.vfs.events.OnLibraryModified
+import org.mule.weave.lsp.vfs.events.{LibrariesModifiedEvent, LibraryAddedEvent, OnLibrariesModified, OnLibraryAdded}
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.ImplicitInput
 import org.mule.weave.v2.editor.QuickFix
@@ -57,6 +58,12 @@ class ValidationServices(project: Project, eventBus: EventBus, languageClient: L
     })
   }
 
+  eventBus.register(ProjectInitializedEvent.PROJECT_INITIALIZED, new OnProjectInitialized {
+    override def onProjectInitialized(project: Project): Unit = {
+      validateAllEditors()
+    }
+  })
+
   eventBus.register(SettingsChangedEvent.SETTINGS_CHANGED, new OnSettingsChanged {
     override def onSettingsChanged(modifiedSettingsName: Array[String]): Unit = {
       if (modifiedSettingsName.contains(Settings.LANGUAGE_LEVEL_PROP_NAME)) {
@@ -65,7 +72,7 @@ class ValidationServices(project: Project, eventBus: EventBus, languageClient: L
     }
   })
 
-  eventBus.register(LibrariesModifiedEvent.LIBRARIES_MODIFIED, new OnLibraryModified {
+  eventBus.register(LibrariesModifiedEvent.LIBRARIES_MODIFIED, new OnLibrariesModified {
     override def onLibrariesModified(): Unit = {
       validateAllEditors()
     }
@@ -108,20 +115,21 @@ class ValidationServices(project: Project, eventBus: EventBus, languageClient: L
   }
 
 
-
   def validateFile(vf: VirtualFile): Unit = {
     triggerValidation(vf.url(), () => validateDependencies(vf))
   }
 
   /**
-   * Triggers the validation of the specified document.
-   *
-   * @param documentUri        The URI to be validated
-   * @param onValidationFinish A Callback that is called when the validation finishes
-   */
+    * Triggers the validation of the specified document.
+    *
+    * @param documentUri        The URI to be validated
+    * @param onValidationFinish A Callback that is called when the validation finishes
+    */
   def triggerValidation(documentUri: String, onValidationFinish: () => Unit = () => {}): Unit = {
     logger.log(Level.INFO, "triggerValidation of: " + documentUri)
     CompletableFuture.runAsync(() => {
+
+
       val diagnostics = new util.ArrayList[Diagnostic]
       withLanguageLevel(project.settings.languageLevelVersion.value())
 
@@ -136,6 +144,7 @@ class ValidationServices(project: Project, eventBus: EventBus, languageClient: L
 
       languageClient().publishDiagnostics(new PublishDiagnosticsParams(documentUri, diagnostics))
       onValidationFinish()
+
     }, executor)
   }
 
@@ -160,16 +169,16 @@ class ValidationServices(project: Project, eventBus: EventBus, languageClient: L
   }
 
   /**
-   * Executes Weave Validation into the corresponding type level
-   *
-   * @param documentUri The URI to be validates
-   * @return The Validation Messages
-   */
+    * Executes Weave Validation into the corresponding type level
+    *
+    * @param documentUri The URI to be validates
+    * @return The Validation Messages
+    */
   def validate(documentUri: String): ValidationMessages = {
     val messages: ValidationMessages =
-      if (Settings.isTypeLevel(project.settings)) {
+      if (project.initialized() && Settings.isTypeLevel(project.settings)) {
         openDocument(documentUri).typeCheck()
-      } else if (Settings.isScopeLevel(project.settings)) {
+      } else if (project.initialized() && Settings.isScopeLevel(project.settings)) {
         openDocument(documentUri).scopeCheck()
       } else {
         openDocument(documentUri).parseCheck()

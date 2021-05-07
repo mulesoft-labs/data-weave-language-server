@@ -1,1 +1,3 @@
-fun test() = "123"
+import * from MyLib
+---
+test()

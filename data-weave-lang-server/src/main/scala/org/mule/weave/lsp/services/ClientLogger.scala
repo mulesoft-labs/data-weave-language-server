@@ -8,10 +8,9 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 /**
- * Handles the logging to the client
- */
+  * Handles the logging to the client
+  */
 class ClientLogger(_client: LanguageClient) {
-
 
   def logInfo(message: String): Unit = {
     if (_client != null) {
@@ -38,6 +37,4 @@ class ClientLogger(_client: LanguageClient) {
       _client.logMessage(new MessageParams(MessageType.Error, message + " caused by:\n" + stringWriter.toString))
     }
   }
-
-
 }

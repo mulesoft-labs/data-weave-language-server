@@ -1,28 +1,28 @@
 package org.mule.weave.lsp.project.events
 
-import org.mule.weave.lsp.project.DependencyArtifact
+import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.utils.Event
 import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType
 
-class DependencyArtifactRemovedEvent(artifacts: Array[DependencyArtifact]) extends Event {
+class ProjectInitializedEvent(project: Project) extends Event {
 
-  override type T = OnDependencyArtifactRemoved
+  override type T = OnProjectInitialized
 
-  override def getType: EventType[OnDependencyArtifactRemoved] = {
-    DependencyArtifactRemovedEvent.ARTIFACT_REMOVED
+  override def getType: EventType[OnProjectInitialized] = {
+    ProjectInitializedEvent.PROJECT_INITIALIZED
   }
 
-  override def dispatch(handler: OnDependencyArtifactRemoved): Unit = {
-    handler.onArtifactsRemoved(artifacts)
+  override def dispatch(handler: OnProjectInitialized): Unit = {
+    handler.onProjectInitialized(project)
   }
 }
 
-trait OnDependencyArtifactRemoved extends EventHandler {
-  def onArtifactsRemoved(artifacts: Array[DependencyArtifact]): Unit
+trait OnProjectInitialized extends EventHandler {
+  def onProjectInitialized(project: Project): Unit
 }
 
 
-object DependencyArtifactRemovedEvent {
-  val ARTIFACT_REMOVED = EventType[OnDependencyArtifactRemoved]("ARTIFACT_REMOVED")
+object ProjectInitializedEvent {
+  val PROJECT_INITIALIZED = EventType[OnProjectInitialized]("PROJECT_INITIALIZED")
 }

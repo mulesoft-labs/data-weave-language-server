@@ -1,27 +1,28 @@
 package org.mule.weave.lsp.indexer.events
 
-import org.mule.weave.lsp.indexer.events.IndexingStartedEvent.INDEXING_STARTED
+
+import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent.INDEXING_FINISHED
 import org.mule.weave.lsp.utils.{Event, EventHandler, EventType}
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 
-class IndexingStartedEvent(vfs: VirtualFileSystem) extends Event {
-  override type T = OnIndexingStarted
+class IndexingFinishedEvent(vfs: VirtualFileSystem) extends Event {
+  override type T = OnIndexingFinished
 
-  override def getType: EventType[OnIndexingStarted] = {
-    INDEXING_STARTED
+  override def getType: EventType[OnIndexingFinished] = {
+    INDEXING_FINISHED
   }
 
-  override def dispatch(handler: OnIndexingStarted): Unit = {
-    handler.onIndexingStarted(vfs)
+  override def dispatch(handler: OnIndexingFinished): Unit = {
+    handler.onIndexingFinished(vfs)
   }
 
 }
 
-object IndexingStartedEvent {
-  val INDEXING_STARTED: EventType[OnIndexingStarted] = EventType[OnIndexingStarted]("INDEXING_STARTED")
+object IndexingFinishedEvent {
+  val INDEXING_FINISHED: EventType[OnIndexingFinished] = EventType[OnIndexingFinished]("INDEXING_FINISHED")
 }
 
-trait OnIndexingStarted extends EventHandler {
-  def onIndexingStarted(vfs: VirtualFileSystem)
+trait OnIndexingFinished extends EventHandler {
+  def onIndexingFinished(vfs: VirtualFileSystem)
 }

@@ -16,7 +16,7 @@ dependencies {
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j.debug', version: '0.9.0'
     compile group: 'org.mule.weave', name: 'parser', version: weaveVersion
     compile group: 'org.mule.weave', name: 'debugger', version: weaveVersion
-    compile group: 'org.mule.weave', name: 'raml-module', version: "1.0.0-SNAPSHOT"
+//    compile group: 'org.mule.weave', name: 'raml-module', version: "1.0.0-SNAPSHOT"
     compile group: 'org.mule.weave', name: 'dependency-manager', version: weaveVersion
 
     compile group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-api', version: '3.1.4'

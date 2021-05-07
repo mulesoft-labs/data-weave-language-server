@@ -10,13 +10,13 @@ import java.io.File
 import scala.io.Source
 
 /**
- * This project represents the VirtualFile from the ProjectVirtualFileSystem
- *
- * @param fs          The file system that created this virtual file
- * @param url         The Url of this File
- * @param file        The underlying File if any. It may be absent if the file hasn't been persisted yet
- * @param memoryState The memory state represents the state of this file that was not yet persisted.
- */
+  * This project represents the VirtualFile from the ProjectVirtualFileSystem
+  *
+  * @param fs          The file system that created this virtual file
+  * @param url         The Url of this File
+  * @param file        The underlying File if any. It may be absent if the file hasn't been persisted yet
+  * @param memoryState The memory state represents the state of this file that was not yet persisted.
+  */
 class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option[File], var memoryState: Option[String] = None) extends VirtualFile {
 
   override def fs(): VirtualFileSystem = fs
@@ -60,27 +60,13 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
   }
 
   override def getNameIdentifier: NameIdentifier = {
-    if (file.isDefined) {
-      fs.sourceRoot match {
-        case Some(rootFolder) => {
-          val relativePath = rootFolder.toPath.relativize(file.get.toPath).toString
-          NameIdentifierHelper.fromWeaveFilePath(relativePath)
-        }
-        case None => {
-          NameIdentifierHelper.fromWeaveFilePath(file.get.getPath)
-        }
-      }
+    val maybeFile = fs.routeOf(url)
+    if (maybeFile.isDefined) {
+      val relativePath = maybeFile.get.toPath.relativize(URLUtils.toPath(url).get)
+      NameIdentifierHelper.fromWeaveFilePath(relativePath.toString)
     } else {
-      val maybeUri = URLUtils.toPath(url)
-      fs.sourceRoot match {
-        case Some(rootFolder) if (maybeUri.isDefined) => {
-          val relativePath = rootFolder.toPath.relativize(maybeUri.get).toString
-          NameIdentifierHelper.fromWeaveFilePath(relativePath)
-        }
-        case _ => {
-          NameIdentifierHelper.fromWeaveFilePath(url)
-        }
-      }
+      //TODO is this the correct thing to do?
+      NameIdentifierHelper.fromWeaveFilePath(url)
     }
   }
 
