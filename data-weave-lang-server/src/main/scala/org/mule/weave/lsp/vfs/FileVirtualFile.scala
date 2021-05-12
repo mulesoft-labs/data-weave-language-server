@@ -8,7 +8,8 @@ import org.mule.weave.v2.sdk.NameIdentifierHelper
 import java.io.File
 import scala.io.Source
 
-class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolder: File) extends VirtualFile {
+class FileVirtualFile(file: File, fs: VirtualFileSystem, rootFolder: File) extends VirtualFile {
+
   override def fs(): VirtualFileSystem = fs
 
   override def read(): String = {
@@ -32,7 +33,7 @@ class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolde
   override def readOnly(): Boolean = true
 
   override def path(): String = {
-    path
+    file.getPath
   }
 
   override def getNameIdentifier: NameIdentifier = {
@@ -42,5 +43,5 @@ class FileVirtualFile(file: File, fs: VirtualFileSystem, path: String, rootFolde
 }
 
 object FileVirtualFile {
-  def apply(file: File, fs: VirtualFileSystem, path: String, rootFolder: File): FileVirtualFile = new FileVirtualFile(file, fs, path, rootFolder)
+  def apply(file: File, fs: VirtualFileSystem, path: String, rootFolder: File): FileVirtualFile = new FileVirtualFile(file, fs, rootFolder)
 }

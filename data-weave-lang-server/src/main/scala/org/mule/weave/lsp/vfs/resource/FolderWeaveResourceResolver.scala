@@ -1,13 +1,11 @@
-package org.mule.weave.lsp.vfs
+package org.mule.weave.lsp.vfs.resource
 
-import java.io.File
-
+import org.mule.weave.lsp.vfs.FileUtils
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
-import org.mule.weave.v2.sdk.DefaultWeaveResource
-import org.mule.weave.v2.sdk.NameIdentifierHelper
-import org.mule.weave.v2.sdk.WeaveResource
-import org.mule.weave.v2.sdk.WeaveResourceResolver
+import org.mule.weave.v2.sdk.{DefaultWeaveResource, NameIdentifierHelper, WeaveResource, WeaveResourceResolver}
+
+import java.io.File
 
 /**
  * This weave resource resolver works for relative to

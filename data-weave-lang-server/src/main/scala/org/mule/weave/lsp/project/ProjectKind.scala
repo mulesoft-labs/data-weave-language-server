@@ -9,19 +9,25 @@ import org.mule.weave.lsp.utils.EventBus
 import java.io.File
 
 /**
- * Detects the Project Kind
- */
+  * Detects the Project Kind
+  */
 trait ProjectKindDetector {
 
+  /**
+    * Returns true if this Kind detector handles the specific project
+    *
+    * @param project The project that we want to check
+    * @return true if it is supported
+    */
   def supports(project: Project): Boolean
 
 
   /**
-   * Returns the project kind that was detected
-   *
-   * @param project The project to be used
-   * @return The ProjectKind
-   */
+    * Returns the project kind that was detected
+    *
+    * @param project The project to be used
+    * @return The ProjectKind
+    */
   def createKind(project: Project): ProjectKind
 
 }
@@ -43,18 +49,44 @@ object ProjectKindDetector {
 
 
 /**
- * A Project Kind
- */
+  * A Project Kind is the trait that allows us to support multiple kind of projects with different:
+  *  - builds
+  *  - dependency management
+  *  - folder structure
+  */
 trait ProjectKind {
 
+  /**
+    * The name of the kind i.e maven, bat, simple ...
+    *
+    * @return
+    */
   def name(): String
 
-  def init(): Unit = {}
+  /**
+    * Setups the project kind. Download any tool required for this kind of project
+    */
+  def setup(): Unit = {}
 
+  /**
+    * Returns the Project stucture with all the modules and it source folders
+    *
+    * @return
+    */
   def structure(): ProjectStructure
 
+  /**
+    * The Dependency Manager handles all the dependencies for this kind of projects
+    *
+    * @return
+    */
   def dependencyManager(): ProjectDependencyManager
 
+  /**
+    * Handles the build, deploy of this project
+    *
+    * @return
+    */
   def buildManager(): BuildManager
 
 }
@@ -80,15 +112,15 @@ object RootKind {
 }
 
 /**
- * Represents a root content type. For example in maven
- * src/main -> {kind: main, sources: ["src/main/java","src/main/dw"], resources: [src/main/resources]}
- * src/test -> {kind: test, sources: ["src/test/java","src/test/dwit"], resources: [src/test/resources]}
- */
+  * Represents a root content type. For example in maven
+  * src/main -> {kind: main, sources: ["src/main/java","src/main/dw"], resources: [src/main/resources]}
+  * src/test -> {kind: test, sources: ["src/test/java","src/test/dwit"], resources: [src/test/resources]}
+  */
 case class RootStructure(kind: String, sources: Array[File], resources: Array[File]) {}
 
 /**
- * Handles the build process
- */
+  * Handles the build process
+  */
 trait BuildManager {
   def build()
 
@@ -102,8 +134,8 @@ object NoBuildManager extends BuildManager {
 }
 
 /**
- * Handles the
- */
+  * Handles the
+  */
 trait ProjectDependencyManager {
   def init(): Unit
 

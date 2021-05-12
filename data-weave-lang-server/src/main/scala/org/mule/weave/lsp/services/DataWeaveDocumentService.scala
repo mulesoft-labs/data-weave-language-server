@@ -43,6 +43,7 @@ import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionType
 import org.mule.weave.v2.editor.ImplicitInput
+import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
@@ -53,6 +54,7 @@ import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
+import java.util
 import java.util
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
@@ -68,7 +70,7 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
 
   //FS Changes
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
-      logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
+    logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
     val textDocument: TextDocumentItem = openParam.getTextDocument
     val uri: String = textDocument.getUri
     //TODO replace with event
@@ -259,7 +261,8 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
       val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val offset: Int = toolingService.offsetOf(params.getPosition.getLine, params.getPosition.getCharacter)
       val result = new util.ArrayList[LocationLink]()
-      toolingService.definitions(offset).foreach((ll) => {
+      val definitions: Array[Link] = toolingService.definitions(offset)
+      definitions.foreach((ll) => {
         val link = new LocationLink()
         link.setOriginSelectionRange(toRange(ll.linkLocation.location()))
         val reference = ll.reference
@@ -300,15 +303,23 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
 
   override def rename(params: RenameParams): CompletableFuture[WorkspaceEdit] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService = openDocument(params.getTextDocument)
+      val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val offset: Int = toolingService.offsetOf(params.getPosition.getLine, params.getPosition.getCharacter)
       val ref: Array[Reference] = toolingService.rename(offset, params.getNewName)
       val edit = new WorkspaceEdit()
-      val localChanges = new util.ArrayList[TextEdit]
-      ref.foreach((r) => {
-        localChanges.add(new TextEdit(toRange(r.referencedNode.location()), params.getNewName))
+      val localNameIdentifier = toolingService.file.getNameIdentifier
+      val renamesByDocument: Map[NameIdentifier, Array[Reference]] = ref.groupBy((ref) => {
+        ref.moduleSource.getOrElse(localNameIdentifier)
       })
-      edit.getChanges.put(params.getTextDocument.getUri, localChanges)
+
+      renamesByDocument.foreach((references) => {
+        val edits = references._2.map((reference) => {
+          new TextEdit(toRange(reference.referencedNode.location()), params.getNewName)
+        })
+        val url = vfs.asResourceResolver.resolve(references._1).get.url()
+        edit.getChanges.put(url, util.Arrays.asList(edits :_*))
+      })
+
       edit
     }, executor)
   }
@@ -316,14 +327,20 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
 
   override def references(params: ReferenceParams): CompletableFuture[util.List[_ <: Location]] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService = openDocument(params.getTextDocument)
+      val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val offset: Int = toolingService.offsetOf(params.getPosition.getLine, params.getPosition.getCharacter)
       val referencesResult = toolingService.references(offset)
+      vfs.asResourceResolver
       JavaConverters.seqAsJavaList(
         referencesResult.map((r) => {
           val location = new Location()
           location.setRange(toRange(r.referencedNode.location()))
-          location.setUri(params.getTextDocument.getUri)
+          val url = if (r.isLocalReference) {
+            params.getTextDocument.getUri
+          } else {
+            vfs.asResourceResolver.resolve(r.moduleSource.get).get.url()
+          }
+          location.setUri(url)
           location
         })
       )

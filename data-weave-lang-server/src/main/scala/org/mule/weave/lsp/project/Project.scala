@@ -14,6 +14,9 @@ import scala.collection.mutable.ArrayBuffer
 case class Project(url: Option[String], settings: ProjectSettings) {
   private val mayBeHome = url.flatMap((uri) => URLUtils.toFile(uri))
 
+  @transient
+  private var initializedValue: Boolean = false
+
   def home(): File = {
     mayBeHome.get
   }
@@ -21,6 +24,10 @@ case class Project(url: Option[String], settings: ProjectSettings) {
   def hasHome(): Boolean = {
     mayBeHome.isDefined
   }
+
+  def initialized(): Boolean = initializedValue
+
+  def markInitialized: Unit = initializedValue = true
 }
 
 case class ProjectSettings(eventBus: EventBus,

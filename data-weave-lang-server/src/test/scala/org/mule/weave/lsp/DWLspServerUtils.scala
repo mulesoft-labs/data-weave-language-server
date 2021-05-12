@@ -9,6 +9,11 @@ object DWLspServerUtils {
     getProject("SimpleProject")
   }
 
+
+  def getMavenProjectWorkspace(): DWProject = {
+    getProject("MavenProject")
+  }
+
   def getProject(projectName: String): DWProject = {
     val url: URL = getClass.getClassLoader.getResource(s"projects/${projectName}")
     if (url == null) {

@@ -9,19 +9,21 @@ import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
 import java.net.URI
+import java.util
 import java.util.logging.Level
 import java.util.logging.Logger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConverters.asJavaIteratorConverter
+import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.io.Source
 
 /**
- * Represents a file system based on a JAR
- *
- * @param jarFile The Jar that backups this file
- */
-class JarVirtualFileSystem(val jarFile: File) extends ReadOnlyVirtualFileSystem with AutoCloseable {
+  * Represents a file system based on a JAR
+  *
+  * @param jarFile The Jar that backups this file
+  */
+class JarVirtualFileSystem(override val artifactId: String, val jarFile: File) extends ReadOnlyVirtualFileSystem with ArtifactVirtualFileSystem with AutoCloseable {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
   lazy val zipFile = new ZipFile(jarFile)
@@ -67,16 +69,16 @@ class JarVirtualFileSystem(val jarFile: File) extends ReadOnlyVirtualFileSystem 
     }
   }
 
-  override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
-    val entries = zipFile.entries()
-    val result = new ArrayBuffer[VirtualFile]()
-    while (entries.hasMoreElements) {
-      val zipEntry = entries.nextElement()
-      if (!zipEntry.isDirectory && zipEntry.getName.contains(filter)) {
-        result.+=(new JarVirtualFile(zipEntry.getName, zipEntry, zipFile, this))
+  override def listFiles(): util.Iterator[VirtualFile] = {
+    val entries = zipFile.entries().asScala
+    val list: Iterator[VirtualFile] = entries.flatMap((zipEntry) => {
+      if (zipEntry.isDirectory) {
+        None
+      } else {
+        Some(new JarVirtualFile(zipEntry.getName, zipEntry, zipFile, this))
       }
-    }
-    result.toArray
+    })
+    list.asJava
   }
 
   override def asResourceResolver: WeaveResourceResolver = {

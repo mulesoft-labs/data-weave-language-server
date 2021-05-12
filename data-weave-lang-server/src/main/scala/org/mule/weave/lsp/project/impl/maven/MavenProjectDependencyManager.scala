@@ -2,7 +2,10 @@ package org.mule.weave.lsp.project.impl.maven
 
 import org.eclipse.lsp4j.FileChangeType
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
-import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
+import org.jboss.shrinkwrap.resolver.api.maven.MavenFormatStage
+import org.jboss.shrinkwrap.resolver.api.maven.MavenWorkingSession
+import org.jboss.shrinkwrap.resolver.api.maven.ScopeType
+import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependency
 import org.jboss.shrinkwrap.resolver.impl.maven.MavenStrategyStageImpl
 import org.mule.weave.lsp.project.DependencyArtifact
 import org.mule.weave.lsp.project.Project
@@ -10,12 +13,14 @@ import org.mule.weave.lsp.project.ProjectDependencyManager
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.URLUtils
 
 import java.io.File
+import java.util
 
 class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: EventBus, loggerService: ClientLogger) extends ProjectDependencyManager {
 
@@ -41,24 +46,31 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
   private def reloadArtifacts(): Unit = {
     try {
       loggerService.logInfo("Loading artifacts from : " + pomFile.getPath)
-      val stage: MavenStrategyStageImpl = Maven.configureResolver()
-        .loadPomFromFile(pomFile)
-        .importRuntimeAndTestDependencies()
-        .resolve().asInstanceOf[MavenStrategyStageImpl]
-      val mavenWorkingSession = stage.getMavenWorkingSession
-      val resolution = mavenWorkingSession.getDependenciesForResolution
-      if (resolution != null && !resolution.isEmpty) {
-        val dependencies: Array[MavenResolvedArtifact] = stage.withTransitivity().asResolvedArtifact()
-
-        eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
-        dependenciesArray = dependencies.map((a) => {
-          DependencyArtifact(a.getCoordinate.toCanonicalForm, a.asFile())
-        })
-        eventBus.fire(new DependencyArtifactResolvedEvent(dependenciesArray))
-        loggerService.logInfo("All dependencies were loaded successfully.")
-      } else {
-        loggerService.logInfo("No dependency was detected")
-        eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
+      interceptLog(loggerService) {
+        val stage: MavenStrategyStageImpl = Maven.configureResolver()
+          .loadPomFromFile(pomFile)
+          //Import All Scopes until Test and Runtime
+          .importDependencies(ScopeType.COMPILE, ScopeType.PROVIDED, ScopeType.RUNTIME, ScopeType.TEST)
+          .resolve().asInstanceOf[MavenStrategyStageImpl]
+        val mavenWorkingSession: MavenWorkingSession = stage.getMavenWorkingSession
+        val resolution: util.List[MavenDependency] = mavenWorkingSession.getDependenciesForResolution
+        if (resolution != null && !resolution.isEmpty) {
+          val mavenFormatStage: MavenFormatStage = stage.withTransitivity()
+          val dependencies =
+            mavenFormatStage
+              .asResolvedArtifact()
+              .groupBy(_.getCoordinate.toCanonicalForm)
+              .map(_._2.head)
+          eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
+          dependenciesArray = dependencies.map((a) => {
+            DependencyArtifact(a.getCoordinate.toCanonicalForm, a.asFile())
+          }).toArray
+          eventBus.fire(new DependencyArtifactResolvedEvent(dependenciesArray))
+          loggerService.logInfo("All dependencies were loaded successfully.")
+        } else {
+          loggerService.logInfo("No dependency was detected")
+          eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
+        }
       }
     } catch {
       case e: Exception => loggerService.logError(s"Exception while resolving dependencies from ${pomFile.getAbsolutePath}", e)
@@ -66,10 +78,10 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
   }
 
   /**
-   * Returns the list of dependencies
-   *
-   * @return
-   */
+    * Returns the list of dependencies
+    *
+    * @return
+    */
   def dependencies(): Array[DependencyArtifact] = {
     dependenciesArray
   }

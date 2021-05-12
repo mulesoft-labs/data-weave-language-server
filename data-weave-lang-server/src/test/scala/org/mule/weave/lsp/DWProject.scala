@@ -1,18 +1,27 @@
 package org.mule.weave.lsp
 
+import org.eclipse.lsp4j.DefinitionParams
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
 import org.eclipse.lsp4j.InitializeParams
+import org.eclipse.lsp4j.Location
+import org.eclipse.lsp4j.LocationLink
 import org.eclipse.lsp4j.MessageActionItem
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
+import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.PublishDiagnosticsParams
+import org.eclipse.lsp4j.ReferenceContext
+import org.eclipse.lsp4j.ReferenceParams
+import org.eclipse.lsp4j.RenameParams
 import org.eclipse.lsp4j.ShowMessageRequestParams
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent
+import org.eclipse.lsp4j.TextDocumentIdentifier
 import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
+import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.services.LanguageClient
 import org.mule.weave.lsp.client.OpenWindowsParams
 import org.mule.weave.lsp.client.WeaveInputBoxParams
@@ -20,10 +29,14 @@ import org.mule.weave.lsp.client.WeaveInputBoxResult
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.client.WeaveQuickPickParams
 import org.mule.weave.lsp.client.WeaveQuickPickResult
+import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.events.OnProjectInitialized
+import org.mule.weave.lsp.project.events.ProjectInitializedEvent
 
 import java.nio.file.Path
 import java.util
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -34,6 +47,7 @@ import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
 
+
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
 
   private var lspValue: WeaveLanguageServer = _
@@ -42,11 +56,58 @@ class DWProject(val workspaceRoot: Path) {
 
   private val lock = new Object
 
-  def open(relativePath: String): Unit = {
+  def open(relativePath: String): DWProject = {
     val filePath = toAbsolutePath(relativePath)
     val item: TextDocumentItem = new TextDocumentItem(filePath.toUri.toString, "DataWeave", 2, toString(filePath))
     val openTextDocumentParams = new DidOpenTextDocumentParams(item)
     lsp().getTextDocumentService.didOpen(openTextDocumentParams)
+    this
+  }
+
+  def waitForProjectInitialized(): Unit = {
+    if (!lsp().project().initialized()) {
+      val latch = new CountDownLatch(1)
+      lsp().eventBus().register(ProjectInitializedEvent.PROJECT_INITIALIZED, new OnProjectInitialized {
+        override def onProjectInitialized(project: Project): Unit = {
+          latch.countDown()
+        }
+      })
+      latch.await(10, TimeUnit.MINUTES)
+    }
+  }
+
+  def rename(relativePath: String, line: Int, column: Int, newName: String): WorkspaceEdit = {
+    open(relativePath)
+    val absolutPath: Path = toAbsolutePath(relativePath)
+    val position = new Position(line, column)
+    val identifier = new TextDocumentIdentifier(absolutPath.toUri.toString)
+    val value = lsp().getTextDocumentService.rename(new RenameParams(identifier, position, newName))
+    value.get(10, TimeUnit.MINUTES)
+  }
+
+  def referencesOfLocalFile(relativePath: String, line: Int, column: Int): util.List[_ <: Location] = {
+    open(relativePath)
+    val filePath: Path = toAbsolutePath(relativePath)
+    val absolutPath = filePath.toUri.toString
+    referencesOf(absolutPath, line, column)
+  }
+
+
+  def referencesOf(absolutPath: String, line: Int, column: Int): util.List[_ <: Location] = {
+    val referenceContext = new ReferenceContext(true)
+    val position = new Position(line, column)
+    val identifier = new TextDocumentIdentifier(absolutPath)
+    val value = lsp().getTextDocumentService.references(new ReferenceParams(identifier, position, referenceContext))
+    value.get(10, TimeUnit.MINUTES)
+  }
+
+  def definition(relativePath: String, line: Int, column: Int): util.List[_ <: LocationLink] = {
+    open(relativePath)
+    val filePath: Path = toAbsolutePath(relativePath)
+    val position = new Position(line, column)
+    val identifier = new TextDocumentIdentifier(filePath.toUri.toString)
+    val value = lsp().getTextDocumentService.definition(new DefinitionParams(identifier, position))
+    value.get(10, TimeUnit.MINUTES).getRight
   }
 
   def update(relativePath: String, content: String): Unit = {
@@ -101,7 +162,7 @@ class DWProject(val workspaceRoot: Path) {
   }
 
   def errorsFor(path: String): util.List[Diagnostic] = {
-    diagnosticsFor(path).getOrElse(throw new RuntimeException(s"No diagnostics for ${path}.") ).getDiagnostics.stream().filter((d) => {
+    diagnosticsFor(path).getOrElse(throw new RuntimeException(s"No diagnostics for ${path}.")).getDiagnostics.stream().filter((d) => {
       d.getSeverity == DiagnosticSeverity.Error
     }).collect(Collectors.toList[Diagnostic]())
   }
@@ -141,7 +202,7 @@ class DWProject(val workspaceRoot: Path) {
           case MessageType.Info => Level.INFO
           case MessageType.Log => Level.FINE
         }
-        logger.log(value, message.getMessage)
+        println("[" + value + "]" + message.getMessage)
       }
 
       /**

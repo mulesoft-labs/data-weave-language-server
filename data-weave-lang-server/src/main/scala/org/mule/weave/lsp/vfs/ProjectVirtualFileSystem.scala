@@ -2,10 +2,12 @@ package org.mule.weave.lsp.vfs
 
 import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.project.ProjectStructure
+import org.mule.weave.lsp.project.RootStructure
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.URLUtils.toURI
+import org.mule.weave.lsp.vfs.resource.FolderWeaveResourceResolver
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -16,22 +18,27 @@ import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util
 import java.util.logging.Level
 import java.util.logging.Logger
+import java.util.stream
+import scala.collection.JavaConverters.asJavaIteratorConverter
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * This Virtual File System handles the project interactions.
- *
- * There are two kind of files:
- *
- *  - InMemory ones, this is when a File was either modified or created by still not being saved in the persisted FS.
- *  - Persisted Files, this are the files that are haven't been modified and are the one persisted in the FS
- *
- * @param projectDefinition
- */
+  * This Virtual File System handles the project interactions.
+  *
+  * There are two kind of files:
+  *
+  *  - InMemory ones, this is when a File was either modified or created by still not being saved in the persisted FS.
+  *  - Persisted Files, this are the files that are haven't been modified and are the one persisted in the FS
+  *
+  * @param projectDefinition
+  */
 class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStructure) extends VirtualFileSystem {
 
   private val inMemoryFiles: mutable.Map[String, ProjectVirtualFile] = mutable.Map[String, ProjectVirtualFile]()
@@ -39,7 +46,6 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   private val vfsChangeListeners: ArrayBuffer[ChangeListener] = ArrayBuffer[ChangeListener]()
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-
 
   eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
     override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
@@ -83,10 +89,10 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   }
 
   /**
-   * Mark the specified Uri as closed. All memory representation should be cleaned
-   *
-   * @param uri The Uri of the file
-   */
+    * Mark the specified Uri as closed. All memory representation should be cleaned
+    *
+    * @param uri The Uri of the file
+    */
   def closed(uri: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
@@ -98,10 +104,10 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   }
 
   /**
-   * Mark the given uri as saved into the persisted FS
-   *
-   * @param uri The uri to be marked as saved
-   */
+    * Mark the given uri as saved into the persisted FS
+    *
+    * @param uri The uri to be marked as saved
+    */
   def saved(uri: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
@@ -113,10 +119,10 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   }
 
   /**
-   * Mark a given uri was changed by an external even
-   *
-   * @param uri The uri to be marked as changed
-   */
+    * Mark a given uri was changed by an external even
+    *
+    * @param uri The uri to be marked as changed
+    */
   private def changed(uri: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
@@ -131,10 +137,10 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   }
 
   /**
-   * Mark a given uri was deleted by an external event
-   *
-   * @param uri The uri to be deleted
-   */
+    * Mark a given uri was deleted by an external event
+    *
+    * @param uri The uri to be deleted
+    */
   private def deleted(uri: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
@@ -182,10 +188,6 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
     vfsChangeListeners.remove(vfsChangeListeners.indexOf(service))
   }
 
-  def sourceRoot: Option[File] = {
-    //TODO: implement support for multi source folder
-    projectStructure.modules.headOption.flatMap(_.roots.headOption.flatMap(_.sources.headOption))
-  }
 
   override def file(uri: String): VirtualFile = {
     logger.log(Level.INFO, s"file ${uri}")
@@ -215,61 +217,55 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
     }
   }
 
-  override def asResourceResolver: WeaveResourceResolver = {
-    val resourceResolver = sourceRoot match {
-      case Some(rootFile) => {
-        val folderWeaveResourceResolver = new FolderWeaveResourceResolver(rootFile, this)
-        val inMemoryResourceResolver = new InMemoryVirtualFileResourceResolver(sourceRoot, inMemoryFiles)
-        new ChainedWeaveResourceResolver(Seq(inMemoryResourceResolver, folderWeaveResourceResolver))
-      }
-      case None => {
-        new InMemoryVirtualFileResourceResolver(sourceRoot, inMemoryFiles)
-      }
-    }
-    resourceResolver
+  def routeOf(uri: String): Option[File] = {
+    val rootFolders = projectStructure.modules
+      .flatMap((module) => {
+        module.roots.flatMap(_.sources) ++ module.roots.flatMap(_.resources)
+      })
+    rootFolders
+      .find((root) => {
+        val maybePath: Option[Path] = URLUtils.toPath(uri)
+        maybePath
+          .exists((path) => {
+            path.startsWith(root.toPath)
+          })
+      })
   }
 
-  override def listFilesByNameIdentifier(filter: String): Array[VirtualFile] = {
-    sourceRoot match {
-      case Some(rootFolder) => {
-        val parts = filter.split("::")
-        val headAndLast = parts.splitAt(parts.length - 1)
-        val container = new File(rootFolder, headAndLast._1.mkString(File.separator))
-        val files: Array[File] = container.listFiles((f) => {
-          f.getName.contains(headAndLast._2.head)
-        })
-        if (files != null) {
-          files
-            .map((f) => {
-              file(FileUtils.toUrl(f))
-            })
-        } else {
-          inMemoryFiles.values.filter((vfs) => {
-            vfs.getNameIdentifier.toString().contains(filter)
-          }).toArray
-        }
-      }
-      case None => {
-        inMemoryFiles.values.filter((vfs) => {
-          vfs.getNameIdentifier.toString().contains(filter)
-        }).toArray
-      }
-    }
+  override def asResourceResolver: WeaveResourceResolver = {
+    val resolvers = projectStructure.modules.flatMap((module) => {
+      module.roots.flatMap((root) => {
+        root.sources.map((root) => {
+          new FolderWeaveResourceResolver(root, this)
+        }) ++
+          root.resources.map((root) => {
+            new FolderWeaveResourceResolver(root, this)
+          })
+      })
+    })
+    val inMemoryVirtualFileResourceResolver = new InMemoryVirtualFileResourceResolver(inMemoryFiles)
+    new ChainedWeaveResourceResolver(inMemoryVirtualFileResourceResolver +: resolvers)
+  }
+
+
+  override def listFiles(): util.Iterator[VirtualFile] = {
+    projectStructure.modules.toIterator.flatMap((module) => {
+      module.roots.toIterator.flatMap((root) => {
+        root.sources.toIterator.flatMap((root) => {
+          VFUtils.listFiles(root, this)
+        }) ++
+          root.resources.toIterator.flatMap((root) => {
+            VFUtils.listFiles(root, this)
+          })
+      })
+    }).asJava
   }
 }
 
-class InMemoryVirtualFileResourceResolver(rootFile: Option[File], inMemoryFiles: mutable.Map[String, ProjectVirtualFile]) extends WeaveResourceResolver {
+class InMemoryVirtualFileResourceResolver(inMemoryFiles: mutable.Map[String, ProjectVirtualFile]) extends WeaveResourceResolver {
 
   override def resolvePath(path: String): Option[WeaveResource] = {
-    val str = rootFile.map((rf) => {
-      val relativePath = if (path.startsWith("/")) {
-        path.substring(1)
-      } else {
-        path
-      }
-      Paths.get(rf.getPath).resolve(relativePath).toUri.toString
-    }).getOrElse(path)
-    this.inMemoryFiles.get(str).map((f) => WeaveResource(f))
+    this.inMemoryFiles.get(path).map((f) => WeaveResource(f))
   }
 
   override def resolveAll(name: NameIdentifier): Seq[WeaveResource] = {
@@ -284,11 +280,11 @@ class InMemoryVirtualFileResourceResolver(rootFile: Option[File], inMemoryFiles:
 
 object FileUtils {
   /**
-   * Build the url according to vscode standard
-   *
-   * @param theFile The file to get the url from
-   * @return
-   */
+    * Build the url according to vscode standard
+    *
+    * @param theFile The file to get the url from
+    * @return
+    */
   def toUrl(theFile: File): String = {
     "file://" + theFile.toURI.toURL.getPath
   }
