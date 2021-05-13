@@ -2,43 +2,44 @@ import { DebugAdapterDescriptor, DebugAdapterDescriptorFactory, DebugAdapterExec
 import * as vscode from 'vscode';
 import { reverse } from "dns";
 import * as path from 'path'
-import { startDebugger } from "./weaveCommands";
 
-export class DataWeaveDebuggerConfigurationProvider implements vscode.DebugConfigurationProvider{
 
-    	/**
-	 * Massage a debug configuration just before a debug session is being launched,
-	 * e.g. add all missing attributes to the debug configuration.
-	 */
-	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
-        
-		// if launch.json is missing or empty
-		if (!config.type && !config.request && !config.name) {
-			const editor = vscode.window.activeTextEditor;
-			if (editor && editor.document.languageId === 'data-weave') {
-				config.type = 'data-weave-debugger';
-                config.name = 'Remote Debug Running DW';
-                config.request = 'attach';
-                config.port = 6565;
-                config.hostName = "localhost"
-			}
-		}
-		return config;
-	}
+export class DataWeaveRunConfigurationProvider implements vscode.DebugConfigurationProvider{
+
+    /**
+ * Massage a debug configuration just before a debug session is being launched,
+ * e.g. add all missing attributes to the debug configuration.
+ */
+resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+    
+    // if launch.json is missing or empty
+    if (!config.type && !config.request && !config.name) {
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'data-weave') {
+            config.type = 'data-weave';
+            config.name = 'Run Data Weave';
+            config.request = 'launch';
+            config.mapping = "";
+            config.scenario = "";
+            config.debuggerPort = 6565
+        }
+    }
+    return config;
+}
 
 }
 
-export class DataWeaveDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
+export class DataWeaveRunDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
     public async createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable): Promise<DebugAdapterDescriptor> {                
         console.log(session.configuration)
-        let error;
+        
         
         try {
             console.log(session)
             console.log(executable)           
-            const debugServerPort = await startDebugger();              
+            const debugServerPort = <number> (await  vscode.commands.executeCommand("dw.runCommand"));                          
             console.log("DataWeave Language Server Started at ", debugServerPort)                      
-            if (debugServerPort) {
+            if (debugServerPort && debugServerPort >= 0) {
                 return new DebugAdapterServer(debugServerPort);
             } else {
                 // Information for diagnostic:
@@ -47,10 +48,10 @@ export class DataWeaveDebugAdapterDescriptorFactory implements DebugAdapterDescr
             }
         } catch (err) {
             console.log("Unable to Start Debugger Server",err)
-            error = err;
-        }
-        vscode.window.showErrorMessage("Unable to Start Debugger Server", error);        
-    }   
+            vscode.window.showErrorMessage("Unable to Start Debugger Server", err);               
+        }     
+        return executable                
+    }     
 }
 
 

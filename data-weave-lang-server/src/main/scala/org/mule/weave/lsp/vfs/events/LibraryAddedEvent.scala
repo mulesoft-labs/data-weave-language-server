@@ -5,7 +5,6 @@ import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
 import org.mule.weave.lsp.vfs.events.LibraryAddedEvent.LIBRARY_ADDED
-import org.mule.weave.v2.editor.VirtualFileSystem
 
 class LibraryAddedEvent(library: ArtifactVirtualFileSystem) extends Event {
   override type T = OnLibraryAdded

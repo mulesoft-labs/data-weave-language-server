@@ -2,19 +2,16 @@ package org.mule.weave.lsp.bat
 
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.OSUtils
-import org.mule.weave.v2.deps.DependencyManager
 
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.URL
-import java.util.logging.Level
-import java.util.logging.Logger
 import java.util.zip.ZipInputStream
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.reflect.io.File.separator
 import scala.sys.process._
 

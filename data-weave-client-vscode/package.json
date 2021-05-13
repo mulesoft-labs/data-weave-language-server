@@ -18,6 +18,7 @@
     ],
     "activationEvents": [
         "onCommand:dw.project.create",
+        "onDebugResolve:data-weave",
         "onLanguage:data-weave",
         "workspaceContains:**/*.jar",
         "onFileSystem:jar"
@@ -31,37 +32,68 @@
         ],
         "debuggers": [
             {
-                "type": "data-weave-debugger",
-                "label": "DataWeave Remote Debugger",
+                "type": "data-weave",
+                "label": "DataWeave Run Mapping",
                 "languages": [
                     "data-weave"
                 ],
                 "configurationAttributes": {
-                    "attach": {
+                    "launch": {
                         "properties": {
-                            "hostName": {
+                            "mapping": {
                                 "type": "string",
-                                "default": "localhost",
-                                "description": "Host"
+                                "default": "",
+                                "description": "Name Of The Mapping To Run"
+                            },
+                            "scenario": {
+                                "type": "string",
+                                "default": "",
+                                "description": "Name of the scenario to run"
                             },
                             "port": {
                                 "type": "number",
                                 "default": "6565",
-                                "description": "Data Weave port"
+                                "description": "Port where to launch the debugger."
+                            }
+                        }
+                    },
+                    "attach": {
+                        "properties": {
+                            "host": {
+                                "type": "string",
+                                "default": "localhost",
+                                "description": "The host to connect when using remote debugging"
+                            },
+                            "port": {
+                                "type": "number",
+                                "default": "6565",
+                                "description": "Port where to launch the debugger."
                             }
                         }
                     }
                 },
                 "configurationSnippets": [
                     {
-                        "label": "DataWeave Remote Debugger",
-                        "description": "A new configuration for 'debugging' a running data-weave.",
+                        "label": "DataWeave Run Mapping",
+                        "description": "A new configuration for running a DataWeave Script.",
                         "body": {
-                            "type": "data-weave-debugger",
+                            "type": "data-weave",
+                            "request": "launch",
+                            "name": "DataWeave Run Mapping",
+                            "mapping": "",
+                            "scenario": "",
+                            "port": 6565
+                        }
+                    },
+                    {
+                        "label": "DataWeave Remote Debugging",
+                        "description": "A new configuration for running a DataWeave Script.",
+                        "body": {
+                            "type": "data-weave",
                             "request": "attach",
-                            "name": "DataWeave Remote debugger",
-                            "hostName": "localhost",
-                            "port": "6565"
+                            "name": "DataWeave Remote Debugging",
+                            "port": 6565,
+                            "host": "localhost"
                         }
                     }
                 ]

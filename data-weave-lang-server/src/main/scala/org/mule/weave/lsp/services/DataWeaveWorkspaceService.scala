@@ -5,8 +5,10 @@ import org.eclipse.lsp4j.DidChangeWatchedFilesParams
 import org.eclipse.lsp4j.DidChangeWorkspaceFoldersParams
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.services.WorkspaceService
+import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.CommandProvider
 import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -16,20 +18,21 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
- * DataWeave Implementation of the LSP Workspace Service
- *
- */
+  * DataWeave Implementation of the LSP Workspace Service
+  *
+  */
 class DataWeaveWorkspaceService(
-
                                  project: Project,
+                                 projectKind: ProjectKind,
                                  eventBus: EventBus,
                                  vfs: VirtualFileSystem,
-                                 messageLoggerService: ClientLogger,
-                                 toolingService: ValidationServices
+                                 clientLogger: ClientLogger,
+                                 languageClient: WeaveLanguageClient,
+                                 validationService: ValidationService
                                ) extends WorkspaceService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val commandProvider: CommandProvider = new CommandProvider(vfs, messageLoggerService, toolingService)
+  private val commandProvider: CommandProvider = new CommandProvider(vfs, clientLogger, languageClient, project, projectKind, validationService)
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     logger.log(Level.INFO, "didChangeConfiguration: " + params.getSettings)
@@ -52,7 +55,7 @@ class DataWeaveWorkspaceService(
 
   override def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
     params.getChanges.forEach((fe) => {
-      messageLoggerService.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
+      clientLogger.logInfo("[DataWeaveWorkspaceService] Changed Watched File : " + fe.getUri + " - " + fe.getType)
       eventBus.fire(new FileChangedEvent(fe.getUri, fe.getType))
     })
   }

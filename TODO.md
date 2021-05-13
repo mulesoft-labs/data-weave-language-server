@@ -4,6 +4,20 @@ and understand our architectural desitions
 
 # Philosophy
 
+Fat Server and Thin Client
+
+FAT SERVER
+ - All the Logic goes together on server side
+
+THIN CLIENT
+ - UI
+ - Broker Services (GIT, LSP ...)
+ - Client should implement atomic small operations
+
+MULEDX Platform
+  - Service Client Proxy (what can be resolved local it is resolved if not remote)
+
+
 We should be able to do all the logic on the server and the UI should just be UI components.
 For that we are going to:
  - Extend LSP with UI related messages or actions that the server require from the client to do.
@@ -124,4 +138,18 @@ https://code.visualstudio.com/api/references/extension-guidelines#editor-actions
 ### Libraries
             
 
+# Links
 
+Known Client Commands
+
+- https://code.visualstudio.com/docs/getstarted/keybindings
+
+
+
+# Testing
+
+Client               LSP                              TLP
+   |- run   -----> {mode: Test}                           
+   |- showView(Test)  <- testStarted(port)             |
+   |                 <--------------------- suiteStarted
+   |                 <--------------------- testCaseStarted 

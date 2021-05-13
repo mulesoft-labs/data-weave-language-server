@@ -1,6 +1,6 @@
 package org.mule.weave.lsp.vfs
 
-import org.mule.weave.lsp.project.DependencyArtifact
+import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnDependencyArtifactRemoved

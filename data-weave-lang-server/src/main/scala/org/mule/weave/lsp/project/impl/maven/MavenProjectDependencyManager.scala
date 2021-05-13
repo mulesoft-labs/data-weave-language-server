@@ -7,9 +7,9 @@ import org.jboss.shrinkwrap.resolver.api.maven.MavenWorkingSession
 import org.jboss.shrinkwrap.resolver.api.maven.ScopeType
 import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependency
 import org.jboss.shrinkwrap.resolver.impl.maven.MavenStrategyStageImpl
-import org.mule.weave.lsp.project.DependencyArtifact
 import org.mule.weave.lsp.project.Project
-import org.mule.weave.lsp.project.ProjectDependencyManager
+import org.mule.weave.lsp.project.components.DependencyArtifact
+import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.services.ClientLogger

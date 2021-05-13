@@ -7,6 +7,10 @@ task packageExtension(type: NpmTask) {
     args = ['run', 'package']
 }
 
+task compileExtension(type: NpmTask) {
+    args = ['run', 'compile']
+}
+
 task publishExtension(type: NpmTask) {
     args = ['run', 'publish']
 }

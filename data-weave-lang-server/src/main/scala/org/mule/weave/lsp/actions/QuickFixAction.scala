@@ -6,14 +6,14 @@ import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.Command
 import org.eclipse.lsp4j.Diagnostic
 import org.mule.weave.lsp.commands.Commands
-import org.mule.weave.lsp.services.ValidationServices
+import org.mule.weave.lsp.services.ValidationService
 import org.mule.weave.v2.editor.QuickFix
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
 
 import java.util
 import scala.collection.JavaConverters._
 
-class QuickFixAction(validationService: ValidationServices) extends CodeActionProvider {
+class QuickFixAction(validationService: ValidationService) extends CodeActionProvider {
 
   override def handles(action: CodeActionParams): Boolean = {
     val only: util.List[String] = action.getContext.getOnly

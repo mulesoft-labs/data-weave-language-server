@@ -1,7 +1,6 @@
 package org.mule.weave.lsp.bat
 
 import org.mule.weave.lsp.services.ClientLogger
-import org.mule.weave.v2.deps.DependencyManager
 
 import java.io.File
 import java.io.File.separator

@@ -2,9 +2,9 @@ package org.mule.weave.lsp.project.utils
 
 import coursier.cache.CacheLogger
 import org.mule.weave.lsp.IDEExecutors
-import org.mule.weave.lsp.project.DependencyArtifact
+import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
-import org.mule.weave.lsp.utils.DataWeaveUtils
+import org.mule.weave.lsp.utils.DataWeaveDirectoryUtils
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.v2.deps.Artifact
 import org.mule.weave.v2.deps.ArtifactResolutionCallback
@@ -21,7 +21,7 @@ object MavenDependencyManagerUtils {
 
   private val logger = Logger.getLogger(getClass.getName)
 
-  val MAVEN = new MavenDependencyManager(new File(DataWeaveUtils.getCacheHome(), "maven"),
+  val MAVEN = new MavenDependencyManager(new File(DataWeaveDirectoryUtils.getCacheHome(), "maven"),
     IDEExecutors.defaultExecutor(),
     new CacheLogger {
       override def downloadedArtifact(url: String, success: Boolean): Unit = {
@@ -32,7 +32,7 @@ object MavenDependencyManagerUtils {
   )
 
 
-  def callback(eventBus: EventBus): ArtifactResolutionCallback = new ArtifactResolutionCallback {
+  def callback(eventBus: EventBus, onResolved: (String, Seq[Artifact]) => Unit): ArtifactResolutionCallback = new ArtifactResolutionCallback {
 
     override def shouldDownload(id: String, kind: String): Boolean = true
 

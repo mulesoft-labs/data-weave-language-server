@@ -1,8 +1,8 @@
 package org.mule.weave.lsp.utils
 
+import org.eclipse.lsp4j.MessageActionItem
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
-import org.eclipse.lsp4j.MessageActionItem
 import org.eclipse.lsp4j.ShowMessageRequestParams
 
 import scala.collection.JavaConverters.seqAsJavaListConverter

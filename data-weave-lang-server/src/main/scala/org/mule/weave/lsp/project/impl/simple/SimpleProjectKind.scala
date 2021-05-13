@@ -1,22 +1,24 @@
 package org.mule.weave.lsp.project.impl.simple
 
-import org.mule.weave.lsp.project.BuildManager
-import org.mule.weave.lsp.project.DependencyArtifact
-import org.mule.weave.lsp.project.ModuleStructure
-import org.mule.weave.lsp.project.NoBuildManager
 import org.mule.weave.lsp.project.Project
-import org.mule.weave.lsp.project.ProjectDependencyManager
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
-import org.mule.weave.lsp.project.ProjectStructure
-import org.mule.weave.lsp.project.RootKind
-import org.mule.weave.lsp.project.RootStructure
 import org.mule.weave.lsp.project.Settings
+import org.mule.weave.lsp.project.components
+import org.mule.weave.lsp.project.components.BuildManager
+import org.mule.weave.lsp.project.components.DependencyArtifact
+import org.mule.weave.lsp.project.components.ModuleStructure
+import org.mule.weave.lsp.project.components.NoBuildManager
+import org.mule.weave.lsp.project.components.ProjectDependencyManager
+import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.components.RootKind
+import org.mule.weave.lsp.project.components.RootStructure
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.v2.deps.Artifact
 import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 
 import java.io.File
@@ -27,7 +29,7 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
   override def structure(): ProjectStructure = {
     val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
     val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot)))
-    ProjectStructure(modules)
+    components.ProjectStructure(modules)
   }
 
   override def dependencyManager(): ProjectDependencyManager = {
@@ -52,6 +54,8 @@ class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger) extend
 
 class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: EventBus) extends ProjectDependencyManager {
 
+  var weaveArtifacts: Seq[DependencyArtifact] = Seq.empty
+
   val messageCollector = new DependencyManagerMessageCollector() {
     override def onError(id: String, message: String): Unit = {
       logger.logError(s"Unable to resolve ${id}: reason : ${message}")
@@ -70,10 +74,14 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     loadWeaveVersion()
   }
 
-  private def loadWeaveVersion() = {
+  private def loadWeaveVersion(): Unit = {
     MavenDependencyManagerUtils.MAVEN.retrieve(
       createWLangArtifactId(project.settings.wlangVersion.value()),
-      MavenDependencyManagerUtils.callback(eventBus),
+      MavenDependencyManagerUtils.callback(eventBus, (id: String, artifacts: Seq[Artifact]) => {
+        weaveArtifacts = artifacts.map((artifact) => {
+          DependencyArtifact(id, artifact.file)
+        })
+      }),
       messageCollector)
   }
 
@@ -85,8 +93,9 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     s"org.mule.weave:${module}:${version}"
   }
 
-
-
+  override def dependencies(): Array[DependencyArtifact] = {
+    weaveArtifacts.toArray
+  }
 }
 
 

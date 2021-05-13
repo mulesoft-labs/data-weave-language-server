@@ -14,7 +14,8 @@ import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
-import org.mule.weave.lsp.vfs.events.{LibrariesModifiedEvent, LibraryAddedEvent, OnLibrariesModified, OnLibraryAdded}
+import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
+import org.mule.weave.lsp.vfs.events.OnLibrariesModified
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.ImplicitInput
 import org.mule.weave.v2.editor.QuickFix
@@ -33,7 +34,7 @@ import java.util.concurrent.Executor
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class ValidationServices(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) {
+class ValidationService(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
 

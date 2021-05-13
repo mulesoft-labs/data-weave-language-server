@@ -1,14 +1,16 @@
 package org.mule.weave.lsp.project.impl.maven
 
-import org.mule.weave.lsp.project.BuildManager
-import org.mule.weave.lsp.project.ModuleStructure
 import org.mule.weave.lsp.project.Project
-import org.mule.weave.lsp.project.ProjectDependencyManager
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
-import org.mule.weave.lsp.project.ProjectStructure
-import org.mule.weave.lsp.project.RootKind
-import org.mule.weave.lsp.project.RootStructure
+import org.mule.weave.lsp.project.components.BuildManager
+import org.mule.weave.lsp.project.components.ModuleStructure
+import org.mule.weave.lsp.project.components.ProjectDependencyManager
+import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.components.RootKind
+import org.mule.weave.lsp.project.components.RootStructure
+import org.mule.weave.lsp.project.components.TargetFolder
+import org.mule.weave.lsp.project.components.TargetKind
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 
@@ -26,15 +28,27 @@ class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger) e
   }
 }
 
-class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, loggerService: ClientLogger) extends ProjectKind {
+class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger) extends ProjectKind {
+
+  private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
+  private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
+  private val projectStructure: ProjectStructure = createProjectStructure()
+
   override def name(): String = "Maven"
 
   override def structure(): ProjectStructure = {
-    val projectHome = project.home()
-    ProjectStructure(Array(ModuleStructure("", Array(mainRoot(projectHome), testRoot(projectHome)))))
+    projectStructure
   }
 
-  private def mainRoot(projectHome: File) = {
+  private def createProjectStructure() = {
+    val projectHome: File = project.home()
+    val targetDir: File = new File(projectHome, "target")
+    val rootStructures: Array[RootStructure] = Array(mainRoot(projectHome), testRoot(projectHome))
+    val targets: Array[TargetFolder] = Array(TargetFolder(TargetKind.CLASS, Array(new File(targetDir, "classes"))))
+    ProjectStructure(Array(ModuleStructure(projectHome.getName, rootStructures, targets)))
+  }
+
+  private def mainRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "main")
 
     val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "java")).filter(_.exists())
@@ -44,20 +58,19 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, loggerSe
     rootStructure
   }
 
-  private def testRoot(projectHome: File) = {
+  private def testRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "test")
     val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
-
     val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders)
     rootStructure
   }
 
   override def dependencyManager(): ProjectDependencyManager = {
-    new MavenProjectDependencyManager(project, pom, eventBus, loggerService)
+    projectDependencyManager
   }
 
   override def buildManager(): BuildManager = {
-    new MavenBuildManager(project, pom)
+    mavenBuildManager
   }
 }
