@@ -88,8 +88,8 @@ class DefaultWeaveLauncher(projectKind: ProjectKind, languageClient: WeaveLangua
 
     val mainFile = config.mainFile
     mainFile match {
-      case Some(value) => args.add(value)
-      case None => {
+      case Some(value) if (value.nonEmpty) => args.add(value)
+      case _ => {
         try {
           val result = languageClient.weaveInputBox(WeaveInputBoxParams("Specify Main File")).get()
           if (result.cancelled) {
@@ -98,7 +98,10 @@ class DefaultWeaveLauncher(projectKind: ProjectKind, languageClient: WeaveLangua
             args.add(result.value)
           }
         } catch {
-          case _: InterruptedException | _: ExecutionException => return None
+          case _: InterruptedException | _: ExecutionException => {
+            //Return as no main was selected
+            return None
+          }
         }
       }
     }
