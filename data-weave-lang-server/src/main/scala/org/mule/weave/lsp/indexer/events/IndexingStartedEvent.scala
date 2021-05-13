@@ -1,7 +1,9 @@
 package org.mule.weave.lsp.indexer.events
 
 import org.mule.weave.lsp.indexer.events.IndexingStartedEvent.INDEXING_STARTED
-import org.mule.weave.lsp.utils.{Event, EventHandler, EventType}
+import org.mule.weave.lsp.utils.Event
+import org.mule.weave.lsp.utils.EventHandler
+import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 

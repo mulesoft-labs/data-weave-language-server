@@ -1,6 +1,8 @@
 package org.mule.weave.lsp.vfs.events
 
-import org.mule.weave.lsp.utils.{Event, EventHandler, EventType}
+import org.mule.weave.lsp.utils.Event
+import org.mule.weave.lsp.utils.EventHandler
+import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent.LIBRARIES_MODIFIED
 
 class LibrariesModifiedEvent extends Event {

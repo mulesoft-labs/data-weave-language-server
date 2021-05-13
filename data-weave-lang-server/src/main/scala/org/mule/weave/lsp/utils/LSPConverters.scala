@@ -8,8 +8,8 @@ import org.mule.weave.v2.parser.location.Position
 import org.mule.weave.v2.parser.location.WeaveLocation
 
 /**
- * Utilities function to convert DW Tooling Object to LSP Objects
- */
+  * Utilities function to convert DW Tooling Object to LSP Objects
+  */
 object LSPConverters extends AnyRef {
 
   implicit def toPosition(endPosition: Position): lsp4j.Position = {
@@ -22,10 +22,7 @@ object LSPConverters extends AnyRef {
   }
 
   implicit def toRange(location: WeaveLocation): lsp4j.Range = {
-    val range = new lsp4j.Range()
-    range.setEnd(toPosition(location.endPosition))
-    range.setStart(toPosition(location.startPosition))
-    range
+    new lsp4j.Range(toPosition(location.startPosition), toPosition(location.endPosition))
   }
 
   def toDiagnostic(message: ValidationMessage, severity: DiagnosticSeverity): Diagnostic = {

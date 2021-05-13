@@ -1,12 +1,10 @@
 package org.mule.weave.lsp.utils
 
-import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher.getClass
-
 import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
-object DataWeaveUtils {
+object DataWeaveDirectoryUtils {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
   /**

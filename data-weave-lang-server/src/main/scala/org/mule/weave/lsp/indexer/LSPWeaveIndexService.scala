@@ -2,10 +2,13 @@ package org.mule.weave.lsp.indexer
 
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.IndexingStartedEvent
+import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
+import org.mule.weave.lsp.vfs.URLUtils
 import org.mule.weave.lsp.vfs.events.LibraryAddedEvent
 import org.mule.weave.lsp.vfs.events.LibraryRemovedEvent
 import org.mule.weave.lsp.vfs.events.OnLibraryAdded
@@ -21,13 +24,15 @@ import org.mule.weave.v2.editor.indexing.WeaveIdentifier
 import org.mule.weave.v2.editor.indexing.WeaveIndexService
 import org.mule.weave.v2.sdk.ParsingContextFactory
 
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util
 import java.util.concurrent.Executor
 import scala.collection.JavaConverters.asJavaIteratorConverter
 import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.concurrent.TrieMap
 
-class LSPWeaveIndexService(eventBus: EventBus, executor: Executor, clientLogger: ClientLogger, projectVirtualFileSystem: ProjectVirtualFileSystem) extends WeaveIndexService {
+class LSPWeaveIndexService(eventBus: EventBus, executor: Executor, clientLogger: ClientLogger, projectVirtualFileSystem: ProjectVirtualFileSystem, projectKind: ProjectKind) extends WeaveIndexService {
 
   private val identifiersInLibraries: TrieMap[VirtualFileSystem, TrieMap[String, Array[LocatedResult[WeaveIdentifier]]]] = TrieMap()
   private val identifiersInProject: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = TrieMap()
@@ -40,16 +45,44 @@ class LSPWeaveIndexService(eventBus: EventBus, executor: Executor, clientLogger:
     }
 
     override def onChanged(vf: VirtualFile): Unit = {
-      indexProjectFile(vf)
-
+      if (isASourceFile(vf)) {
+        indexProjectFile(vf)
+      }
     }
 
     override def onCreated(vf: VirtualFile): Unit = {
-      indexProjectFile(vf)
+      val isSourceFile = isASourceFile(vf)
+      if (isSourceFile) {
+        indexProjectFile(vf)
+      }
     }
   })
 
+  /**
+    * Returns true if the Virtual File belongs to a source or resource folder
+    *
+    * @param vf The virtual file to validate
+    * @return
+    */
+  def isASourceFile(vf: VirtualFile): Boolean = {
+    projectKind.structure().modules.exists((module) => {
+      module.roots.exists((root) => {
+        root.sources.exists((rootFolder) => {
+          URLUtils.toPath(vf.url()).exists((vfPath) => {
+            vfPath.toAbsolutePath.startsWith(rootFolder.toPath.toAbsolutePath)
+          })
+        }) ||
+          root.resources.exists((rootFolder) => {
+            URLUtils.toPath(vf.url()).exists((vfPath) => {
+              vfPath.toAbsolutePath.startsWith(rootFolder.toPath.toAbsolutePath)
+            })
+          })
+      })
+    })
+  }
+
   private def indexProjectFile(vf: VirtualFile) = {
+
     val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
     if (indexer.parse(vf, ParsingContextFactory.createParsingContext(false))) {
       identifiersInProject.put(vf.url(), index(vf, indexer))
@@ -151,6 +184,6 @@ class LSPWeaveIndexService(eventBus: EventBus, executor: Executor, clientLogger:
     val projectNames = namesInProject.values.filter((name) => {
       name.moduleName.name.contains(pattern)
     })
-    (projectNames.toIterator ++   libraryNames.toIterator).asJava
+    (projectNames.toIterator ++ libraryNames.toIterator).asJava
   }
 }

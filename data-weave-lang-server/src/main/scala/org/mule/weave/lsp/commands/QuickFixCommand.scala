@@ -8,7 +8,7 @@ import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.mule.weave.lsp.commands.Commands.argAsInt
 import org.mule.weave.lsp.commands.Commands.argAsString
-import org.mule.weave.lsp.services.ValidationServices
+import org.mule.weave.lsp.services.ValidationService
 import org.mule.weave.lsp.utils.LSPConverters.toPosition
 import org.mule.weave.v2.completion.Template
 import org.mule.weave.v2.editor.QuickFix
@@ -17,7 +17,7 @@ import org.mule.weave.v2.editor.WeaveTextDocument
 
 import java.util
 
-class QuickFixCommand(weaveService: ValidationServices) extends WeaveCommand {
+class QuickFixCommand(validationService: ValidationService) extends WeaveCommand {
 
   override def commandId(): String = Commands.DW_QUICK_FIX
 
@@ -31,8 +31,8 @@ class QuickFixCommand(weaveService: ValidationServices) extends WeaveCommand {
     val severity: String = argAsString(arguments, 4)
     val qfName: String = argAsString(arguments, 5)
 
-    val quickFixes: Array[QuickFix] = weaveService.quickFixesFor(uri, startOffset, endOffset, kind, severity)
-    val toolingService: WeaveDocumentToolingService = weaveService.documentService().open(uri)
+    val quickFixes: Array[QuickFix] = validationService.quickFixesFor(uri, startOffset, endOffset, kind, severity)
+    val toolingService: WeaveDocumentToolingService = validationService.documentService().open(uri)
     quickFixes.find((qf) => qf.name == qfName).foreach((qf) => {
       val edit = new WorkspaceEdit()
       val localChanges = new util.ArrayList[TextEdit]()
@@ -64,7 +64,7 @@ class QuickFixCommand(weaveService: ValidationServices) extends WeaveCommand {
       val changes = new util.HashMap[String, util.List[TextEdit]]()
       changes.put(uri, localChanges)
       edit.setChanges(changes)
-      weaveService.languageClient().applyEdit(new ApplyWorkspaceEditParams(edit))
+      validationService.languageClient().applyEdit(new ApplyWorkspaceEditParams(edit))
     })
     null
   }

@@ -1,8 +1,7 @@
 package org.mule.weave.lsp.vfs
 
 import org.eclipse.lsp4j.FileChangeType
-import org.mule.weave.lsp.project.ProjectStructure
-import org.mule.weave.lsp.project.RootStructure
+import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
@@ -18,14 +17,11 @@ import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.util.stream
 import scala.collection.JavaConverters.asJavaIteratorConverter
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 

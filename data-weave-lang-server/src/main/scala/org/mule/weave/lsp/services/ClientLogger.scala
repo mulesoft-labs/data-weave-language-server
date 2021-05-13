@@ -12,15 +12,39 @@ import java.io.StringWriter
   */
 class ClientLogger(_client: LanguageClient) {
 
+  def logDebug(message: String): Unit = {
+    if (_client != null) {
+      _client.logMessage(new MessageParams(MessageType.Log, message))
+    }
+  }
+
+  def logDebug(message: String, throwable: Throwable): Unit = {
+    if (_client != null) {
+      _client.logMessage(new MessageParams(MessageType.Log, message + " caused by:\n" + toStringStacktrace(throwable)))
+    }
+  }
+
   def logInfo(message: String): Unit = {
     if (_client != null) {
       _client.logMessage(new MessageParams(MessageType.Info, message))
     }
   }
 
+  def logInfo(message: String, throwable: Throwable): Unit = {
+    if (_client != null) {
+      _client.logMessage(new MessageParams(MessageType.Info, message + " caused by:\n" + toStringStacktrace(throwable)))
+    }
+  }
+
   def logWarning(message: String): Unit = {
     if (_client != null) {
       _client.logMessage(new MessageParams(MessageType.Warning, message))
+    }
+  }
+
+  def logWarning(message: String, throwable: Throwable): Unit = {
+    if (_client != null) {
+      _client.logMessage(new MessageParams(MessageType.Warning, message + " caused by:\n" + toStringStacktrace(throwable)))
     }
   }
 
@@ -32,9 +56,15 @@ class ClientLogger(_client: LanguageClient) {
 
   def logError(message: String, throwable: Throwable): Unit = {
     if (_client != null) {
-      val stringWriter = new StringWriter()
-      throwable.printStackTrace(new PrintWriter(stringWriter))
-      _client.logMessage(new MessageParams(MessageType.Error, message + " caused by:\n" + stringWriter.toString))
+      val stackTrace: String = toStringStacktrace(throwable)
+      _client.logMessage(new MessageParams(MessageType.Error, message + " caused by:\n" + stackTrace))
     }
+  }
+
+  private def toStringStacktrace(throwable: Throwable) = {
+    val stringWriter = new StringWriter()
+    throwable.printStackTrace(new PrintWriter(stringWriter))
+    val stackTrace = stringWriter.toString
+    stackTrace
   }
 }

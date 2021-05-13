@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.services
 
+import org.eclipse.lsp4j
 import org.eclipse.lsp4j.CodeAction
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeLens
@@ -38,7 +39,10 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.actions.CodeActions
+import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.utils.LSPConverters._
+import org.mule.weave.lsp.utils.WeaveASTUtils
+import org.mule.weave.lsp.utils.WeaveASTUtils.MAPPING
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionType
@@ -49,12 +53,14 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
+import org.mule.weave.v2.parser.ast.AstNode
+import org.mule.weave.v2.parser.ast.AstNodeHelper
+import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
-import java.util
 import java.util
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
@@ -63,7 +69,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.JavaConverters
 
-class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Executor, projectFS: ProjectVirtualFileSystem, vfs: VirtualFileSystem) extends TextDocumentService {
+class DataWeaveDocumentService(toolingServices: ValidationService, executor: Executor, projectFS: ProjectVirtualFileSystem, vfs: VirtualFileSystem) extends TextDocumentService {
 
   private val codeActions = new CodeActions(toolingServices)
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -100,7 +106,6 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
     logger.log(Level.INFO, "didSave : " + uri)
   }
 
-
   def dwTextDocumentService: WeaveToolingService = {
     toolingServices.documentService()
   }
@@ -135,9 +140,38 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
   }
 
 
-  override def codeLens(params: CodeLensParams): CompletableFuture[util.List[_ <: CodeLens]] = super.codeLens(params)
+  override def codeLens(params: CodeLensParams): CompletableFuture[util.List[_ <: CodeLens]] = {
+    CompletableFuture.supplyAsync(() => {
+      val result = new util.ArrayList[CodeLens]()
+      val documentToolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
+      documentToolingService.file.getNameIdentifier
+      val maybeAstNode: Option[AstNode] = documentToolingService.ast()
+      val maybeString = WeaveASTUtils.fileKind(maybeAstNode)
 
-  override def resolveCodeLens(unresolved: CodeLens): CompletableFuture[CodeLens] = super.resolveCodeLens(unresolved)
+      maybeString match {
+        case Some(MAPPING) => {
+
+        }
+        case _ => {}
+      }
+
+      maybeAstNode.foreach((ast) => {
+        val functionNodes: Seq[FunctionDirectiveNode] = AstNodeHelper.collectChildrenWith(ast, classOf[FunctionDirectiveNode])
+        functionNodes
+          .filter(_.weaveDoc.isEmpty)
+          .foreach((astNode) => {
+            val command = InsertDocumentationCommand.createCommand(params.getTextDocument.getUri, astNode)
+            val range = new lsp4j.Range(toPosition(astNode.location().startPosition), toPosition(astNode.location().startPosition))
+            result.add(new CodeLens(range, command, null))
+          })
+      })
+      result
+    })
+  }
+
+  override def resolveCodeLens(unresolved: CodeLens): CompletableFuture[CodeLens] = {
+    CompletableFuture.completedFuture(unresolved)
+  }
 
   override def foldingRange(params: FoldingRangeRequestParams): CompletableFuture[util.List[FoldingRange]] = {
     CompletableFuture.supplyAsync(() => {
@@ -317,7 +351,7 @@ class DataWeaveDocumentService(toolingServices: ValidationServices, executor: Ex
           new TextEdit(toRange(reference.referencedNode.location()), params.getNewName)
         })
         val url = vfs.asResourceResolver.resolve(references._1).get.url()
-        edit.getChanges.put(url, util.Arrays.asList(edits :_*))
+        edit.getChanges.put(url, util.Arrays.asList(edits: _*))
       })
 
       edit

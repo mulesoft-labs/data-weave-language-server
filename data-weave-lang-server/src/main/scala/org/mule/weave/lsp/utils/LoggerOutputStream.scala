@@ -2,9 +2,9 @@ package org.mule.weave.lsp.utils
 
 import org.mule.weave.lsp.services.ClientLogger
 
+import java.io.IOException
 import java.io.OutputStream
 import java.io.PrintStream
-import java.io.IOException
 
 class LoggerOutputStream(clientLogger: ClientLogger) extends OutputStream {
 

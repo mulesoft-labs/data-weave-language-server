@@ -1,7 +1,7 @@
 package org.mule.weave.lsp.project.events
 
 
-import org.mule.weave.lsp.project.DependencyArtifact
+import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.utils.Event
 import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType

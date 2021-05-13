@@ -7,9 +7,18 @@ import java.util.concurrent.Executors
 
 object IDEExecutors {
 
+
+
   private val defaultService = Executors.newCachedThreadPool(
     new ThreadFactoryBuilder()
-      .setNameFormat("dw-lang-server-%d\"")
+      .setNameFormat("dw-lang-server-language-%d\"")
+      .setDaemon(true)
+      .build()
+  )
+
+  private val debuggerService = Executors.newCachedThreadPool(
+    new ThreadFactoryBuilder()
+      .setNameFormat("dw-lang-server-debugger-%d\"")
       .setDaemon(true)
       .build()
   )
@@ -32,6 +41,10 @@ object IDEExecutors {
       .setDaemon(true)
       .build()
   )
+
+  def debuggingExecutor():ExecutorService = {
+    debuggerService
+  }
 
   def defaultExecutor(): ExecutorService = {
     defaultService

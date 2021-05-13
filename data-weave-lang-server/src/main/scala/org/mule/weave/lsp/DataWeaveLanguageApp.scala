@@ -1,12 +1,12 @@
 package org.mule.weave.lsp
 
+import org.eclipse.lsp4j.jsonrpc.Launcher
+import org.eclipse.lsp4j.launch.LSPLauncher
+import org.mule.weave.lsp.client.WeaveLanguageClient
+
 import java.net.Socket
 import java.util.logging.Level
 import java.util.logging.Logger
-import org.eclipse.lsp4j.jsonrpc.Launcher
-import org.eclipse.lsp4j.launch.LSPLauncher
-import org.eclipse.lsp4j.services.LanguageClient
-import org.mule.weave.lsp.client.WeaveLanguageClient
 
 object DataWeaveLanguageApp extends App {
 

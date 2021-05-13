@@ -1,10 +1,13 @@
 package org.mule.weave.lsp
 
+import org.eclipse.lsp4j.CodeLensOptions
 import org.eclipse.lsp4j.CompletionOptions
 import org.eclipse.lsp4j.ExecuteCommandOptions
 import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.InitializedParams
+import org.eclipse.lsp4j.MessageParams
+import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.ServerCapabilities
 import org.eclipse.lsp4j.TextDocumentSyncKind
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -24,9 +27,9 @@ import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.TextDocumentServiceDelegate
-import org.mule.weave.lsp.services.ValidationServices
+import org.mule.weave.lsp.services.ValidationService
 import org.mule.weave.lsp.services.WorkspaceServiceDelegate
-import org.mule.weave.lsp.utils.DataWeaveUtils
+import org.mule.weave.lsp.utils.DataWeaveDirectoryUtils
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
@@ -63,9 +66,9 @@ class WeaveLanguageServer extends LanguageServer {
   private var projectValue: Project = _
 
   private def createWeaveToolingService(): WeaveToolingService = {
-    val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventbus)
+    val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventbus, (_, _) => {})
     val resourceDependencyAnnotationProcessor = ResourceDependencyAnnotationProcessor(
-      new File(DataWeaveUtils.getCacheHome(), "resources"),
+      new File(DataWeaveDirectoryUtils.getCacheHome(), "resources"),
       artifactResolutionCallback,
       executorService
     )
@@ -98,13 +101,13 @@ class WeaveLanguageServer extends LanguageServer {
     clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
     val librariesVFS: LibrariesVirtualFileSystem = new LibrariesVirtualFileSystem(eventbus, clientLogger)
     val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem(eventbus, projectKind.structure())
-    indexService = new LSPWeaveIndexService(eventbus, IDEExecutors.indexingExecutor(), clientLogger, projectVFS)
+    indexService = new LSPWeaveIndexService(eventbus, IDEExecutors.indexingExecutor(), clientLogger, projectVFS, projectKind )
     globalFVS = new CompositeFileSystem(projectVFS, librariesVFS)
 
-    val dwTooling = new ValidationServices(projectValue, eventbus, client, globalFVS, createWeaveToolingService, executorService)
+    val validationServices = new ValidationService(projectValue, eventbus, client, globalFVS, createWeaveToolingService, executorService)
 
-    textDocumentService.delegate = new DataWeaveDocumentService(dwTooling, executorService, projectVFS, globalFVS)
-    weaveWorkspaceService.delegate = new DataWeaveWorkspaceService(projectValue, eventbus, globalFVS, clientLogger, dwTooling)
+    textDocumentService.delegate = new DataWeaveDocumentService(validationServices, executorService, projectVFS, globalFVS)
+    weaveWorkspaceService.delegate = new DataWeaveWorkspaceService(projectValue, projectKind, eventbus, globalFVS, clientLogger, client, validationServices)
 
     initializeProject(projectValue, projectKind)
 
@@ -117,6 +120,7 @@ class WeaveLanguageServer extends LanguageServer {
     capabilities.setDocumentFormattingProvider(true)
     capabilities.setFoldingRangeProvider(true)
     capabilities.setCodeActionProvider(true)
+    capabilities.setCodeLensProvider(new CodeLensOptions(true))
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
@@ -138,6 +142,7 @@ class WeaveLanguageServer extends LanguageServer {
           indexService.init()
           project.markInitialized
           eventbus.fire(new ProjectInitializedEvent(project))
+          client.showMessage(new MessageParams(MessageType.Info, s"Project Initialized."))
         } catch {
           case e: Exception => {
             clientLogger.logError("Unable to initialize project.", e)

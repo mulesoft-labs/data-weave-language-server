@@ -3,7 +3,10 @@ package org.mule.weave.lsp.vfs.resource
 import org.mule.weave.lsp.vfs.FileUtils
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
-import org.mule.weave.v2.sdk.{DefaultWeaveResource, NameIdentifierHelper, WeaveResource, WeaveResourceResolver}
+import org.mule.weave.v2.sdk.DefaultWeaveResource
+import org.mule.weave.v2.sdk.NameIdentifierHelper
+import org.mule.weave.v2.sdk.WeaveResource
+import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
 
