@@ -10,6 +10,7 @@ import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.DefaultWeaveLauncher
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.io.IOException
@@ -21,6 +22,7 @@ import java.util.concurrent.CountDownLatch
 // [VSCODE] <-> [LSPADI] <-> [PDW]
 
 class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
+                      projectVirtualFileSystem: ProjectVirtualFileSystem,
                       project: Project,
                       projectKind: ProjectKind,
                       clientLogger: ClientLogger,
@@ -37,7 +39,8 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
       val latch = new CountDownLatch(1)
       IDEExecutors.defaultExecutor().submit(new Runnable {
         override def run(): Unit = {
-          launch(virtualFileSystem, clientLogger, languageClient, new DefaultWeaveLauncher(projectKind, languageClient), () => latch.countDown(), port)
+          val launcher = new DefaultWeaveLauncher(projectKind, clientLogger, languageClient, projectVirtualFileSystem)
+          launch(virtualFileSystem, clientLogger, languageClient, launcher, () => latch.countDown(), port)
         }
       })
       latch.await()

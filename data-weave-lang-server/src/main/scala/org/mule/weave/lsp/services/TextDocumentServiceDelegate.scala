@@ -74,7 +74,6 @@ class TextDocumentServiceDelegate extends TextDocumentService {
   }
 
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
-
     if (delegate != null) {
       delegate.didChange(params)
     }

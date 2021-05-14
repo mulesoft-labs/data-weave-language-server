@@ -11,7 +11,7 @@ trait LauncherConfig {
 
 }
 
-case class RunMappingConfiguration(mainFile: Option[String], scenario: Option[String], debuggerPort: Int) extends LauncherConfig
+case class RunMappingConfiguration(mayBeMapping: Option[String], scenario: Option[String], debuggerPort: Int) extends LauncherConfig
 
 
 

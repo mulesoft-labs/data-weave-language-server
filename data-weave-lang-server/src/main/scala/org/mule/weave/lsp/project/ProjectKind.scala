@@ -5,11 +5,15 @@ import org.mule.weave.lsp.project.components.NoBuildManager
 import org.mule.weave.lsp.project.components.NoDependencyManager
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.components.SampleDataManager
+
 import org.mule.weave.lsp.project.impl.bat.BatProjectKindDetector
 import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
+
+import java.io.File
 
 /**
   * Detects the Project Kind
@@ -92,18 +96,23 @@ trait ProjectKind {
     */
   def buildManager(): BuildManager
 
+  /**
+    * Handles Scenario Provider for sample data
+    *
+    * @return The Scenarios For sample data
+    */
+  def sampleDataManager(): Option[SampleDataManager]
+
 }
 
 object NoProjectKind extends ProjectKind {
   override def name(): String = "NoProject"
 
-  override def structure(): ProjectStructure = ProjectStructure(Array.empty)
+  override def structure(): ProjectStructure = ProjectStructure(Array.empty, new File(""))
 
   override def dependencyManager(): ProjectDependencyManager = NoDependencyManager
 
   override def buildManager(): BuildManager = NoBuildManager
+
+  override def sampleDataManager(): Option[SampleDataManager] = None
 }
-
-
-
-

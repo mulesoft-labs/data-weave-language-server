@@ -11,6 +11,7 @@ import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.util.concurrent.CompletableFuture
@@ -18,21 +19,22 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
-  * DataWeave Implementation of the LSP Workspace Service
-  *
-  */
+ * DataWeave Implementation of the LSP Workspace Service
+ *
+ */
 class DataWeaveWorkspaceService(
                                  project: Project,
                                  projectKind: ProjectKind,
                                  eventBus: EventBus,
                                  vfs: VirtualFileSystem,
+                                 projectVirtualFileSystem: ProjectVirtualFileSystem,
                                  clientLogger: ClientLogger,
                                  languageClient: WeaveLanguageClient,
                                  validationService: ValidationService
                                ) extends WorkspaceService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val commandProvider: CommandProvider = new CommandProvider(vfs, clientLogger, languageClient, project, projectKind, validationService)
+  private val commandProvider: CommandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, validationService)
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     logger.log(Level.INFO, "didChangeConfiguration: " + params.getSettings)

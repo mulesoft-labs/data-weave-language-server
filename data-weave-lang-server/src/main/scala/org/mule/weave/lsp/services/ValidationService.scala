@@ -5,6 +5,8 @@ import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.eclipse.lsp4j.services.LanguageClient
+import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
+import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.Settings
 import org.mule.weave.lsp.project.events.OnProjectInitialized
@@ -14,8 +16,6 @@ import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
-import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
-import org.mule.weave.lsp.vfs.events.OnLibrariesModified
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.ImplicitInput
 import org.mule.weave.v2.editor.QuickFix
@@ -73,8 +73,8 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
     }
   })
 
-  eventBus.register(LibrariesModifiedEvent.LIBRARIES_MODIFIED, new OnLibrariesModified {
-    override def onLibrariesModified(): Unit = {
+  eventBus.register(IndexingFinishedEvent.INDEXING_FINISHED, new OnIndexingFinished() {
+    override def onIndexingFinished(): Unit = {
       validateAllEditors()
     }
   })

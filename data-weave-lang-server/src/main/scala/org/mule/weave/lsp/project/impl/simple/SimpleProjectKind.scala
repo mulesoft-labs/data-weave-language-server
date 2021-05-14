@@ -13,6 +13,7 @@ import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.RootKind
 import org.mule.weave.lsp.project.components.RootStructure
+import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
@@ -29,7 +30,7 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
   override def structure(): ProjectStructure = {
     val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
     val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot)))
-    components.ProjectStructure(modules)
+    components.ProjectStructure(modules, project.home())
   }
 
   override def dependencyManager(): ProjectDependencyManager = {
@@ -39,6 +40,8 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
   override def buildManager(): BuildManager = {
     NoBuildManager
   }
+
+  override def sampleDataManager(): Option[SampleDataManager] = None
 }
 
 class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger) extends ProjectKindDetector {
@@ -74,7 +77,7 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     loadWeaveVersion()
   }
 
-  private def loadWeaveVersion(): Unit = {
+  private def loadWeaveVersion() = {
     MavenDependencyManagerUtils.MAVEN.retrieve(
       createWLangArtifactId(project.settings.wlangVersion.value()),
       MavenDependencyManagerUtils.callback(eventBus, (id: String, artifacts: Seq[Artifact]) => {

@@ -2,8 +2,7 @@ package org.mule.weave.lsp.project.components
 
 import java.io.File
 
-case class ProjectStructure(modules: Array[ModuleStructure]) {}
-
+case class ProjectStructure(modules: Array[ModuleStructure], projectHome: File) {}
 
 case class ModuleStructure(name: String, roots: Array[RootStructure], target: Array[TargetFolder] = Array()) {}
 

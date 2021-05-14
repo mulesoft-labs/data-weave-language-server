@@ -6,8 +6,7 @@ import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.v2.editor.VirtualFileSystem
 
-
-class IndexingStartedEvent(vfs: VirtualFileSystem) extends Event {
+class IndexingStartedEvent() extends Event {
   override type T = OnIndexingStarted
 
   override def getType: EventType[OnIndexingStarted] = {
@@ -15,9 +14,8 @@ class IndexingStartedEvent(vfs: VirtualFileSystem) extends Event {
   }
 
   override def dispatch(handler: OnIndexingStarted): Unit = {
-    handler.onIndexingStarted(vfs)
+    handler.onIndexingStarted()
   }
-
 }
 
 object IndexingStartedEvent {
@@ -25,5 +23,5 @@ object IndexingStartedEvent {
 }
 
 trait OnIndexingStarted extends EventHandler {
-  def onIndexingStarted(vfs: VirtualFileSystem)
+  def onIndexingStarted()
 }

@@ -7,7 +7,6 @@ import org.mule.weave.lsp.project.events.OnDependencyArtifactRemoved
 import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.lsp.vfs.events.LibrariesModifiedEvent
 import org.mule.weave.lsp.vfs.events.LibraryAddedEvent
 import org.mule.weave.lsp.vfs.events.LibraryRemovedEvent
 import org.mule.weave.v2.editor.ChangeListener
@@ -46,8 +45,6 @@ class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger)
         }
         addLibrary(artifact.artifactId, libraryVFS)
       })
-
-      eventBus.fire(new LibrariesModifiedEvent())
     }
   })
 
@@ -56,7 +53,6 @@ class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger)
       artifacts.foreach((a) => {
         removeLibrary(a.artifactId)
       })
-      eventBus.fire(new LibrariesModifiedEvent())
     }
   })
 
@@ -79,16 +75,22 @@ class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger)
       clientLogger.logInfo(s"Artifact `${vfs.artifactId()}` was removed.")
       eventBus.fire(new LibraryRemovedEvent(vfs))
     })
+  }
 
+  def addLibrary(libs: Array[(String, ArtifactVirtualFileSystem)]): Unit = {
+    libs.foreach((lib) => {
+      val virtualFileSystem: ArtifactVirtualFileSystem = lib._2
+      val name: String = lib._1
+      this.libraries.put(name, virtualFileSystem)
+      clientLogger.logInfo(s"Artifact `${virtualFileSystem.artifactId()}` was resolved.")
+    })
+    eventBus.fire(new LibraryAddedEvent(this.libraries.values.toArray))
   }
 
   private def addLibrary(name: String, virtualFileSystem: ArtifactVirtualFileSystem): Unit = {
-    val maybeOldFileSystem: Option[ArtifactVirtualFileSystem] = libraries.put(name, virtualFileSystem)
-    maybeOldFileSystem.foreach((vfs) => {
-      eventBus.fire(new LibraryRemovedEvent(vfs))
-    })
+    libraries.put(name, virtualFileSystem)
     clientLogger.logInfo(s"Artifact `${virtualFileSystem.artifactId()}` was resolved.")
-    eventBus.fire(new LibraryAddedEvent(virtualFileSystem))
+    eventBus.fire(new LibraryAddedEvent(Array(virtualFileSystem)))
   }
 
   def getLibrary(name: String): VirtualFileSystem = {
