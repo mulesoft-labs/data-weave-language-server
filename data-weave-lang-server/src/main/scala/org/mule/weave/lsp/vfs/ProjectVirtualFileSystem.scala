@@ -144,7 +144,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
     } else {
       logger.log(Level.INFO, s"deleted ${uri}")
       inMemoryFiles.remove(uri)
-      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      val virtualFile = new ProjectVirtualFile(this, uri, URLUtils.toFile(uri))
       triggerChanges(virtualFile)
       vfsChangeListeners.foreach((listener) => {
         listener.onDeleted(virtualFile)
@@ -158,7 +158,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
       logger.log(Level.INFO, s"created: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
       logger.log(Level.INFO, s"created: ${uri}")
-      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      val virtualFile = new ProjectVirtualFile(this, uri, URLUtils.toFile(uri))
       triggerChanges(virtualFile)
       vfsChangeListeners.foreach((listener) => {
         listener.onCreated(virtualFile)
@@ -202,7 +202,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
           null
         } else {
           if (maybeFile.get.exists()) {
-            val virtualFile = new ProjectVirtualFile(this, uri, Some(maybeFile.get))
+            val virtualFile = new ProjectVirtualFile(this, uri, maybeFile)
             inMemoryFiles.put(uri, virtualFile)
             virtualFile
           } else {

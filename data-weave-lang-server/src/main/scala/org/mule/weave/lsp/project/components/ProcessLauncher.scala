@@ -105,7 +105,7 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
     val maybeMapping: Option[String] = config.mayBeMapping
     maybeMapping match {
       case Some(mappingNameID) if (mappingNameID.nonEmpty) => {
-        args.add(mappingNameID)
+        nameIdentifier = maybeMapping
       }
       case _ => {
         try {
@@ -149,10 +149,8 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
           args.add(scenarioPath.get)
         }
       }
-
       args.add(nameIdentifier.get)
       builder.command(args)
-
       clientLogger.logInfo(s"Executing: ${args.asScala.mkString(" ")}")
       Some(builder.start())
     } else {

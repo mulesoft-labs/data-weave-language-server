@@ -25,11 +25,15 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
     memoryState match {
       case Some(content) => content
       case _ => {
-        val source = Source.fromFile(file.get, "UTF-8")
-        try {
-          source.mkString
-        } finally {
-          source.close()
+        if (file.isEmpty) {
+          throw new RuntimeException(s"VF doesn't has content nor file ${url}")
+        } else {
+          val source = Source.fromFile(file.get, "UTF-8")
+          try {
+            source.mkString
+          } finally {
+            source.close()
+          }
         }
       }
     }
