@@ -1,6 +1,8 @@
 package org.mule.weave.lsp.project.commands
 
 import org.mule.weave.lsp.client.OpenWindowsParams
+import org.mule.weave.lsp.client.ThemeIcon
+import org.mule.weave.lsp.client.WeaveButton
 import org.mule.weave.lsp.client.WeaveInputBoxParams
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.client.WeaveQuickPickItem
@@ -78,19 +80,19 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
       .flatMap {
         case path if path.cancelled =>
           Future.successful(None)
-        case path if path.itemId == currentDir.id =>
+        case path if path.itemsId.get(0) == currentDir.id =>
           Future.successful(from)
-        case path if path.itemId == parentDir.id =>
+        case path if path.itemsId.get(0) == parentDir.id =>
           askForPath(from.map(_.getParent))
         case path =>
           from match {
             case Some(nonRootPath) =>
-              askForPath(Some(nonRootPath.resolve(path.itemId)))
+              askForPath(Some(nonRootPath.resolve(path.itemsId.get(0))))
             case None =>
               val newRoot = File
                 .listRoots()
                 .collectFirst {
-                  case root if root.toString == path.itemId =>
+                  case root if root.toString == path.itemsId.get(0) =>
                     root.toPath
                 }
               askForPath(newRoot)

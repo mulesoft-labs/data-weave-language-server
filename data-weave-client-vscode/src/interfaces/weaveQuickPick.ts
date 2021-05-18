@@ -1,4 +1,11 @@
+import { QuickInputButton, ThemeColor, ThemeIcon, Uri } from "vscode";
 import { RequestType } from "vscode-languageserver-protocol";
+
+export namespace IconType {
+  export const URIIconType = "URI-ICON"
+  export const ThemeIcontType = "THEME-ICON"
+  export const DarkLightIconPathType = "DARK-LIGHT-ICON"
+}
 
 export namespace WeaveQuickPick {
   export const type = new RequestType<
@@ -25,10 +32,49 @@ export interface WeaveQuickPickParams {
    * the editor or to another window.
    */
   ignoreFocusOut?: boolean;
+
+  //Set step number if you are doing a step by step wizard.
+  step?: number;
+
+  //Set number of total steps if you are doing a step by step wizard.
+  totalSteps?: number;
+
+  //Set title of the quick pick window.
+  title?: string;
+
+  //Buttons to show in the quick pick.
+  buttons?: WeaveInputButton[];
+
+  // Set to `true` to allow user to select many of the options.
+  canSelectMeny?: boolean;
+
 }
 
+export interface IconPath {
+  iconType: string
+}
+
+export interface DarkLightIconPath extends IconPath {
+  dark: string
+  light: string
+}
+
+export interface IconUri extends IconPath {
+  uri: string
+}
+
+export interface ThemeIconPath extends IconPath {
+  id: string
+}
+
+export interface WeaveInputButton {
+  id: string;
+  iconPath: IconPath;
+  tooltip?: string;
+}
 export interface WeaveQuickPickResult {
-  itemId?: string;
+  buttonPressedId?: string;
+  itemsId?: Array<string>;
   cancelled?: boolean;
 }
 
