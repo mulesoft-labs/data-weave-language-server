@@ -132,11 +132,7 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
         .weaveInputBox(
           WeaveInputBoxParams(
             prompt = prompt,
-            value = default,
-            title = "Titulo Prueba",
-            step = 1,
-            totalSteps = 2,
-            buttons =  List(WeaveButton("debug-start",ThemeIcon("debug-start")), WeaveButton("back",ThemeIcon("arrow-left"))).asJava
+            value = default
           )
         )
         .toScala
