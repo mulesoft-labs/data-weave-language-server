@@ -1,4 +1,6 @@
+import { QuickInputButton } from "vscode";
 import { RequestType } from "vscode-languageserver-protocol";
+import { WeaveInputButton } from "./weaveQuickPick";
 
 export namespace WeaveInputBox {
   export const type = new RequestType<
@@ -19,6 +21,7 @@ export namespace WeaveInputBox {
 }
 
 export interface WeaveInputBoxResult {
+  buttonPressedId?: string;
   value?: string;
   cancelled?: boolean;
 }
@@ -26,7 +29,7 @@ export interface WeaveInputBoxResult {
 export interface InputBoxOptions {
   /** * The value to prefill in the input box.  */
   value?: string;
-  /** * Selection of the prefilled [`value`](#InputBoxOptions.value). Defined as tuple of two number where the * first is the inclusive start index and the second the exclusive end index. When `undefined` the whole * word will be selected, when empty (start equals end) only the cursor will be set, * otherwise the defined range will be selected.  */ 
+  /** * Selection of the prefilled [`value`](#InputBoxOptions.value). Defined as tuple of two number where the * first is the inclusive start index and the second the exclusive end index. When `undefined` the whole * word will be selected, when empty (start equals end) only the cursor will be set, * otherwise the defined range will be selected.  */
   valueSelection?: [
     number,
     number
@@ -51,6 +54,19 @@ export interface InputBoxOptions {
    * Set to `true` to keep the input box open when focus moves to another part of the editor or to another window.
    */
   ignoreFocusOut?: boolean;
+
+
+  //Set step number if you are doing a step by step wizard.
+  step?: number;
+
+  //Set number of total steps if you are doing a step by step wizard.
+  totalSteps?: number;
+
+  //Set title of the quick pick window.
+  title?: string;
+
+  //Buttons to show in the quick pick.
+  buttons?: Array<WeaveInputButton>;
 
   /**
    * An optional function that will be called to validate input and to give a hint
