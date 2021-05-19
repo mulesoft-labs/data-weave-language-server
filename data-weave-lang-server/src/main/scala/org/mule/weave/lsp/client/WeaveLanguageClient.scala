@@ -4,7 +4,7 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.services.LanguageClient
 
-import java.net.URI
+import java.util
 import java.util.concurrent.CompletableFuture
 import javax.annotation.Nullable
 
@@ -32,7 +32,56 @@ trait WeaveLanguageClient extends LanguageClient {
 
   @JsonNotification("weave/folder/open")
   def openWindow(params: OpenWindowsParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to execute the specified configuration on client side.
+    *
+    */
+  @JsonNotification("weave/workspace/run")
+  def runConfiguration(config: LaunchConfiguration): Unit
+
+  //def listConfigurations: Array[LaunchConfiguration]
 }
+
+
+case class LaunchConfiguration(
+                                //The type of config
+                                `type`: String,
+                                //The name of the config
+                                name: String,
+                                //launch, attach
+                                request: String,
+                                //If true it will no execute in debug mode
+                                noDebug: Boolean,
+                                //The additional properties used for this configuration
+                                properties: java.util.List[LaunchConfigurationProperty])
+
+
+object LaunchConfiguration {
+  val DATA_WEAVE_CONFIG_TYPE_NAME = "data-weave"
+  val WTF_CONFIG_TYPE_NAME = "data-weave-testing"
+  val WITF_CONFIG_TYPE_NAME = "data-weave-integration-testing"
+
+  val TYPE_PROP_NAME = "type"
+  val REQUEST_PROP_NAME = "request"
+  val NAME_PROP_NAME = "name"
+  val MAIN_FILE_NAME = "mainFile"
+  val BUILD_BEFORE_PROP_NAME = "buildBefore"
+  val LAUNCH_REQUEST_TYPE = "launch"
+
+  val DEFAULT_CONFIG_NAMES: util.List[String] = util.Arrays.asList(TYPE_PROP_NAME, REQUEST_PROP_NAME, NAME_PROP_NAME)
+}
+
+case class LaunchConfigurationProperty(
+                                        //The name of the property
+                                        name: String,
+                                        //The value of the property String, Boolean Number
+                                        value: String
+                                      )
+
+
+case class OpenEditorParams(uri: String)
+
 
 case class WeaveInputBoxParams(
                                 //Set title of the input box window.
@@ -118,8 +167,7 @@ case class WeaveButton(
                         @Nullable tooltip: String = null
                       )
 
-sealed trait ThemeIconPath
-{
+sealed trait ThemeIconPath {
   def iconType: String
 }
 
@@ -131,4 +179,4 @@ case class DarkLightIcon(dark: String,
 case class IconUri(uri: String, override val iconType: String = "URI-ICON") extends ThemeIconPath
 
 //Icon provided by the client side matched by id.
-case class ThemeIcon(id: String,override val iconType: String = "THEME-ICON") extends ThemeIconPath
+case class ThemeIcon(id: String, override val iconType: String = "THEME-ICON") extends ThemeIconPath

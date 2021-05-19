@@ -1,5 +1,6 @@
 package org.mule.weave.lsp
 
+import org.eclipse.lsp4j.CodeLensOptions
 import org.eclipse.lsp4j.CompletionOptions
 import org.eclipse.lsp4j.ExecuteCommandOptions
 import org.eclipse.lsp4j.InitializeParams
@@ -26,8 +27,8 @@ import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.TextDocumentServiceDelegate
 import org.mule.weave.lsp.services.ValidationService
 import org.mule.weave.lsp.services.WorkspaceServiceDelegate
-import org.mule.weave.lsp.utils.DataWeaveDirectoryUtils
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.EmptyDataFormatDescriptorProvider
@@ -65,7 +66,7 @@ class WeaveLanguageServer extends LanguageServer {
   private def createWeaveToolingService(): WeaveToolingService = {
     val artifactResolutionCallback = MavenDependencyManagerUtils.callback(eventbus, (_, _) => {})
     val resourceDependencyAnnotationProcessor = ResourceDependencyAnnotationProcessor(
-      new File(DataWeaveDirectoryUtils.getCacheHome(), "resources"),
+      new File(WeaveDirectoryUtils.getCacheHome(), "resources"),
       artifactResolutionCallback,
       executorService
     )
@@ -118,6 +119,7 @@ class WeaveLanguageServer extends LanguageServer {
     capabilities.setDocumentFormattingProvider(true)
     capabilities.setFoldingRangeProvider(true)
     capabilities.setCodeActionProvider(true)
+    capabilities.setCodeLensProvider(new CodeLensOptions(true))
     capabilities.setRenameProvider(true)
     capabilities.setReferencesProvider(true)
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))

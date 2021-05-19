@@ -1,4 +1,4 @@
-package org.mule.weave.lsp.vfs
+package org.mule.weave.lsp.utils
 
 import java.io.File
 import java.net.URI
@@ -6,6 +6,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import scala.util.Try
 
+/**
+  * Helper functions that allows to handle URL strings
+  */
 object URLUtils {
 
   def toURI(path: String): Option[URI] = {
@@ -22,5 +25,15 @@ object URLUtils {
       .flatMap((uri) => {
         Try(Paths.get(uri)).toOption
       })
+  }
+
+  def isChildOf(child: String, parent: File): Boolean = {
+    toPath(child).exists((path) => {
+      path.toAbsolutePath.startsWith(parent.toPath)
+    })
+  }
+
+  def isChildOfAny(child: String, parents: Array[File]): Boolean = {
+    parents.exists((parent) => isChildOf(child, parent))
   }
 }

@@ -9,9 +9,7 @@ import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.Settings
-import org.mule.weave.lsp.project.events.OnProjectInitialized
 import org.mule.weave.lsp.project.events.OnSettingsChanged
-import org.mule.weave.lsp.project.events.ProjectInitializedEvent
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
@@ -37,63 +35,62 @@ import java.util.logging.Logger
 class ValidationService(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-
-
   private lazy val _documentService: WeaveToolingService = documentServiceFactory()
 
   {
     vfs.changeListener(new ChangeListener {
       override def onDeleted(vf: VirtualFile): Unit = {
-        validateDependencies(vf)
+        if (vf.url().endsWith("dwl")) {
+          validateDependencies(vf, "onDeleted")
+        }
       }
 
       override def onChanged(vf: VirtualFile): Unit = {
         if (vf.url().endsWith("dwl")) {
-          validateFile(vf)
+          validateFile(vf, "onChanged")
         }
       }
 
       override def onCreated(vf: VirtualFile): Unit = {
-        validateFile(vf)
+        if (vf.url().endsWith("dwl")) {
+          validateFile(vf, "onCreated")
+        }
       }
     })
   }
 
-  eventBus.register(ProjectInitializedEvent.PROJECT_INITIALIZED, new OnProjectInitialized {
-    override def onProjectInitialized(project: Project): Unit = {
-      validateAllEditors()
-    }
-  })
 
   eventBus.register(SettingsChangedEvent.SETTINGS_CHANGED, new OnSettingsChanged {
     override def onSettingsChanged(modifiedSettingsName: Array[String]): Unit = {
       if (modifiedSettingsName.contains(Settings.LANGUAGE_LEVEL_PROP_NAME)) {
-        validateAllEditors()
+        validateAllEditors("settingsChanged")
       }
     }
   })
 
   eventBus.register(IndexingFinishedEvent.INDEXING_FINISHED, new OnIndexingFinished() {
     override def onIndexingFinished(): Unit = {
-      validateAllEditors()
+      validateAllEditors("indexingFinishes")
     }
   })
 
 
-  private def validateAllEditors(): Unit = {
+  private def validateAllEditors(reason: String): Unit = {
+    //Invalidate all caches
+    documentService().invalidateAll()
     documentService().openEditors().foreach((oe) => {
-      triggerValidation(oe.file.url())
+      triggerValidation(oe.file.url(), reason)
     })
   }
 
 
-  private def validateDependencies(vf: VirtualFile): Unit = {
+  private def validateDependencies(vf: VirtualFile, reason: String): Unit = {
     val fileLogicalName: NameIdentifier = vf.getNameIdentifier
     val dependants: Seq[NameIdentifier] = documentService().dependantsOf(fileLogicalName)
     dependants.foreach((ni) => {
       vf.fs().asResourceResolver.resolve(ni) match {
         case Some(resource) => {
-          triggerValidation(resource.url())
+          triggerValidation(resource.url(), "dependantChanged ->" + reason + s" ${vf.url()}")
         }
         case None => {
           logger.log(Level.WARNING, "No resource found for file " + vf.url())
@@ -116,8 +113,8 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
   }
 
 
-  def validateFile(vf: VirtualFile): Unit = {
-    triggerValidation(vf.url(), () => validateDependencies(vf))
+  def validateFile(vf: VirtualFile, reason: String): Unit = {
+    triggerValidation(vf.url(), reason, () => validateDependencies(vf, reason))
   }
 
   /**
@@ -126,11 +123,9 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
     * @param documentUri        The URI to be validated
     * @param onValidationFinish A Callback that is called when the validation finishes
     */
-  def triggerValidation(documentUri: String, onValidationFinish: () => Unit = () => {}): Unit = {
-    logger.log(Level.INFO, "triggerValidation of: " + documentUri)
+  def triggerValidation(documentUri: String, reason: String, onValidationFinish: () => Unit = () => {}): Unit = {
+    logger.log(Level.INFO, "TriggerValidation of: " + documentUri + " reason " + reason)
     CompletableFuture.runAsync(() => {
-
-
       val diagnostics = new util.ArrayList[Diagnostic]
       withLanguageLevel(project.settings.languageLevelVersion.value())
 
@@ -142,7 +137,7 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
       messages.warningMessage.foreach((message) => {
         diagnostics.add(toDiagnostic(message, DiagnosticSeverity.Warning))
       })
-
+      logger.log(Level.INFO, "TriggerValidation finished: " + documentUri + " reason " + reason)
       languageClient().publishDiagnostics(new PublishDiagnosticsParams(documentUri, diagnostics))
       onValidationFinish()
 

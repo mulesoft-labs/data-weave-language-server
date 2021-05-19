@@ -1,13 +1,17 @@
-package org.mule.weave.lsp.vfs
+package org.mule.weave.lsp.utils
 
+import org.mule.weave.lsp.vfs.FileVirtualFile
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.io.File
 import java.nio.file.Files
 import java.util.stream
-import scala.collection.JavaConverters._
+import scala.collection.JavaConverters.asScalaIteratorConverter
 
+/**
+  * Helper class to work with Virtual File System
+  */
 object VFUtils {
 
   def listFiles(folder: File, virtualFileSystem: VirtualFileSystem): Iterator[VirtualFile] = {

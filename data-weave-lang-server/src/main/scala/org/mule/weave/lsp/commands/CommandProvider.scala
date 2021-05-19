@@ -22,6 +22,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new CreateSampleData(projectKind, languageClient),
     new InstallBatCommand(clientLogger),
     new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, languageClient),
+    new LaunchWeaveCommand(languageClient),
     new QuickFixCommand(validationService),
     new InsertDocumentationCommand(validationService)
   )

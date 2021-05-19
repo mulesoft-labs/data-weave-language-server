@@ -40,12 +40,14 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.actions.CodeActions
+import org.mule.weave.lsp.client.LaunchConfiguration
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.utils.LSPConverters._
-import org.mule.weave.lsp.utils.WeaveASTUtils
-import org.mule.weave.lsp.utils.WeaveASTUtils.MAPPING
+import org.mule.weave.lsp.utils.WeaveASTQueryUtils
+import org.mule.weave.lsp.utils.WeaveASTQueryUtils.MAPPING
+import org.mule.weave.lsp.utils.WeaveASTQueryUtils.WTF
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionResult
@@ -87,36 +89,30 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
 
   //FS Changes
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
-    logger.log(Level.INFO, "Open: " + openParam.getTextDocument.getUri)
     val textDocument: TextDocumentItem = openParam.getTextDocument
     val uri: String = textDocument.getUri
-    //TODO replace with event
+    logger.log(Level.INFO, "DidOpen: " + uri)
     projectFS.update(uri, openParam.getTextDocument.getText)
   }
 
-
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
     val textDocument = params.getTextDocument
-    logger.log(Level.INFO, "didChange : " + textDocument.getUri)
-    //TODO replace with event
+    logger.log(Level.INFO, s"${System.nanoTime()} DidChange: " + textDocument.getUri)
     projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
   }
 
   override def didClose(params: DidCloseTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
-    logger.log(Level.INFO, "didClose : " + uri)
-    //TODO replace with event
+    logger.log(Level.INFO, "DidClose: " + uri)
     projectFS.closed(uri)
     dwTextDocumentService.close(uri)
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
-    //TODO replace with event
+    logger.log(Level.INFO, "DidSave: " + uri)
     projectFS.saved(params.getTextDocument.getUri)
-    logger.log(Level.INFO, "didSave : " + uri)
   }
-
 
   def dwTextDocumentService: WeaveToolingService = {
     toolingServices.documentService()
@@ -159,16 +155,18 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
       val documentToolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val nameIdentifier: NameIdentifier = documentToolingService.file.getNameIdentifier
       val maybeAstNode: Option[AstNode] = documentToolingService.ast()
-      val maybeString = WeaveASTUtils.fileKind(maybeAstNode)
+      val maybeString = WeaveASTQueryUtils.fileKind(maybeAstNode)
 
       maybeString match {
         case Some(MAPPING) => {
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-          result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name)), null))
+          result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
         }
-        case _ => {
-
+        case Some(WTF) => {
+          val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
+          result.add(new CodeLens(range, new Command("Run Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.WTF_CONFIG_TYPE_NAME)), null))
         }
+        case _ => {}
       }
 
       maybeAstNode.foreach((ast) => {

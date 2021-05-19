@@ -14,16 +14,20 @@ import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-langua
 import { BatRunner } from './batRunner'
 import { PassThrough } from 'stream'
 import * as vscode from 'vscode';
-import { DataWeaveRunConfigurationProvider, DataWeaveRunDebugAdapterDescriptorFactory } from './debuggerAdapter'
+import { DataWeaveRunConfigurationProvider, DataWeaveRunDebugAdapterDescriptorFactory, DataWeaveTestingRunConfigurationProvider } from './debuggerAdapter'
 import { findJavaExecutable } from './javaUtils'
 import JarFileSystemProvider from './jarFileSystemProvider'
 import { handleCustomMessages } from './weaveLanguageClient'
 import { ProjectCreation } from './interfaces/project'
 
 export function activate(context: ExtensionContext) {
-  
+  //Run Mapping
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave', new DataWeaveRunDebugAdapterDescriptorFactory()));  
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave', new DataWeaveRunConfigurationProvider()));
+  
+  //Run Tests
+  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-testing', new DataWeaveRunDebugAdapterDescriptorFactory()));  
+  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-testing', new DataWeaveTestingRunConfigurationProvider()));
 
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('jar', new JarFileSystemProvider(), { isReadonly: true, isCaseSensitive: true }));
 

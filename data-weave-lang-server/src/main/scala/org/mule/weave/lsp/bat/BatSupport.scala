@@ -27,7 +27,11 @@ trait BatSupport {
     val workspacePath = workdir.replaceAll("\"", "")
     clientLogger.logInfo(s"Starting BAT execution: $testPath in folder $workspacePath")
     val workspaceFile = new File(workspacePath)
-    val executableName: String = if (OSUtils.isWindows) s"$wrapperFolder${separator}bin${separator}bat.bat" else s"$wrapperFolder${separator}bin${separator}bat"
+    val executableName: String = if (OSUtils.isWindows) {
+      s"$wrapperFolder${separator}bin${separator}bat.bat"
+    } else {
+      s"$wrapperFolder${separator}bin${separator}bat"
+    }
     val stream: Stream[String] =
       if (testPath.isDefined)
         Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream

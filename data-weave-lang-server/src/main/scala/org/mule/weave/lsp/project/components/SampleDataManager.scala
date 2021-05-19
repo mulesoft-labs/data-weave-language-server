@@ -1,6 +1,6 @@
 package org.mule.weave.lsp.project.components
 
-import org.mule.weave.lsp.utils.WTFUtils
+import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
@@ -60,7 +60,7 @@ class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDat
   def searchSampleDataFolderFor(nameIdentifier: NameIdentifier): Option[File] = {
     val options: Array[File] = wtfFolders()
     val result = options
-      .map((dwitFolder) => new File(dwitFolder, WTFUtils.toFolderName(nameIdentifier)))
+      .map((dwitFolder) => new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier)))
       .find((scenario) => {
         scenario.exists()
       })
@@ -73,7 +73,7 @@ class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDat
         m.roots.flatMap((root) => {
           if (root.kind == RootKind.TEST) {
             root.sources.find((f) => {
-              f.getName.equals(WTFUtils.DWIT_FOLDER)
+              f.getName.equals(WeaveDirectoryUtils.DWIT_FOLDER)
             })
           } else {
             None
@@ -90,8 +90,8 @@ class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDat
   }
 
   override def createSampleDataFolderFor(nameIdentifier: NameIdentifier): File = {
-    val dwitFolder = new File(new File(new File(projectStructure.projectHome, "src"), "test"), WTFUtils.DWIT_FOLDER)
-    val sampleFolder = new File(dwitFolder, WTFUtils.toFolderName(nameIdentifier))
+    val dwitFolder = new File(new File(new File(projectStructure.projectHome, "src"), "test"), WeaveDirectoryUtils.DWIT_FOLDER)
+    val sampleFolder = new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
     sampleFolder.mkdir()
     sampleFolder
   }

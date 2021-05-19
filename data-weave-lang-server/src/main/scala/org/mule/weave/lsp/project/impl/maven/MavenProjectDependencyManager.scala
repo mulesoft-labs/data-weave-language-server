@@ -17,7 +17,7 @@ import org.mule.weave.lsp.services.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.lsp.vfs.URLUtils
+import org.mule.weave.lsp.utils.URLUtils
 
 import java.io.File
 import java.util

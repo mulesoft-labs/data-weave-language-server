@@ -4,7 +4,10 @@ import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.header.directives.ImportDirective
 import org.mule.weave.v2.parser.ast.structure.DocumentNode
 
-object WeaveASTUtils {
+/**
+  * Helper class that allows to do queries over AST. This is an extension for ASTUtils that is in DataWeave
+  */
+object WeaveASTQueryUtils {
 
   val WTF = "WTF"
   val BAT = "BAT"
