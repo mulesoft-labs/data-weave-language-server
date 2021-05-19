@@ -8,8 +8,9 @@ import org.mule.weave.lsp.IDEExecutors
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
-import org.mule.weave.lsp.project.components.DefaultWeaveLauncher
+import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.io.IOException
@@ -21,6 +22,7 @@ import java.util.concurrent.CountDownLatch
 // [VSCODE] <-> [LSPADI] <-> [PDW]
 
 class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
+                      projectVirtualFileSystem: ProjectVirtualFileSystem,
                       project: Project,
                       projectKind: ProjectKind,
                       clientLogger: ClientLogger,
@@ -29,19 +31,25 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
   override def commandId(): String = Commands.DW_RUN_MAPPING
 
   override def execute(params: ExecuteCommandParams): AnyRef = {
+    val configType = Commands.argAsString(params.getArguments, 0)
+    runMapping(configType)
+  }
+
+  def runMapping(config: String): Integer = {
     if (!project.initialized()) {
       languageClient.showMessage(new MessageParams(MessageType.Warning, "Can not run a DW script until Project was initialized."))
-      new Integer(-1)
+      -1
     } else {
       val port: Int = freePort()
       val latch = new CountDownLatch(1)
       IDEExecutors.defaultExecutor().submit(new Runnable {
         override def run(): Unit = {
-          launch(virtualFileSystem, clientLogger, languageClient, new DefaultWeaveLauncher(projectKind, languageClient), () => latch.countDown(), port)
+          val launcher: ProcessLauncher = ProcessLauncher.createLauncherByType(config, projectKind, clientLogger, languageClient, projectVirtualFileSystem)
+          launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, () => latch.countDown(), port)
         }
       })
       latch.await()
-      new Integer(port)
+      port
     }
   }
 

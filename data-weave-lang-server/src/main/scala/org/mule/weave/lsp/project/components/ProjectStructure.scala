@@ -1,9 +1,11 @@
 package org.mule.weave.lsp.project.components
 
+import org.mule.weave.lsp.utils.URLUtils
+import org.mule.weave.v2.editor.VirtualFile
+
 import java.io.File
 
-case class ProjectStructure(modules: Array[ModuleStructure]) {}
-
+case class ProjectStructure(modules: Array[ModuleStructure], projectHome: File) {}
 
 case class ModuleStructure(name: String, roots: Array[RootStructure], target: Array[TargetFolder] = Array()) {}
 
@@ -28,4 +30,55 @@ case class TargetFolder(kind: String, file: Array[File])
   */
 case class RootStructure(kind: String, sources: Array[File], resources: Array[File]) {}
 
+
+object ProjectStructure {
+
+  /**
+    * Returns true if the Virtual File belongs to a source or resource folder
+    *
+    * @param vf The virtual file to validate
+    * @return True if the file is part of the project
+    */
+  def isAProjectFile(vf: VirtualFile, projectStructure: ProjectStructure): Boolean = {
+    isAProjectFile(vf.url(), projectStructure)
+  }
+
+  /**
+    * Returns true if the Virtual File belongs to a source or resource folder
+    *
+    * @param url The url
+    * @return True if the file is part of the project
+    */
+  def isAProjectFile(url: String, projectStructure: ProjectStructure): Boolean = {
+    projectStructure.modules.exists((module) => {
+      module.roots.exists((root) => {
+        URLUtils.isChildOfAny(url, root.sources) || URLUtils.isChildOfAny(url, root.resources)
+      })
+    })
+  }
+
+  def testsSourceFolders(projectStructure: ProjectStructure): Array[File] = {
+    projectStructure.modules.flatMap((module) => {
+      module.roots.flatMap((root) => {
+        if (root.kind == RootKind.TEST) {
+          root.sources
+        } else {
+          Array.empty[File]
+        }
+      })
+    })
+  }
+
+  def mainSourceFolders(projectStructure: ProjectStructure): Array[File] = {
+    projectStructure.modules.flatMap((module) => {
+      module.roots.flatMap((root) => {
+        if (root.kind == RootKind.MAIN) {
+          root.sources
+        } else {
+          Array.empty[File]
+        }
+      })
+    })
+  }
+}
 

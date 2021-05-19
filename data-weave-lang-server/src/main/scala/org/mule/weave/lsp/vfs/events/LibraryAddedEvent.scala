@@ -6,7 +6,7 @@ import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
 import org.mule.weave.lsp.vfs.events.LibraryAddedEvent.LIBRARY_ADDED
 
-class LibraryAddedEvent(library: ArtifactVirtualFileSystem) extends Event {
+class LibraryAddedEvent(libraries: Array[ArtifactVirtualFileSystem]) extends Event {
   override type T = OnLibraryAdded
 
   override def getType: EventType[OnLibraryAdded] = {
@@ -14,7 +14,7 @@ class LibraryAddedEvent(library: ArtifactVirtualFileSystem) extends Event {
   }
 
   override def dispatch(handler: OnLibraryAdded): Unit = {
-    handler.onLibrariesAdded(library)
+    handler.onLibrariesAdded(libraries)
   }
 }
 
@@ -23,5 +23,5 @@ object LibraryAddedEvent {
 }
 
 trait OnLibraryAdded extends EventHandler {
-  def onLibrariesAdded(vfs: ArtifactVirtualFileSystem)
+  def onLibrariesAdded(vfs: Array[ArtifactVirtualFileSystem])
 }

@@ -2,10 +2,13 @@ package org.mule.weave.lsp.vfs
 
 import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.lsp.vfs.URLUtils.toURI
+import org.mule.weave.lsp.utils.URLUtils
+import org.mule.weave.lsp.utils.URLUtils.toURI
+import org.mule.weave.lsp.utils.VFUtils
 import org.mule.weave.lsp.vfs.resource.FolderWeaveResourceResolver
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.VirtualFile
@@ -46,9 +49,21 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
     override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
       changeType match {
-        case FileChangeType.Created => created(uri)
-        case FileChangeType.Changed => changed(uri)
-        case FileChangeType.Deleted => deleted(uri)
+        case FileChangeType.Created => {
+          if (isAProjectFile(uri, projectStructure)) {
+            created(uri)
+          }
+        }
+        case FileChangeType.Changed => {
+          if (isAProjectFile(uri, projectStructure)) {
+            changed(uri)
+          }
+        }
+        case FileChangeType.Deleted => {
+          if (isAProjectFile(uri, projectStructure)) {
+            deleted(uri)
+          }
+        }
       }
     }
   })
@@ -56,18 +71,18 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
   def update(uri: String, content: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
-      logger.log(Level.INFO, s"update: Ignoring ${uri} as it is not supported. Most probably is a read only")
+      logger.log(Level.INFO, s"Update: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
-      logger.log(Level.INFO, s"update ${uri} -> ${content}")
+      logger.log(Level.INFO, s"Update `${uri}` -> ${content}")
       Option(file(uri)) match {
         case Some(vf) => {
-          val written = vf.write(content)
+          val written: Boolean = vf.write(content)
           if (written) {
             triggerChanges(vf)
           }
         }
         case None => {
-          val virtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
+          val virtualFile: ProjectVirtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
           inMemoryFiles.put(uri, virtualFile)
           triggerChanges(virtualFile)
         }
@@ -144,7 +159,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
     } else {
       logger.log(Level.INFO, s"deleted ${uri}")
       inMemoryFiles.remove(uri)
-      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      val virtualFile = new ProjectVirtualFile(this, uri, URLUtils.toFile(uri))
       triggerChanges(virtualFile)
       vfsChangeListeners.foreach((listener) => {
         listener.onDeleted(virtualFile)
@@ -158,7 +173,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
       logger.log(Level.INFO, s"created: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
       logger.log(Level.INFO, s"created: ${uri}")
-      val virtualFile = new ProjectVirtualFile(this, uri, None)
+      val virtualFile = new ProjectVirtualFile(this, uri, URLUtils.toFile(uri))
       triggerChanges(virtualFile)
       vfsChangeListeners.foreach((listener) => {
         listener.onCreated(virtualFile)
@@ -202,7 +217,7 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
           null
         } else {
           if (maybeFile.get.exists()) {
-            val virtualFile = new ProjectVirtualFile(this, uri, Some(maybeFile.get))
+            val virtualFile = new ProjectVirtualFile(this, uri, maybeFile)
             inMemoryFiles.put(uri, virtualFile)
             virtualFile
           } else {

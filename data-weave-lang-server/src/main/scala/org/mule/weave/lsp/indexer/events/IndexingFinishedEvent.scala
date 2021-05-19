@@ -1,14 +1,12 @@
 package org.mule.weave.lsp.indexer.events
 
-
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent.INDEXING_FINISHED
 import org.mule.weave.lsp.utils.Event
 import org.mule.weave.lsp.utils.EventHandler
 import org.mule.weave.lsp.utils.EventType
 import org.mule.weave.v2.editor.VirtualFileSystem
 
-
-class IndexingFinishedEvent(vfs: VirtualFileSystem) extends Event {
+class IndexingFinishedEvent() extends Event {
   override type T = OnIndexingFinished
 
   override def getType: EventType[OnIndexingFinished] = {
@@ -16,9 +14,8 @@ class IndexingFinishedEvent(vfs: VirtualFileSystem) extends Event {
   }
 
   override def dispatch(handler: OnIndexingFinished): Unit = {
-    handler.onIndexingFinished(vfs)
+    handler.onIndexingFinished()
   }
-
 }
 
 object IndexingFinishedEvent {
@@ -26,5 +23,5 @@ object IndexingFinishedEvent {
 }
 
 trait OnIndexingFinished extends EventHandler {
-  def onIndexingFinished(vfs: VirtualFileSystem)
+  def onIndexingFinished()
 }

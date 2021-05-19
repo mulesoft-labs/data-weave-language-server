@@ -1,8 +1,6 @@
 package org.mule.weave.lsp.project.commands
 
 import org.mule.weave.lsp.client.OpenWindowsParams
-import org.mule.weave.lsp.client.ThemeIcon
-import org.mule.weave.lsp.client.WeaveButton
 import org.mule.weave.lsp.client.WeaveInputBoxParams
 import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.client.WeaveQuickPickItem
@@ -25,20 +23,20 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
   val icons = Icons.vscode
 
   def newProject(): Unit = {
-    askForName("org.mycompany","Organization ID")
+    askForName("org.mycompany", "Organization ID")
       .flatMapOption { organizationID =>
-        askForName("example", "Artifact ID").mapOptionInside{artifactId => (organizationID,artifactId)}
+        askForName("example", "Artifact ID").mapOptionInside { artifactId => (organizationID, artifactId) }
       }.flatMapOption { case (organizationId, artifactId) =>
-        askForName("1.0.0-SNAPSHOT", "Version").mapOptionInside{version => (organizationId,artifactId,version)}
-      }.flatMapOption {case (organizationId, artifactId, version) =>
-      askForName("example-project", "Project name").mapOptionInside{projectName => (organizationId,artifactId,version,projectName)}
-      }.flatMapOption {case (organizationId, artifactId, version, projectName) =>
-        askForPath(Some(new File(workspaceLocation).toPath)).mapOptionInside{projectPath =>
-          val projectUri = projectPath.toUri
-          new ProjectCreator(ProjectCreationInfo(organizationId,artifactId,version,projectName, projectUri)).create()
-          askForWindow(projectUri.resolve(projectName))
-        }
+      askForName("1.0.0-SNAPSHOT", "Version").mapOptionInside { version => (organizationId, artifactId, version) }
+    }.flatMapOption { case (organizationId, artifactId, version) =>
+      askForName("example-project", "Project name").mapOptionInside { projectName => (organizationId, artifactId, version, projectName) }
+    }.flatMapOption { case (organizationId, artifactId, version, projectName) =>
+      askForPath(Some(new File(workspaceLocation).toPath)).mapOptionInside { projectPath =>
+        val projectUri = projectPath.toUri
+        new ProjectCreator(ProjectCreationInfo(organizationId, artifactId, version, projectName, projectUri)).create()
+        askForWindow(projectUri.resolve(projectName))
       }
+    }
 
   }
 
@@ -54,7 +52,7 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
       )
     }
 
-    val paths : List[WeaveQuickPickItem] = from match {
+    val paths: List[WeaveQuickPickItem] = from match {
       case Some(nonRootPath) =>
         Files.list(nonRootPath).iterator().asScala.toList collect {
           case path if path.toFile.isDirectory =>
@@ -111,16 +109,16 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
       client.openWindow(params)
     }
 
-      client
-        .showMessageRequest(NewDwProject.askForNewWindowParams())
-        .toScala
-        .map {
-          case msg if msg == NewDwProject.no =>
-            openWindow(newWindow = false)
-          case msg if msg == NewDwProject.yes =>
-            openWindow(newWindow = true)
-          case _ =>
-        }
+    client
+      .showMessageRequest(NewDwProject.askForNewWindowParams())
+      .toScala
+      .map {
+        case msg if msg == NewDwProject.no =>
+          openWindow(newWindow = false)
+        case msg if msg == NewDwProject.yes =>
+          openWindow(newWindow = true)
+        case _ =>
+      }
   }
 
 
@@ -128,22 +126,22 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
                           default: String,
                           prompt: String
                         ): Future[Option[String]] = {
-      client
-        .weaveInputBox(
-          WeaveInputBoxParams(
-            prompt = prompt,
-            value = default
-          )
+    client
+      .weaveInputBox(
+        WeaveInputBoxParams(
+          prompt = prompt,
+          value = default
         )
-        .toScala
-        .flatMap {
-          case name if !name.cancelled && name.value != null =>
-            Future.successful(Some(name.value))
-          case name if name.cancelled =>
-            Future.successful(None)
-          // reask if empty
-          case _ => askForName(default, prompt)
-        }
+      )
+      .toScala
+      .flatMap {
+        case name if !name.cancelled && name.value != null =>
+          Future.successful(Some(name.value))
+        case name if name.cancelled =>
+          Future.successful(None)
+        // reask if empty
+        case _ => askForName(default, prompt)
+      }
 
   }
 }

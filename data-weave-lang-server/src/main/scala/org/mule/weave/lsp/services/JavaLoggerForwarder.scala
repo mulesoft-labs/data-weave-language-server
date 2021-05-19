@@ -40,7 +40,6 @@ object JavaLoggerForwarder {
     } finally {
       rootLogger.removeHandler(loggerForwarder)
     }
-
   }
 }
 

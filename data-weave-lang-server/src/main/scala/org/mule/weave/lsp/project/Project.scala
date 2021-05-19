@@ -5,7 +5,7 @@ import org.eclipse.lsp4j.InitializeParams
 import org.mule.weave.lsp.project.Settings._
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.lsp.vfs.URLUtils
+import org.mule.weave.lsp.utils.URLUtils
 
 import java.io.File
 import java.util
@@ -17,6 +17,9 @@ case class Project(url: Option[String], settings: ProjectSettings) {
   @transient
   private var initializedValue: Boolean = false
 
+  @transient
+  private var indexedValue: Boolean = false
+
   def home(): File = {
     mayBeHome.get
   }
@@ -25,7 +28,9 @@ case class Project(url: Option[String], settings: ProjectSettings) {
     mayBeHome.isDefined
   }
 
-  def initialized(): Boolean = initializedValue
+  def initialized(): Boolean = {
+    initializedValue
+  }
 
   def markInitialized: Unit = initializedValue = true
 }

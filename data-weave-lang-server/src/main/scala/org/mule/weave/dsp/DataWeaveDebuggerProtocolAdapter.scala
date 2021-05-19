@@ -17,6 +17,7 @@ import org.eclipse.lsp4j.debug._
 import org.eclipse.lsp4j.debug.services.IDebugProtocolClient
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer
 import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.v2.debugger.ArrayDebuggerValue
@@ -56,13 +57,14 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.logging.Level
 import java.util.logging.Logger
-import scala.collection.JavaConverters.mapAsScalaMapConverter
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
                                        clientLogger: ClientLogger,
                                        languageClient: WeaveLanguageClient,
                                        launcher: ProcessLauncher,
+                                       projectKind: ProjectKind,
                                        executor: ExecutorService
                                       ) extends IDebugProtocolServer with DebuggerClientListener {
 
@@ -93,12 +95,44 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     capabilities.setSupportsConditionalBreakpoints(true)
     capabilities.setSupportsStepInTargetsRequest(true)
     capabilities.setSupportsGotoTargetsRequest(false)
+    capabilities.setSupportsConfigurationDoneRequest(true)
     CompletableFuture.completedFuture(capabilities)
   }
 
   override def configurationDone(args: ConfigurationDoneArguments): CompletableFuture[Void] = {
-    logger.log(Level.INFO, "[DataWeaveDebuggerProtocolAdapter] configurationDone: " + args)
-    CompletableFuture.completedFuture(null)
+    clientLogger.logInfo("Configuration Done")
+    CompletableFuture.supplyAsync(() => {
+      var connected = false
+      var i = 0
+      while (!connected && i < MAX_RETRY) {
+        try {
+          debuggerClient.connect()
+            .onResponse((ci) => {
+              clientLogger.logInfo("Weave Debugger Client Connected.")
+              logger.log(Level.INFO, "Debugger Initialized")
+            })
+          connected = true
+        } catch {
+          case e: Exception => {
+            if (i + 1 == MAX_RETRY) {
+              logger.log(Level.SEVERE, "Unable to connect to client", e)
+              val stackTrace = new StringWriter()
+              e.printStackTrace(new PrintWriter(stackTrace))
+              clientLogger.logError("Unable to connect to client: \n" + stackTrace.toString)
+              val arguments = new ExitedEventArguments
+              arguments.setExitCode(-1)
+              protocolClient.exited(arguments)
+              protocolClient.terminated(new TerminatedEventArguments())
+            } else {
+              //Wait for one sec
+              java.lang.Thread.sleep(1000)
+            }
+          }
+        }
+        i = i + 1
+      }
+      null
+    }, executor)
   }
 
 
@@ -113,71 +147,38 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
 
   private def connectDebugger(configType: launcher.ConfigType): Unit = {
     debuggerClient = new DebuggerClient(this, TcpClientProtocol(port = configType.debuggerPort))
-    var connected = false
-    var i = 0
-
-    while (!connected && i < MAX_RETRY) {
-      try {
-        debuggerClient.connect()
-          .onResponse((ci) => {
-            clientLogger.logInfo("Weave Debugger Client Connected.")
-            logger.log(Level.INFO, "Debugger Initialized")
-            protocolClient.initialized()
-          })
-        connected = true
-      } catch {
-        case e: Exception => {
-          if (i + 1 == MAX_RETRY) {
-            logger.log(Level.SEVERE, "Unable to connect to client", e)
-            val stackTrace = new StringWriter()
-            e.printStackTrace(new PrintWriter(stackTrace))
-            clientLogger.logError("Unable to connect to client: \n" + stackTrace.toString)
-            val arguments = new ExitedEventArguments
-            arguments.setExitCode(-1)
-            protocolClient.exited(arguments)
-          } else {
-            //Wait for one sec
-            java.lang.Thread.sleep(1000)
-          }
-        }
-      }
-      i = i + 1
-    }
+    protocolClient.initialized()
   }
+
+
+  override def breakpointLocations(args: BreakpointLocationsArguments): CompletableFuture[BreakpointLocationsResponse] = super.breakpointLocations(args)
 
   override def launch(args: util.Map[String, AnyRef]): CompletableFuture[Void] = {
     logger.log(Level.INFO, "[DataWeaveDebuggerProtocolAdapter] launch: " + args)
     CompletableFuture.runAsync(() => {
       val config: launcher.ConfigType = launcher.parseArgs(args.asScala.toMap)
       val debugMode = valueOf(args.get("noDebug")) != "true"
+
+      //Trigger build before each run
+      if (config.buildBefore) {
+        projectKind.buildManager().build()
+      }
+
       process = launcher.launch(config, debugMode)
       if (process.isDefined) {
         executor.execute(() => {
           //Block the process
-          process.get.waitFor()
+          val exitValue = process.get.waitFor()
           val arguments = new ExitedEventArguments()
-          arguments.setExitCode(process.get.exitValue())
+          arguments.setExitCode(exitValue)
+          clientLogger.logInfo(s"Process Finished with ${exitValue}")
           protocolClient.exited(arguments)
           protocolClient.terminated(new TerminatedEventArguments())
         })
 
-        executor.execute(() => {
-          try {
-            val theProcess: Process = process.get
-            val is: InputStream = theProcess.getInputStream
-            val reader: BufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
-            while (theProcess.isAlive) {
-              val output: OutputEventArguments = new OutputEventArguments()
-              output.setOutput(reader.readLine() + "\n")
-              output.setCategory(OutputEventArgumentsCategory.STDOUT)
-              protocolClient.output(output)
-            }
-          } catch {
-            case io: IOException => {
-              logger.log(Level.INFO, io.getMessage)
-            }
-          }
-        })
+        forwardStream(process.get.getInputStream, OutputEventArgumentsCategory.STDOUT)
+        forwardStream(process.get.getErrorStream, OutputEventArgumentsCategory.STDERR)
+
         if (debugMode) {
           connectDebugger(config)
         }
@@ -191,11 +192,36 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     })
   }
 
+  private def forwardStream(is: InputStream, kind: String): Unit = {
+    executor.execute(() => {
+      try {
+        val theProcess: Process = process.get
+        val reader: BufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
+        while (theProcess.isAlive) {
+          val line = reader.readLine()
+          if (line != null) {
+            val output: OutputEventArguments = new OutputEventArguments()
+            output.setOutput(line + "\n")
+            output.setCategory(kind)
+            protocolClient.output(output)
+          }
+        }
+      } catch {
+        case io: IOException => {
+          logger.log(Level.INFO, io.getMessage)
+        }
+      }
+    })
+  }
+
   override def disconnect(args: DisconnectArguments): CompletableFuture[Void] = {
     logger.log(Level.INFO, "[DataWeaveDebuggerProtocolAdapter] disconnect: " + args)
     CompletableFuture.supplyAsync(() => {
       if (debuggerClient != null) {
         debuggerClient.disconnect()
+      }
+      if (process.nonEmpty) {
+        process.get.destroyForcibly()
       }
       null
     }, executor)
@@ -203,15 +229,17 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
 
   override def terminate(args: TerminateArguments): CompletableFuture[Void] = {
     logger.log(Level.INFO, "[DWDebuggerAdapter] terminate: " + args)
-    CompletableFuture.runAsync(() => {
-      process.foreach(_.destroy())
-    }, executor)
+    CompletableFuture.supplyAsync(() => {
+      if (process.isDefined) {
+        process.get.destroy()
+      }
+      null
+    })
   }
 
 
   override def onClientInitialized(ci: ClientInitializedEvent): Unit = {
     logger.log(Level.INFO, "onClientInitialized")
-    protocolClient.initialized()
   }
 
   override def onFrame(client: DebuggerClient, frame: OnFrameEvent): Unit = {
@@ -224,6 +252,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     debuggerStatus = frame
     variablesRegistry.clear()
   }
+
 
   override def runInTerminal(args: RunInTerminalRequestArguments): CompletableFuture[RunInTerminalResponse] = {
     super.runInTerminal(args)
@@ -254,7 +283,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
       val responseBreakpoints = sourceBreakpoints.map(toBreakpoint(_, args.getSource))
       response.setBreakpoints(responseBreakpoints)
       response
-    }, executor)
+    })
   }
 
 
@@ -272,7 +301,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     CompletableFuture.supplyAsync(() => {
       debuggerClient.resume()
       null
-    }, executor)
+    })
   }
 
   override def next(args: NextArguments): CompletableFuture[Void] = {
@@ -280,7 +309,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     CompletableFuture.supplyAsync(() => {
       debuggerClient.nextStep()
       null
-    }, executor)
+    })
   }
 
   override def stepIn(args: StepInArguments): CompletableFuture[Void] = {
@@ -288,7 +317,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     CompletableFuture.supplyAsync(() => {
       debuggerClient.stepInto()
       null
-    }, executor)
+    })
   }
 
 
@@ -340,7 +369,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
       }
       logger.log(Level.INFO, "[DWDebuggerAdapter] stackTrace -> Response : " + response)
       response
-    }, executor)
+    })
   }
 
 
@@ -359,7 +388,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
       }
       logger.log(Level.INFO, "[DWDebuggerAdapter] scopes -> Response : " + response)
       response
-    }, executor)
+    })
   }
 
   private def addToVariableRegistry(variableValue: DebuggerValue): Int = {
@@ -383,7 +412,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     CompletableFuture.supplyAsync(() => {
       debuggerClient.stepOut()
       null
-    }, executor)
+    })
   }
 
   override def variables(args: VariablesArguments): CompletableFuture[VariablesResponse] = {
@@ -417,7 +446,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
       }
       logger.log(Level.INFO, "[DWDebuggerAdapter] variables -> Response :" + response)
       response
-    }, executor)
+    })
   }
 
 
@@ -559,7 +588,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
       response.setThreads(Array[Thread](thread))
       logger.log(Level.INFO, "[DWDebuggerAdapter] threads Response -> " + response)
       response
-    }, executor)
+    })
   }
 
   override def terminateThreads(args: TerminateThreadsArguments): CompletableFuture[Void] = {
@@ -592,7 +621,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
         }
       })
       response.get()
-    }, executor)
+    })
   }
 }
 

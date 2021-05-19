@@ -9,8 +9,10 @@ import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.RootKind
 import org.mule.weave.lsp.project.components.RootStructure
+import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.components.TargetFolder
 import org.mule.weave.lsp.project.components.TargetKind
+import org.mule.weave.lsp.project.components.WTFSampleDataManager
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 
@@ -40,12 +42,13 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     projectStructure
   }
 
+
   private def createProjectStructure() = {
     val projectHome: File = project.home()
     val targetDir: File = new File(projectHome, "target")
     val rootStructures: Array[RootStructure] = Array(mainRoot(projectHome), testRoot(projectHome))
     val targets: Array[TargetFolder] = Array(TargetFolder(TargetKind.CLASS, Array(new File(targetDir, "classes"))))
-    ProjectStructure(Array(ModuleStructure(projectHome.getName, rootStructures, targets)))
+    ProjectStructure(Array(ModuleStructure(projectHome.getName, rootStructures, targets)), projectHome)
   }
 
   private def mainRoot(projectHome: File): RootStructure = {
@@ -58,10 +61,11 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     rootStructure
   }
 
-  private def testRoot(projectHome: File): RootStructure = {
+  private def testRoot(projectHome: File) = {
     val mainDir = new File(projectHome, "src" + File.separator + "test")
     val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
+
     val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders)
     rootStructure
   }
@@ -72,5 +76,9 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
 
   override def buildManager(): BuildManager = {
     mavenBuildManager
+  }
+
+  override def sampleDataManager(): Option[SampleDataManager] = {
+    Some(new WTFSampleDataManager(structure()))
   }
 }

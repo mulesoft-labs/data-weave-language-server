@@ -1,214 +1,256 @@
 {
-    "name": "data-weave",
-    "displayName": "DataWeave 2.0",
-    "description": "DataWeave 2.0 language support",
-    "author": "DataWeave",
-    "license": "MIT",
-    "//": "This version is like this to represent development version",
-    "version": "100.100.100",
-    "publisher": "dataweave",
-    "readme": "README.md",
-    "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
-    "icon": "assets/icon.png",
-    "engines": {
-        "vscode": "^1.43.0"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "data-weave",
+  "displayName": "DataWeave 2.0",
+  "description": "DataWeave 2.0 language support",
+  "author": "DataWeave",
+  "license": "MIT",
+  "//": "This version is like this to represent development version",
+  "version": "100.100.100",
+  "publisher": "dataweave",
+  "readme": "README.md",
+  "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.43.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onCommand:dw.project.create",
+    "onDebugResolve:data-weave",
+    "onLanguage:data-weave",
+    "workspaceContains:**/*.jar",
+    "onFileSystem:jar"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "breakpoints": [
+      {
+        "language": "data-weave"
+      }
     ],
-    "activationEvents": [
-        "onCommand:dw.project.create",
-        "onDebugResolve:data-weave",
-        "onLanguage:data-weave",
-        "workspaceContains:**/*.jar",
-        "onFileSystem:jar"
-    ],
-    "main": "./out/src/extension",
-    "contributes": {
-        "breakpoints": [
-            {
-                "language": "data-weave"
-            }
-        ],
-        "debuggers": [
-            {
-                "type": "data-weave",
-                "label": "DataWeave Run Mapping",
-                "languages": [
-                    "data-weave"
-                ],
-                "configurationAttributes": {
-                    "launch": {
-                        "properties": {
-                            "mapping": {
-                                "type": "string",
-                                "default": "",
-                                "description": "Name Of The Mapping To Run"
-                            },
-                            "scenario": {
-                                "type": "string",
-                                "default": "",
-                                "description": "Name of the scenario to run"
-                            },
-                            "port": {
-                                "type": "number",
-                                "default": "6565",
-                                "description": "Port where to launch the debugger."
-                            }
-                        }
-                    },
-                    "attach": {
-                        "properties": {
-                            "host": {
-                                "type": "string",
-                                "default": "localhost",
-                                "description": "The host to connect when using remote debugging"
-                            },
-                            "port": {
-                                "type": "number",
-                                "default": "6565",
-                                "description": "Port where to launch the debugger."
-                            }
-                        }
-                    }
-                },
-                "configurationSnippets": [
-                    {
-                        "label": "DataWeave Run Mapping",
-                        "description": "A new configuration for running a DataWeave Script.",
-                        "body": {
-                            "type": "data-weave",
-                            "request": "launch",
-                            "name": "DataWeave Run Mapping",
-                            "mapping": "",
-                            "scenario": "",
-                            "port": 6565
-                        }
-                    },
-                    {
-                        "label": "DataWeave Remote Debugging",
-                        "description": "A new configuration for running a DataWeave Script.",
-                        "body": {
-                            "type": "data-weave",
-                            "request": "attach",
-                            "name": "DataWeave Remote Debugging",
-                            "port": 6565,
-                            "host": "localhost"
-                        }
-                    }
-                ]
-            }
-        ],
+    "debuggers": [
+      {
+        "type": "data-weave",
+        "label": "DataWeave",
         "languages": [
-            {
-                "id": "data-weave",
-                "aliases": [
-                    "DataWeave",
-                    "data-weave"
-                ],
-                "extensions": [
-                    ".dwl"
-                ],
-                "mimetypes": [
-                    "application/dw"
-                ],
-                "firstLine": "%dw 2.0",
-                "configuration": "./language-configuration.json"
-            }
+          "data-weave"
         ],
-        "grammars": [
-            {
-                "language": "data-weave",
-                "scopeName": "source.data-weave",
-                "path": "./syntaxes/data-weave.tmLanguage"
-            }
-        ],
-        "commands": [
-            {
-                "command": "bat.runCurrentBatTest.invoked",
-                "title": "DataWeave: BAT: Run current file"
-            },
-            {
-                "command": "bat.runFolder.invoked",
-                "title": "DataWeave: BAT: Run project folder"
-            },
-            {
-                "command": "bat.installCli",
-                "title": "DataWeave: BAT: Install BAT command line interface"
-            },
-            {
-                "command": "dw.project.create",
-                "title": "DataWeave: Create new project"
-            }
-        ],
-        "menus": {
-            "editor/context": [
-                {
-                    "when": "!inOutput && editorLangId == data-weave",
-                    "command": "bat.runCurrentBatTest.invoked",
-                    "group": "navigation"
-                }
-            ]
-        },
-        "configuration": {
-            "type": "object",
-            "title": "DataWeave",
+        "configurationAttributes": {
+          "launch": {
             "properties": {
-                "data-weave.wlangVersion": {
-                    "type": "string",
-                    "default": "2.4.0-SNAPSHOT",
-                    "markdownDescription": "The version of the DataWeave standar library to use.\n\n**Change only if you know what you're doing**"
-                },
-                "data-weave.languageLevel": {
-                    "type": "string",
-                    "default": "2.3.0",
-                    "markdownDescription": "The version of the DataWeave weave language.\n\n**Change only if you know what you're doing**"
-                },
-                "data-weave.validationLevel": {
-                    "type": "string",
-                    "default": "type",
-                    "enum": [
-                        "parsing",
-                        "scope",
-                        "type"
-                    ],
-                    "markdownDescription": "What kind of validation level."
-                },
-                "data-weave.batVersion": {
-                    "type": "string",
-                    "default": "1.0.72",
-                    "markdownDescription": "The version of the BAT to use\n\n**Change only if you know what you're doing**"
-                }
+              "mainFile": {
+                "type": "string",
+                "default": "",
+                "description": "Name Of The Mapping To Run"
+              },
+              "scenario": {
+                "type": "string",
+                "default": "",
+                "description": "Name of the scenario to run"
+              },
+              "port": {
+                "type": "number",
+                "default": "6565",
+                "description": "Port where to launch the debugger."
+              }
             }
+          },
+          "attach": {
+            "properties": {
+              "host": {
+                "type": "string",
+                "default": "localhost",
+                "description": "The host to connect when using remote debugging"
+              },
+              "port": {
+                "type": "number",
+                "default": "6565",
+                "description": "Port where to launch the debugger."
+              }
+            }
+          }
+        },
+        "configurationSnippets": [
+          {
+            "label": "Run DataWeave Mapping",
+            "description": "A new configuration for running a DataWeave Script.",
+            "body": {
+              "type": "data-weave",
+              "request": "launch",
+              "name": "DataWeave Run Mapping",
+              "mainFile": "",
+              "scenario": "",
+              "port": 6565
+            }
+          },
+          {
+            "label": "Remote Debugging DataWeave",
+            "description": "A new configuration for running a DataWeave Script.",
+            "body": {
+              "type": "data-weave",
+              "request": "attach",
+              "name": "DataWeave Remote Debugging",
+              "port": 6565,
+              "host": "localhost"
+            }
+          }
+        ]
+      },
+      {
+        "type": "data-weave-testing",
+        "label": "DataWeave Testing Framework",
+        "languages": [
+          "data-weave"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "mainFile": {
+                "type": "string",
+                "default": "",
+                "description": "Name Of The Mapping To Run. It can be multiple separated by comma"
+              },
+              "testToRun": {
+                "type": "string",
+                "default": "",
+                "description": "The name of the test to run. If not specified of blank it will run"
+              },
+              "port": {
+                "type": "number",
+                "default": "6565",
+                "description": "Port where to launch the debugger."
+              }
+            }
+          }
+        },
+        "configurationSnippets": [
+          {
+            "label": "DataWeave Testing Framework Run",
+            "description": "A new configuration for running a DataWeave Test.",
+            "body": {
+              "type": "data-weave-testing",
+              "request": "launch",
+              "name": "DataWeave Run Mapping",
+              "mainFile": "",
+              "testToRun": "",
+              "port": 6565
+            }
+          }
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "id": "data-weave",
+        "aliases": [
+          "DataWeave",
+          "data-weave"
+        ],
+        "extensions": [
+          ".dwl"
+        ],
+        "mimetypes": [
+          "application/dw"
+        ],
+        "firstLine": "%dw 2.0",
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "data-weave",
+        "scopeName": "source.data-weave",
+        "path": "./syntaxes/data-weave.tmLanguage"
+      }
+    ],
+    "commands": [
+      {
+        "command": "bat.runCurrentBatTest.invoked",
+        "title": "DataWeave: BAT: Run current file"
+      },
+      {
+        "command": "bat.runFolder.invoked",
+        "title": "DataWeave: BAT: Run project folder"
+      },
+      {
+        "command": "bat.installCli",
+        "title": "DataWeave: BAT: Install BAT command line interface"
+      },
+      {
+        "command": "dw.project.create",
+        "title": "DataWeave: Create new project"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "!inOutput && editorLangId == data-weave",
+          "command": "bat.runCurrentBatTest.invoked",
+          "group": "navigation"
         }
+      ]
     },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/mulesoft-labs/data-weave-language-server"
-    },
-    "bugs": {
-        "url": "https://github.com/mulesoft-labs/data-weave-language-server/issues"
-    },
-    "dependencies": {
-        "@types/jszip": "^3.4.1",
-        "jszip": "^3.6.0",
-        "upath": "^1.1.2",
-        "vscode-languageclient": "6.1.3",
-        "vscode-languageserver-protocol": "3.15.3"
-    },
-    "devDependencies": {
-        "@types/mocha": "^2.2.33",
-        "@types/node": "^11.13.6",
-        "typescript": "4.2.4",
-        "@types/vscode": "1.43.0",
-        "vsce": "1.88.0"
-    },
-    "scripts": {
-        "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
-        "vscode:prepublish": "tsc -b",
-        "compile": "tsc -b -w",
-        "watch": "tsc -watch -p ./",
-        "package": "npm run prepare; vsce package",
-        "publish": "vsce publish ${EXTENSION_VERSION}"
+    "configuration": {
+      "type": "object",
+      "title": "DataWeave",
+      "properties": {
+        "data-weave.wlangVersion": {
+          "type": "string",
+          "default": "2.4.0-SNAPSHOT",
+          "markdownDescription": "The version of the DataWeave standar library to use.\n\n**Change only if you know what you're doing**"
+        },
+        "data-weave.languageLevel": {
+          "type": "string",
+          "default": "2.3.0",
+          "markdownDescription": "The version of the DataWeave weave language.\n\n**Change only if you know what you're doing**"
+        },
+        "data-weave.validationLevel": {
+          "type": "string",
+          "default": "type",
+          "enum": [
+            "parsing",
+            "scope",
+            "type"
+          ],
+          "markdownDescription": "What kind of validation level."
+        },
+        "data-weave.batVersion": {
+          "type": "string",
+          "default": "1.0.72",
+          "markdownDescription": "The version of the BAT to use\n\n**Change only if you know what you're doing**"
+        }
+      }
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mulesoft-labs/data-weave-language-server"
+  },
+  "bugs": {
+    "url": "https://github.com/mulesoft-labs/data-weave-language-server/issues"
+  },
+  "dependencies": {
+    "@types/jszip": "^3.4.1",
+    "jszip": "^3.6.0",
+    "upath": "^1.1.2",
+    "vscode-languageclient": "6.1.3",
+    "vscode-languageserver-protocol": "3.15.3"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.33",
+    "@types/node": "^11.13.6",
+    "typescript": "4.2.4",
+    "@types/vscode": "1.43.0",
+    "vsce": "1.88.0"
+  },
+  "scripts": {
+    "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
+    "vscode:prepublish": "tsc -b",
+    "compile": "tsc -b -w",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run prepare; vsce package",
+    "publish": "vsce publish ${EXTENSION_VERSION}"
+  }
 }

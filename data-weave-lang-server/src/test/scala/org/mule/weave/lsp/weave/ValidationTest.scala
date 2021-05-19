@@ -1,10 +1,13 @@
 package org.mule.weave.lsp.weave
 
+import org.eclipse.lsp4j.Diagnostic
 import org.mule.weave.lsp.DWLspServerUtils.getMavenProjectWorkspace
 import org.mule.weave.lsp.DWLspServerUtils.getSimpleProjectWorkspace
 import org.mule.weave.lsp.DWProject
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
+
+import java.util
 
 class ValidationTest extends FreeSpec with Matchers {
 
@@ -15,10 +18,14 @@ class ValidationTest extends FreeSpec with Matchers {
 
     "It should validate projects correctly" in {
       val project: DWProject = getSimpleProjectWorkspace()
-      project.waitForProjectInitialized()
+      project.waitForProjectIndexed()
+
       project.open(MyMappingPath)
-      val errors = project.errorsFor(MyMappingPath)
+      val errors: util.List[Diagnostic] = project.errorsFor(MyMappingPath)
       errors.size() shouldBe 0
+
+      //Wait for all validations to finish
+      Thread.sleep(100)
       project.update(MyMappingPath,
         """
           |%dw 2.0
@@ -29,10 +36,9 @@ class ValidationTest extends FreeSpec with Matchers {
       newErrors.size() shouldBe (1)
     }
 
-
     "It should validate new files correctly" in {
       val project: DWProject = getSimpleProjectWorkspace()
-      project.waitForProjectInitialized()
+      project.waitForProjectIndexed()
       project.update(MyMappingPath,
         """
           |%dw 2.0
@@ -52,11 +58,8 @@ class ValidationTest extends FreeSpec with Matchers {
           |
           |""".stripMargin)
 
-
-
       val moduleErrors = project.errorsFor(MyNewModulePath)
       assert(moduleErrors.size() == 0)
-
       val newMappingErrors = project.errorsFor(MyMappingPath)
       assert(newMappingErrors.size() == 0)
 
@@ -106,7 +109,6 @@ class ValidationTest extends FreeSpec with Matchers {
           |fun test() = 1
           |
           |""".stripMargin)
-
 
 
       val moduleErrors = project.errorsFor(MyNewModulePath)

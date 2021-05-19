@@ -14,6 +14,7 @@ import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.RootKind
 import org.mule.weave.lsp.project.components.RootStructure
+import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.project.impl.simple.SimpleDependencyManager
@@ -36,7 +37,7 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
   override def structure(): ProjectStructure = {
     val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
     val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot), Array()))
-    components.ProjectStructure(modules)
+    components.ProjectStructure(modules, project.home())
   }
 
   override def dependencyManager(): ProjectDependencyManager = {
@@ -44,6 +45,8 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
   }
 
   override def buildManager(): BuildManager = NoBuildManager
+
+  override def sampleDataManager(): Option[SampleDataManager] = None
 }
 
 class BatProjectKindDetector(eventBus: EventBus, logger: ClientLogger) extends ProjectKindDetector {
