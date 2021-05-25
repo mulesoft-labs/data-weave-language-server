@@ -17,6 +17,7 @@ object Commands {
   val DW_QUICK_FIX = "dw.quickFix"
   val DW_GENERATE_WEAVE_DOC = "dw.generateWeaveDoc"
   val DW_DEFINE_SAMPLE_DATA = "dw.defineSampleData"
+  val DW_CREATE_TEST = "dw.createTest"
   val DW_INSERT_RETURN_TYPE = "dw.insertReturnType"
 
   val ALL_COMMANDS: util.List[String] = util.Arrays.asList(
@@ -28,6 +29,7 @@ object Commands {
     DW_QUICK_FIX,
     DW_DEFINE_SAMPLE_DATA,
     DW_GENERATE_WEAVE_DOC,
+    DW_CREATE_TEST,
     DW_INSERT_RETURN_TYPE
   )
 

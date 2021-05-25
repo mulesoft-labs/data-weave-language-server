@@ -7,13 +7,13 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
-import org.mule.weave.lsp.services.ValidationService
+import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.location.WeaveLocation
 
 import java.util
 
-class InsertDocumentationCommand(validationService: ValidationService) extends WeaveCommand {
+class InsertDocumentationCommand(validationService: DataWeaveToolingService) extends WeaveCommand {
   override def commandId(): String = Commands.DW_GENERATE_WEAVE_DOC
 
   override def execute(params: ExecuteCommandParams): AnyRef = {
@@ -24,7 +24,7 @@ class InsertDocumentationCommand(validationService: ValidationService) extends W
     val endOffset: Int = Commands.argAsInt(args, 2)
     val lineNumber: Int = Commands.argAsInt(args, 3)
 
-    val documentToolingService = validationService.documentService().open(uri)
+    val documentToolingService = validationService.openDocument(uri)
     val docs: Option[String] = documentToolingService.scaffoldDocs(startOffset, endOffset)
     if (docs.isDefined) {
 

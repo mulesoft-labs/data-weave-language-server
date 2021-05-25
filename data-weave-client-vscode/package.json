@@ -181,6 +181,10 @@
       {
         "command": "dw.project.create",
         "title": "DataWeave: Create new project"
+      },
+      {
+        "command": "dw.test.create",
+        "title": "DataWeave: Create new test"
       }
     ],
     "menus": {

@@ -14,6 +14,8 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
   */
 object VFUtils {
 
+  val DWL_EXTENSION =  ".dwl"
+
   def listFiles(folder: File, virtualFileSystem: VirtualFileSystem): Iterator[VirtualFile] = {
     val value: stream.Stream[VirtualFile] = Files.walk(folder.toPath)
       .filter((f) => f.toFile.isFile)

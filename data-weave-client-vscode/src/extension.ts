@@ -110,7 +110,7 @@ export function activate(context: ExtensionContext) {
       // Synchronize the setting section 'dataWeaveLS' to the server
       configurationSection: 'data-weave',
       // Notify the server about file changes to '.clientrc files contain in the workspace
-      fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml,xml,yaml,java,properties}')
+      fileEvents: workspace.createFileSystemWatcher('**/*.{dwl,raml,xml,yaml,java,properties,json,csv,xlsx,multipart,cobol}')
     },
     diagnosticCollectionName: 'DataWeave'
   }
@@ -128,6 +128,11 @@ export function activate(context: ExtensionContext) {
   };
 
   context.subscriptions.push(vscode.commands.registerCommand(dwProjectCreateCommand, dwProjectCreateCommandHandler));
+
+  context.subscriptions.push(vscode.commands.registerCommand("dw.test.create", () => {
+    vscode.commands.executeCommand("dw.createTest")
+  }));
+
   context.subscriptions.push(disposableClient)
 
 

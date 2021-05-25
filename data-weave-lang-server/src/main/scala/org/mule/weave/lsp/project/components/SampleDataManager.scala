@@ -4,6 +4,7 @@ import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
+import java.io.FilenameFilter
 
 /**
   * Provides the scenarios for Sample Data  for a given mapping
@@ -98,5 +99,20 @@ class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDat
 }
 
 
-case class Scenario(file: File, name: String) {}
+case class Scenario(file: File, name: String) {
+
+  def inputs(): File = {
+    new File(file, "inputs")
+  }
+
+  def expected(): Option[File] = {
+    val files = file.listFiles(new FilenameFilter {
+      override def accept(dir: File, name: String): Boolean = {
+        name.startsWith("out.")
+      }
+    })
+    Option(files).flatMap(_.headOption)
+  }
+
+}
 

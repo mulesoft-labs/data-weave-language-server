@@ -46,13 +46,13 @@ import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.utils.LSPConverters._
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils
+import org.mule.weave.lsp.utils.WeaveASTQueryUtils.BAT
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.MAPPING
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.WTF
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionResult
 import org.mule.weave.v2.completion.SuggestionType
-import org.mule.weave.v2.editor.ImplicitInput
 import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -77,7 +77,7 @@ import java.util.logging.Logger
 import scala.collection.JavaConverters
 
 
-class DataWeaveDocumentService(toolingServices: ValidationService,
+class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
                                projectKind: ProjectKind,
@@ -105,7 +105,7 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
     val uri = params.getTextDocument.getUri
     logger.log(Level.INFO, "DidClose: " + uri)
     projectFS.closed(uri)
-    dwTextDocumentService.close(uri)
+    toolingServices.closeDocument(uri)
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
@@ -114,9 +114,7 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
     projectFS.saved(params.getTextDocument.getUri)
   }
 
-  def dwTextDocumentService: WeaveToolingService = {
-    toolingServices.documentService()
-  }
+
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
     CompletableFuture.supplyAsync(() => {
@@ -159,6 +157,14 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
 
       maybeString match {
         case Some(MAPPING) => {
+          val maybeSampleDataManager = projectKind.sampleDataManager()
+          if (maybeSampleDataManager.isDefined) {
+            val maybeFile: Option[File] = maybeSampleDataManager.get.searchSampleDataFolderFor(nameIdentifier)
+            if (maybeFile.isEmpty) {
+              val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
+              result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_DEFINE_SAMPLE_DATA, util.Arrays.asList(nameIdentifier.name)), null))
+            }
+          }
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
         }
@@ -166,18 +172,15 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           result.add(new CodeLens(range, new Command("Run Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.WTF_CONFIG_TYPE_NAME)), null))
         }
+        case Some(BAT) => {
+          val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
+          //foo::MyTest
+          result.add(new CodeLens(range, new Command("Run BAT Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.BAT_CONFIG_TYPE_NAME)), null))
+        }
         case _ => {}
       }
 
       maybeAstNode.foreach((ast) => {
-        val maybeSampleDataManager = projectKind.sampleDataManager()
-        if (maybeSampleDataManager.isDefined) {
-          val maybeFile: Option[File] = maybeSampleDataManager.get.searchSampleDataFolderFor(nameIdentifier)
-          if (maybeFile.isEmpty) {
-            val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-            result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_DEFINE_SAMPLE_DATA, util.Arrays.asList(nameIdentifier.name)), null))
-          }
-        }
         result.addAll(addDocumentationLenses(ast, uri))
       })
 
@@ -204,7 +207,7 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
 
   override def foldingRange(params: FoldingRangeRequestParams): CompletableFuture[util.List[FoldingRange]] = {
     CompletableFuture.supplyAsync(() => {
-      val service = toolingServices.documentService().open(params.getTextDocument.getUri)
+      val service = toolingServices.openDocument(params.getTextDocument.getUri)
       val regions: Array[FoldingRange] = service.foldingRegions().map((fr) => {
         val range: FoldingRange = new FoldingRange(fr.location.startPosition.line - 1, fr.location.endPosition.line - 1)
         val kind: String = fr.kind match {
@@ -316,7 +319,7 @@ class DataWeaveDocumentService(toolingServices: ValidationService,
   }
 
   private def openDocument(uri: String): WeaveDocumentToolingService = {
-    dwTextDocumentService.open(uri, ImplicitInput(), None)
+    toolingServices.openDocument(uri)
   }
 
   override def definition(params: DefinitionParams): CompletableFuture[messages.Either[util.List[_ <: Location], util.List[_ <: LocationLink]]] = {

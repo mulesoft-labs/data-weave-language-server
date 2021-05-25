@@ -15,7 +15,7 @@ case class Project(url: Option[String], settings: ProjectSettings) {
   private val mayBeHome = url.flatMap((uri) => URLUtils.toFile(uri))
 
   @transient
-  private var initializedValue: Boolean = false
+  private var projectStarted: Boolean = false
 
   @transient
   private var indexedValue: Boolean = false
@@ -28,11 +28,11 @@ case class Project(url: Option[String], settings: ProjectSettings) {
     mayBeHome.isDefined
   }
 
-  def initialized(): Boolean = {
-    initializedValue
+  def isStarted(): Boolean = {
+    projectStarted
   }
 
-  def markInitialized: Unit = initializedValue = true
+  def markStarted: Unit = projectStarted = true
 }
 
 case class ProjectSettings(eventBus: EventBus,

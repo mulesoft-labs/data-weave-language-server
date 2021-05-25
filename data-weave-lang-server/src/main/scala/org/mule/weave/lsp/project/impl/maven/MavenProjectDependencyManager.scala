@@ -26,7 +26,7 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
 
   var dependenciesArray: Array[DependencyArtifact] = Array.empty
 
-  override def init(): Unit = {
+  override def start(): Unit = {
     reloadArtifacts()
     eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
       override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {

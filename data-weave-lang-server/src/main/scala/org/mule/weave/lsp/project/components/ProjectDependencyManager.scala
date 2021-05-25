@@ -6,7 +6,10 @@ import java.io.File
   * Handles the artifact resolution and download of all the project dependencies.
   */
 trait ProjectDependencyManager {
-  def init(): Unit
+  /**
+    * Starts the dependency manager
+    */
+  def start(): Unit
 
   /**
     * Returns the list of all the dependencies
@@ -18,7 +21,7 @@ trait ProjectDependencyManager {
 }
 
 object NoDependencyManager extends ProjectDependencyManager {
-  override def init(): Unit = {}
+  override def start(): Unit = {}
 
   override def dependencies(): Array[DependencyArtifact] = Array.empty
 }
