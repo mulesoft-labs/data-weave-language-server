@@ -39,7 +39,7 @@ import java.util.concurrent.Executor
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class DataWeaveToolingService(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) extends ToolingService {
+class DataWeaveToolingService(project: Project, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) extends ToolingService {
 
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -49,7 +49,9 @@ class DataWeaveToolingService(project: Project, eventBus: EventBus, languageClie
   @volatile
   private var indexed: Boolean = false
 
-  {
+
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.projectKind = projectKind
     vfs.changeListener(new ChangeListener {
       override def onDeleted(vf: VirtualFile): Unit = {
         if (isDWFile(vf.url())) {
@@ -69,32 +71,27 @@ class DataWeaveToolingService(project: Project, eventBus: EventBus, languageClie
         }
       }
     })
-  }
 
-
-  eventBus.register(SettingsChangedEvent.SETTINGS_CHANGED, new OnSettingsChanged {
-    override def onSettingsChanged(modifiedSettingsName: Array[String]): Unit = {
-      if (modifiedSettingsName.contains(Settings.LANGUAGE_LEVEL_PROP_NAME)) {
-        validateAllEditors("settingsChanged")
+    eventBus.register(SettingsChangedEvent.SETTINGS_CHANGED, new OnSettingsChanged {
+      override def onSettingsChanged(modifiedSettingsName: Array[String]): Unit = {
+        if (modifiedSettingsName.contains(Settings.LANGUAGE_LEVEL_PROP_NAME)) {
+          validateAllEditors("settingsChanged")
+        }
       }
-    }
-  })
+    })
 
-  eventBus.register(IndexingFinishedEvent.INDEXING_FINISHED, new OnIndexingFinished() {
-    override def onIndexingFinished(): Unit = {
-      indexed = true
-      validateAllEditors("indexingFinishes")
-    }
-  })
+    eventBus.register(IndexingFinishedEvent.INDEXING_FINISHED, new OnIndexingFinished() {
+      override def onIndexingFinished(): Unit = {
+        indexed = true
+        validateAllEditors("indexingFinishes")
+      }
+    })
 
-  eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
-    override def onProjectStarted(project: Project): Unit = {
-      validateAllEditors("projectStarted")
-    }
-  })
-
-  override def init(projectKind: ProjectKind): Unit = {
-    this.projectKind = projectKind
+    eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
+      override def onProjectStarted(project: Project): Unit = {
+        validateAllEditors("projectStarted")
+      }
+    })
   }
 
   private def validateAllEditors(reason: String): Unit = {

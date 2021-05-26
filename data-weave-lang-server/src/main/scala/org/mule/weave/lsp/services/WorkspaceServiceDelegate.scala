@@ -16,27 +16,28 @@ class WorkspaceServiceDelegate extends WorkspaceService {
   var delegate: WorkspaceService = _
 
   override def executeCommand(params: ExecuteCommandParams): CompletableFuture[AnyRef] = {
-
     delegate.executeCommand(params)
   }
 
   override def symbol(params: WorkspaceSymbolParams): CompletableFuture[util.List[_ <: SymbolInformation]] = {
-
     delegate.symbol(params)
   }
 
   override def didChangeWorkspaceFolders(params: DidChangeWorkspaceFoldersParams): Unit = {
-    if (delegate != null)
+    if (delegate != null) {
       delegate.didChangeWorkspaceFolders(params)
+    }
   }
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
-    if (delegate != null)
+    if (delegate != null) {
       delegate.didChangeConfiguration(params)
+    }
   }
 
   override def didChangeWatchedFiles(params: DidChangeWatchedFilesParams): Unit = {
-    if (delegate != null)
+    if (delegate != null) {
       delegate.didChangeWatchedFiles(params)
+    }
   }
 }

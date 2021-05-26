@@ -1,12 +1,18 @@
 package org.mule.weave.lsp
 
+import com.google.gson.JsonPrimitive
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams
+import org.eclipse.lsp4j.ApplyWorkspaceEditResponse
 import org.eclipse.lsp4j.CodeLens
 import org.eclipse.lsp4j.CodeLensParams
+import org.eclipse.lsp4j.CreateFile
 import org.eclipse.lsp4j.DefinitionParams
+import org.eclipse.lsp4j.DeleteFile
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
+import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.LocationLink
@@ -17,13 +23,17 @@ import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.eclipse.lsp4j.ReferenceContext
 import org.eclipse.lsp4j.ReferenceParams
+import org.eclipse.lsp4j.RenameFile
 import org.eclipse.lsp4j.RenameParams
+import org.eclipse.lsp4j.ResourceOperation
 import org.eclipse.lsp4j.ShowMessageRequestParams
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent
+import org.eclipse.lsp4j.TextDocumentEdit
 import org.eclipse.lsp4j.TextDocumentIdentifier
 import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
+import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.client.LaunchConfiguration
 import org.mule.weave.lsp.client.OpenTextDocumentParams
 import org.mule.weave.lsp.client.OpenWindowsParams
@@ -37,7 +47,10 @@ import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
+import org.mule.weave.lsp.utils.URLUtils
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util
 import java.util.concurrent.CompletableFuture
@@ -52,7 +65,7 @@ import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
 
-
+  var clientUI: ClientUI = DefaultInputsInteraction
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
 
   private var lspValue: WeaveLanguageServer = _
@@ -79,6 +92,18 @@ class DWProject(val workspaceRoot: Path) {
       })
       latch.await(10, TimeUnit.MINUTES)
     }
+  }
+
+  def withClientUI(clientUI: ClientUI): DWProject = {
+    this.clientUI = clientUI
+    this
+  }
+
+  def runCommand(commandId: String, args: String*): AnyRef = {
+    val argsArray: Array[JsonPrimitive] = args.map((arg) => new JsonPrimitive(arg)).toArray
+    lsp().getWorkspaceService
+      .executeCommand(new ExecuteCommandParams(commandId, util.Arrays.asList(argsArray: _*)))
+      .get()
   }
 
   def waitForProjectIndexed(): Unit = {
@@ -207,10 +232,85 @@ class DWProject(val workspaceRoot: Path) {
   }
 
 
+  def toOffset(text: String, line: Int, column: Int): Int = {
+    val iterator = text.linesIterator
+    var index = 0
+    var cLine = -1
+    while (iterator.hasNext && line != cLine) {
+      val lineText = iterator.next()
+      index = lineText.length + 1
+      cLine = cLine + 1
+      if (line == cLine) {
+        index = index + column
+      }
+    }
+    index
+  }
+
   def init(diagnosticsListener: (PublishDiagnosticsParams) => Unit): WeaveLanguageServer = {
     init(new WeaveLanguageClient {
       override def telemetryEvent(`object`: Any): Unit = {
       }
+
+
+      override def applyEdit(params: ApplyWorkspaceEditParams): CompletableFuture[ApplyWorkspaceEditResponse] = {
+        val edit = params.getEdit
+        val changes: util.List[messages.Either[TextDocumentEdit, ResourceOperation]] = edit.getDocumentChanges
+        changes.stream().forEach((change) => {
+          if (change.isLeft) {
+            val left: TextDocumentEdit = change.getLeft
+            val maybePath = URLUtils.toPath(left.getTextDocument.getUri)
+            maybePath match {
+              case Some(thePath) => {
+                val file = thePath.toFile
+                val content = if (file.exists()) {
+                  val source = Source.fromFile(file, "UTF-8")
+                  try {
+                    source.mkString
+                  } finally {
+                    source.close()
+                  }
+                } else {
+                  ""
+                }
+                var newContent = content
+                val edits = left.getEdits
+                edits.forEach((edit) => {
+                  val text: String = edit.getNewText
+                  val builder = new StringBuilder()
+                  builder.append(newContent.substring(0, toOffset(content, edit.getRange.getStart.getLine, edit.getRange.getStart.getCharacter)))
+                  builder.append(text)
+                  builder.append(newContent.substring(toOffset(content, edit.getRange.getStart.getLine, edit.getRange.getStart.getCharacter)))
+                  newContent = builder.toString()
+                })
+                Files.write(thePath, util.Arrays.asList(newContent), StandardCharsets.UTF_8)
+              }
+              case None =>
+            }
+          } else {
+            val right = change.getRight
+            right match {
+              case file: CreateFile => {
+                val value = URLUtils.toPath(file.getUri).get
+                val container = value.toFile.getParentFile
+                if (!container.exists()) {
+                  container.mkdirs()
+                }
+                Files.write(value, "".getBytes(StandardCharsets.UTF_8))
+              }
+              case file: DeleteFile => {
+                URLUtils.toPath(file.getUri).get.toFile.delete()
+              }
+              case file: RenameFile => {
+                Files.move(URLUtils.toPath(file.getOldUri).get, URLUtils.toPath(file.getNewUri).get)
+              }
+              case _ =>
+            }
+          }
+        })
+        CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true))
+      }
+
 
       override def publishDiagnostics(diagnostics: PublishDiagnosticsParams): Unit = {
         diagnosticsListener(diagnostics)
@@ -234,27 +334,26 @@ class DWProject(val workspaceRoot: Path) {
         println("[" + value + "]" + message.getMessage)
       }
 
-      /**
-        * Opens an input box to ask the user for input.
-        *
-        * @return the user provided input. The future can be cancelled, meaning
-        *         the input box should be dismissed in the editor.
-        */
-      override def weaveInputBox(params: WeaveInputBoxParams): CompletableFuture[WeaveInputBoxResult] = ???
 
-      /**
-        * Opens an menu to ask the user to pick one of the suggested options.
-        *
-        * @return the user provided pick. The future can be cancelled, meaning
-        *         the input box should be dismissed in the editor.
-        */
-      override def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult] = ???
+      override def weaveInputBox(params: WeaveInputBoxParams): CompletableFuture[WeaveInputBoxResult] = {
+        CompletableFuture.completedFuture(clientUI.weaveInputBox(params))
+      }
 
-      override def openWindow(params: OpenWindowsParams): Unit = {}
+      override def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult] = {
+        CompletableFuture.completedFuture(clientUI.weaveQuickPick(params))
+      }
 
-      override def runConfiguration(config: LaunchConfiguration): Unit = {}
+      override def openWindow(params: OpenWindowsParams): Unit = {
+        clientUI.openWindow(params)
+      }
 
-      override def openTextDocument(params: OpenTextDocumentParams): Unit = {}
+      override def runConfiguration(config: LaunchConfiguration): Unit = {
+        clientUI.runConfiguration(config)
+      }
+
+      override def openTextDocument(params: OpenTextDocumentParams): Unit = {
+        clientUI.openTextDocument(params)
+      }
     })
   }
 
@@ -268,6 +367,29 @@ class DWProject(val workspaceRoot: Path) {
   }
 
 
+}
+
+trait ClientUI {
+
+  def weaveInputBox(params: WeaveInputBoxParams): WeaveInputBoxResult
+
+  def weaveQuickPick(params: WeaveQuickPickParams): WeaveQuickPickResult
+
+  def openWindow(params: OpenWindowsParams): Unit = {}
+
+  def runConfiguration(config: LaunchConfiguration): Unit = {}
+
+  def openTextDocument(params: OpenTextDocumentParams): Unit = {}
+}
+
+object DefaultInputsInteraction extends ClientUI {
+  override def weaveInputBox(params: WeaveInputBoxParams): WeaveInputBoxResult = {
+    WeaveInputBoxResult("")
+  }
+
+  override def weaveQuickPick(params: WeaveQuickPickParams): WeaveQuickPickResult = {
+    WeaveQuickPickResult(itemsId = util.Arrays.asList(params.items.get(0).id))
+  }
 }
 
 object DWProject {

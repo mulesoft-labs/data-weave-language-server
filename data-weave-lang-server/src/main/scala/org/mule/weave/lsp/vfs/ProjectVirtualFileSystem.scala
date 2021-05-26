@@ -40,7 +40,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * @param projectDefinition
   */
-class ProjectVirtualFileSystem(eventBus: EventBus) extends VirtualFileSystem with ToolingService {
+class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
 
   private val inMemoryFiles: mutable.Map[String, ProjectVirtualFile] = mutable.Map[String, ProjectVirtualFile]()
 
@@ -50,30 +50,29 @@ class ProjectVirtualFileSystem(eventBus: EventBus) extends VirtualFileSystem wit
   private var projectStructure: ProjectStructure = _
 
 
-  eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
-    override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
-      changeType match {
-        case FileChangeType.Created => {
-          if (isAProjectFile(uri, projectStructure)) {
-            created(uri)
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.projectStructure = projectKind.structure()
+    eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
+      override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
+        changeType match {
+          case FileChangeType.Created => {
+            if (isAProjectFile(uri, projectStructure)) {
+              created(uri)
+            }
           }
-        }
-        case FileChangeType.Changed => {
-          if (isAProjectFile(uri, projectStructure)) {
-            changed(uri)
+          case FileChangeType.Changed => {
+            if (isAProjectFile(uri, projectStructure)) {
+              changed(uri)
+            }
           }
-        }
-        case FileChangeType.Deleted => {
-          if (isAProjectFile(uri, projectStructure)) {
-            deleted(uri)
+          case FileChangeType.Deleted => {
+            if (isAProjectFile(uri, projectStructure)) {
+              deleted(uri)
+            }
           }
         }
       }
-    }
-  })
-
-  override def init(projectKind: ProjectKind): Unit = {
-    this.projectStructure = projectKind.structure()
+    })
   }
 
   def update(uri: String, content: String): Unit = {
