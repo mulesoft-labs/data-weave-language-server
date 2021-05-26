@@ -13,6 +13,7 @@ object WeaveDirectoryUtils {
 
   var verbose: Boolean = false
   val DWIT_FOLDER = "dwit"
+  val DWTest_FOLDER = "dwtest"
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
   /**

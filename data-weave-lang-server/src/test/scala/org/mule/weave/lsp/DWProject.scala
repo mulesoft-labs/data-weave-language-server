@@ -25,6 +25,7 @@ import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.mule.weave.lsp.client.LaunchConfiguration
+import org.mule.weave.lsp.client.OpenTextDocumentParams
 import org.mule.weave.lsp.client.OpenWindowsParams
 import org.mule.weave.lsp.client.WeaveInputBoxParams
 import org.mule.weave.lsp.client.WeaveInputBoxResult
@@ -34,8 +35,8 @@ import org.mule.weave.lsp.client.WeaveQuickPickResult
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
-import org.mule.weave.lsp.project.events.OnProjectInitialized
-import org.mule.weave.lsp.project.events.ProjectInitializedEvent
+import org.mule.weave.lsp.project.events.OnProjectStarted
+import org.mule.weave.lsp.project.events.ProjectStartedEvent
 
 import java.nio.file.Path
 import java.util
@@ -69,10 +70,10 @@ class DWProject(val workspaceRoot: Path) {
   }
 
   def waitForProjectInitialized(): Unit = {
-    if (!lsp().project().initialized()) {
+    if (!lsp().project().isStarted()) {
       val latch = new CountDownLatch(1)
-      lsp().eventBus().register(ProjectInitializedEvent.PROJECT_INITIALIZED, new OnProjectInitialized {
-        override def onProjectInitialized(project: Project): Unit = {
+      lsp().eventBus().register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
+        override def onProjectStarted(project: Project): Unit = {
           latch.countDown()
         }
       })
@@ -249,13 +250,11 @@ class DWProject(val workspaceRoot: Path) {
         */
       override def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult] = ???
 
-      override def openWindow(params: OpenWindowsParams): Unit = {
+      override def openWindow(params: OpenWindowsParams): Unit = {}
 
-      }
+      override def runConfiguration(config: LaunchConfiguration): Unit = {}
 
-      override def runConfiguration(config: LaunchConfiguration): Unit = {
-
-      }
+      override def openTextDocument(params: OpenTextDocumentParams): Unit = {}
     })
   }
 

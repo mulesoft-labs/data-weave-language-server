@@ -7,12 +7,12 @@ trait BuildManager {
   /**
     * Executes the build on this project
     */
-  def build()
+  def build(): Unit
 
   /**
     * Deploys the project into the repository
     */
-  def deploy()
+  def deploy(): Unit
 }
 
 

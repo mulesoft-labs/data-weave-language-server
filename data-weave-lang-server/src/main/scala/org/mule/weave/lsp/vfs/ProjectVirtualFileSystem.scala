@@ -1,8 +1,10 @@
 package org.mule.weave.lsp.vfs
 
 import org.eclipse.lsp4j.FileChangeType
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
+import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
@@ -38,13 +40,15 @@ import scala.collection.mutable.ArrayBuffer
   *
   * @param projectDefinition
   */
-class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStructure) extends VirtualFileSystem {
+class ProjectVirtualFileSystem(eventBus: EventBus) extends VirtualFileSystem with ToolingService {
 
   private val inMemoryFiles: mutable.Map[String, ProjectVirtualFile] = mutable.Map[String, ProjectVirtualFile]()
 
   private val vfsChangeListeners: ArrayBuffer[ChangeListener] = ArrayBuffer[ChangeListener]()
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
+  private var projectStructure: ProjectStructure = _
+
 
   eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
     override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
@@ -67,6 +71,10 @@ class ProjectVirtualFileSystem(eventBus: EventBus, projectStructure: ProjectStru
       }
     }
   })
+
+  override def init(projectKind: ProjectKind): Unit = {
+    this.projectStructure = projectKind.structure()
+  }
 
   def update(uri: String, content: String): Unit = {
     val supportedScheme = isSupportedScheme(uri)
@@ -289,16 +297,5 @@ class InMemoryVirtualFileResourceResolver(inMemoryFiles: mutable.Map[String, Pro
   }
 }
 
-object FileUtils {
-  /**
-    * Build the url according to vscode standard
-    *
-    * @param theFile The file to get the url from
-    * @return
-    */
-  def toUrl(theFile: File): String = {
-    "file://" + theFile.toURI.toURL.getPath
-  }
-}
 
 

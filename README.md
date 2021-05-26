@@ -23,3 +23,6 @@ This is going to generate the vsix on the `data-weave-client-vscode` directory t
 
 In order to release just create a tag with v<next_version> example if we want to release 0.0.4
 we just need to create v0.0.4 and push the tag. The CI should take care of the rest
+
+
+4. How to copy 

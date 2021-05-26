@@ -1,9 +1,9 @@
 package org.mule.weave.lsp.actions
 
 import org.eclipse.lsp4j.CodeActionParams
-import org.mule.weave.lsp.services.ValidationService
+import org.mule.weave.lsp.services.DataWeaveToolingService
 
-class CodeActions(weaveService: ValidationService) {
+class CodeActions(weaveService: DataWeaveToolingService) {
 
   private val actions = Seq(
     new QuickFixAction(weaveService),

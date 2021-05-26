@@ -1,15 +1,16 @@
 package org.mule.weave.lsp.project
 
 import org.mule.weave.lsp.project.components.BuildManager
+import org.mule.weave.lsp.project.components.MetadataProvider
 import org.mule.weave.lsp.project.components.NoBuildManager
 import org.mule.weave.lsp.project.components.NoDependencyManager
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.SampleDataManager
-
 import org.mule.weave.lsp.project.impl.bat.BatProjectKindDetector
 import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
+import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 
@@ -40,10 +41,10 @@ trait ProjectKindDetector {
 }
 
 object ProjectKindDetector {
-  def detectProjectKind(project: Project, eventBus: EventBus, clientLogger: ClientLogger): ProjectKind = {
+  def detectProjectKind(project: Project, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService): ProjectKind = {
     if (project.hasHome()) {
       val detectors = Seq(
-        new MavenProjectKindDetector(eventBus, clientLogger),
+        new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService),
         new BatProjectKindDetector(eventBus, clientLogger),
         new SimpleProjectKindDetector(eventBus, clientLogger)
       )
@@ -73,7 +74,7 @@ trait ProjectKind {
   /**
     * Setups the project kind. Download any tool required for this kind of project
     */
-  def setup(): Unit = {}
+  def start(): Unit = {}
 
   /**
     * Returns the Project stucture with all the modules and it source folders
@@ -102,6 +103,13 @@ trait ProjectKind {
     * @return The Scenarios For sample data
     */
   def sampleDataManager(): Option[SampleDataManager]
+
+  /**
+    * Handles the metadata for the files.
+    *
+    * @return The Metadata Provider if this Project can provide any
+    */
+  def metadataProvider(): Option[MetadataProvider] = None
 
 }
 

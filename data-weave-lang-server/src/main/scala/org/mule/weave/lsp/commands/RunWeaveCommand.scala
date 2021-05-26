@@ -10,6 +10,7 @@ import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
@@ -36,11 +37,11 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
   }
 
   def runMapping(config: String): Integer = {
-    if (!project.initialized()) {
+    if (!project.isStarted()) {
       languageClient.showMessage(new MessageParams(MessageType.Warning, "Can not run a DW script until Project was initialized."))
       -1
     } else {
-      val port: Int = freePort()
+      val port: Int = NetUtils.freePort()
       val latch = new CountDownLatch(1)
       IDEExecutors.defaultExecutor().submit(new Runnable {
         override def run(): Unit = {
@@ -53,17 +54,5 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
     }
   }
 
-  @throws[IOException]
-  private def freePort() = {
-    try {
-      val socket = new ServerSocket(0)
-      try {
-        socket.getLocalPort
-      } finally {
-        if (socket != null) {
-          socket.close()
-        }
-      }
-    }
-  }
+
 }

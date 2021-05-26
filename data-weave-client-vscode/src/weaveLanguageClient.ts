@@ -6,6 +6,7 @@ import { WeaveInputBox } from './interfaces/weaveInputBox';
 import { WeaveQuickPick } from './interfaces/weaveQuickPick';
 import { showInputBox, showQuickPick } from './widgets';
 import { LaunchConfiguration } from './interfaces/configurations';
+import { OpenTextDocument } from './interfaces/openTextDocument';
 
 
 export function handleCustomMessages(client: LanguageClient) {
@@ -26,6 +27,16 @@ export function handleCustomMessages(client: LanguageClient) {
             Uri.parse(openWindowParams.uri),
             openWindowParams.openNewWindow
         );
+    })
+
+
+    client.onNotification(OpenTextDocument.type, (params) => {
+        const documentUri = Uri.parse(params.uri);
+        vscode.workspace.openTextDocument(documentUri) 
+            .then(document => {
+                console.log("opening "+ documentUri);
+                vscode.window.showTextDocument(document);
+            });
     })
 
     client.onNotification(LaunchConfiguration.type, (params) => {

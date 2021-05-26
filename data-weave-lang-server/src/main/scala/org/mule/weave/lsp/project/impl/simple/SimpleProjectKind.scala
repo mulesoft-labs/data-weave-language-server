@@ -73,7 +73,7 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     }
   })
 
-  override def init(): Unit = {
+  override def start(): Unit = {
     loadWeaveVersion()
   }
 

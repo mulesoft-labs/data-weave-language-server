@@ -40,6 +40,14 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonNotification("weave/workspace/run")
   def runConfiguration(config: LaunchConfiguration): Unit
 
+  /**
+    * This notification is sent from the server to the client to open an editor with the specified document uri
+    *
+    * @param params The document to be opened
+    */
+  @JsonNotification("weave/workspace/openTextDocument")
+  def openTextDocument(params: OpenTextDocumentParams): Unit
+
   //def listConfigurations: Array[LaunchConfiguration]
 }
 
@@ -60,6 +68,7 @@ case class LaunchConfiguration(
 object LaunchConfiguration {
   val DATA_WEAVE_CONFIG_TYPE_NAME = "data-weave"
   val WTF_CONFIG_TYPE_NAME = "data-weave-testing"
+  val BAT_CONFIG_TYPE_NAME = "bat"
   val WITF_CONFIG_TYPE_NAME = "data-weave-integration-testing"
 
   val TYPE_PROP_NAME = "type"
@@ -80,7 +89,7 @@ case class LaunchConfigurationProperty(
                                       )
 
 
-case class OpenEditorParams(uri: String)
+case class OpenTextDocumentParams(uri: String)
 
 
 case class WeaveInputBoxParams(

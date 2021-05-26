@@ -199,7 +199,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
         val reader: BufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
         while (theProcess.isAlive) {
           val line = reader.readLine()
-          if (line != null) {
+          if (line != null && !line.startsWith("[dw-debugger]")) {
             val output: OutputEventArguments = new OutputEventArguments()
             output.setOutput(line + "\n")
             output.setCategory(kind)

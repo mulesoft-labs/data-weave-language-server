@@ -30,11 +30,11 @@ class DataWeaveWorkspaceService(
                                  projectVirtualFileSystem: ProjectVirtualFileSystem,
                                  clientLogger: ClientLogger,
                                  languageClient: WeaveLanguageClient,
-                                 validationService: ValidationService
+                                 dataWeaveToolingService: DataWeaveToolingService
                                ) extends WorkspaceService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val commandProvider: CommandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, validationService)
+  private val commandProvider: CommandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService)
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     logger.log(Level.INFO, "didChangeConfiguration: " + params.getSettings)

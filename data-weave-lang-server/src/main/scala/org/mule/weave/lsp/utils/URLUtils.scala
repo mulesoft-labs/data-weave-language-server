@@ -27,13 +27,27 @@ object URLUtils {
       })
   }
 
-  def isChildOf(child: String, parent: File): Boolean = {
-    toPath(child).exists((path) => {
+  def isChildOf(childUri: String, parent: File): Boolean = {
+    toPath(childUri).exists((path) => {
       path.toAbsolutePath.startsWith(parent.toPath)
     })
   }
 
   def isChildOfAny(child: String, parents: Array[File]): Boolean = {
     parents.exists((parent) => isChildOf(child, parent))
+  }
+
+  def isDWFile(uri: String) = {
+    uri.endsWith(".dwl")
+  }
+
+  /**
+    * Build the url according to vscode standard
+    *
+    * @param theFile The file to get the url from
+    * @return
+    */
+  def toLSPUrl(theFile: File): String = {
+    "file://" + theFile.toURI.toURL.getPath
   }
 }

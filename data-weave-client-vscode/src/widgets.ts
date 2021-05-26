@@ -15,18 +15,23 @@ export function showInputBox(options: InputBoxOptions) {
         inputBox.step = options.step;
         inputBox.totalSteps = options.totalSteps;
         inputBox.prompt = options.prompt;
-        inputBox.buttons = options.buttons?.map((button) => {
-            var mappedButton = mapClientButton(button);
-            buttonMap.set(mappedButton, button.id);
-            return mappedButton;
 
-        })
+        if(options.buttons){
+            inputBox.buttons = options.buttons?.map((button) => {
+                var mappedButton = mapClientButton(button);
+                buttonMap.set(mappedButton, button.id);
+                return mappedButton;
+            })
+        }
+
         inputBox.value = options.value;
         inputBox.onDidTriggerButton((button) => {
             resolve({ buttonPressedId: buttonMap.get(button), value: inputBox.value });
+            inputBox.hide()
         })
         inputBox.onDidAccept(() => {
             resolve({ value: inputBox.value });
+            inputBox.hide()
         })
         inputBox.show()
     }
@@ -42,16 +47,23 @@ export function showQuickPick(options: WeaveQuickPickParams) {
         quickPick.ignoreFocusOut = options.ignoreFocusOut;
         quickPick.step = options.step;
         quickPick.totalSteps = options.totalSteps;
-        quickPick.buttons = options.buttons?.map((button) => {
-            var mappedButton = mapClientButton(button);
-            buttonMap.set(mappedButton, button.id);
-            return mappedButton;
-        })
+        quickPick.items = options.items
+
+        if(options.buttons){
+          quickPick.buttons = options.buttons?.map((button) => {
+              var mappedButton = mapClientButton(button);
+              buttonMap.set(mappedButton, button.id);
+              return mappedButton;
+          })
+        }
+
         quickPick.onDidTriggerButton((button) => {
             resolve({ buttonPressedId: buttonMap.get(button), itemsId: quickPick.selectedItems.map((item) => item.id) });
+            quickPick.hide()
         })
         quickPick.onDidAccept(() => {
             resolve({ itemsId: quickPick.selectedItems.map((item) => item.id) });
+            quickPick.hide()
         })
         quickPick.show()
     }

@@ -8,12 +8,18 @@ import org.eclipse.lsp4j.services.LanguageClient
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.Settings
+import org.mule.weave.lsp.project.components.MetadataProvider
+import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.OnSettingsChanged
+import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
+import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
+import org.mule.weave.lsp.utils.URLUtils.isDWFile
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.ImplicitInput
 import org.mule.weave.v2.editor.QuickFix
@@ -24,6 +30,7 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
+import org.mule.weave.v2.ts.WeaveType
 import org.mule.weave.v2.versioncheck.SVersion
 
 import java.util
@@ -32,27 +39,32 @@ import java.util.concurrent.Executor
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class ValidationService(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) {
+class DataWeaveToolingService(project: Project, eventBus: EventBus, languageClient: LanguageClient, vfs: VirtualFileSystem, documentServiceFactory: () => WeaveToolingService, executor: Executor) extends ToolingService {
+
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
+  private var projectKind: ProjectKind = _
   private lazy val _documentService: WeaveToolingService = documentServiceFactory()
+
+  @volatile
+  private var indexed: Boolean = false
 
   {
     vfs.changeListener(new ChangeListener {
       override def onDeleted(vf: VirtualFile): Unit = {
-        if (vf.url().endsWith("dwl")) {
+        if (isDWFile(vf.url())) {
           validateDependencies(vf, "onDeleted")
         }
       }
 
       override def onChanged(vf: VirtualFile): Unit = {
-        if (vf.url().endsWith("dwl")) {
+        if (isDWFile(vf.url())) {
           validateFile(vf, "onChanged")
         }
       }
 
       override def onCreated(vf: VirtualFile): Unit = {
-        if (vf.url().endsWith("dwl")) {
+        if (isDWFile(vf.url())) {
           validateFile(vf, "onCreated")
         }
       }
@@ -70,10 +82,20 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
 
   eventBus.register(IndexingFinishedEvent.INDEXING_FINISHED, new OnIndexingFinished() {
     override def onIndexingFinished(): Unit = {
+      indexed = true
       validateAllEditors("indexingFinishes")
     }
   })
 
+  eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
+    override def onProjectStarted(project: Project): Unit = {
+      validateAllEditors("projectStarted")
+    }
+  })
+
+  override def init(projectKind: ProjectKind): Unit = {
+    this.projectKind = projectKind
+  }
 
   private def validateAllEditors(reason: String): Unit = {
     //Invalidate all caches
@@ -99,13 +121,33 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
     })
   }
 
+  def loadType(typeString: String): Option[WeaveType] = {
+    documentService().loadType(typeString)
+  }
 
-  def documentService(): WeaveToolingService = {
+  private def documentService(): WeaveToolingService = {
     _documentService
   }
 
   def openDocument(uri: String): WeaveDocumentToolingService = {
-    _documentService.open(uri, ImplicitInput(), None)
+    val maybeProvider: Option[MetadataProvider] = projectKind.metadataProvider()
+    val input = maybeProvider match {
+      case Some(value) => {
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          val inputMetadata = value.inputMetadataFor(virtualFile)
+          ImplicitInput(inputMetadata.metadata.map((m) => (m.name, m.wtype)).toMap)
+        } else {
+          ImplicitInput()
+        }
+      }
+      case None => ImplicitInput()
+    }
+    _documentService.open(uri, input, None)
+  }
+
+  def closeDocument(uri: String): Unit = {
+    documentService().close(uri)
   }
 
   def withLanguageLevel(dwLanguageLevel: String): WeaveToolingService = {
@@ -172,9 +214,9 @@ class ValidationService(project: Project, eventBus: EventBus, languageClient: La
     */
   def validate(documentUri: String): ValidationMessages = {
     val messages: ValidationMessages =
-      if (project.initialized() && Settings.isTypeLevel(project.settings)) {
+      if (indexed && Settings.isTypeLevel(project.settings)) {
         openDocument(documentUri).typeCheck()
-      } else if (project.initialized() && Settings.isScopeLevel(project.settings)) {
+      } else if (indexed && Settings.isScopeLevel(project.settings)) {
         openDocument(documentUri).scopeCheck()
       } else {
         openDocument(documentUri).parseCheck()

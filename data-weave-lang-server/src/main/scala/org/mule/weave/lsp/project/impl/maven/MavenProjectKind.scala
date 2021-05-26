@@ -4,25 +4,28 @@ import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
 import org.mule.weave.lsp.project.components.BuildManager
+import org.mule.weave.lsp.project.components.MetadataProvider
 import org.mule.weave.lsp.project.components.ModuleStructure
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.RootKind
 import org.mule.weave.lsp.project.components.RootStructure
+import org.mule.weave.lsp.project.components.SampleBaseMetadataProvider
 import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.components.TargetFolder
 import org.mule.weave.lsp.project.components.TargetKind
 import org.mule.weave.lsp.project.components.WTFSampleDataManager
+import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 
 import java.io.File
 
 
-class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger) extends ProjectKindDetector {
+class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKindDetector {
 
   override def createKind(project: Project): ProjectKind = {
-    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger)
+    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger, weaveAgentService)
   }
 
   override def supports(project: Project): Boolean = {
@@ -30,11 +33,13 @@ class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger) e
   }
 }
 
-class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger) extends ProjectKind {
+class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKind {
 
   private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
   private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
   private val projectStructure: ProjectStructure = createProjectStructure()
+  private val dataManager = new WTFSampleDataManager(structure())
+  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(dataManager, weaveAgentService, eventBus)
 
   override def name(): String = "Maven"
 
@@ -61,11 +66,10 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     rootStructure
   }
 
-  private def testRoot(projectHome: File) = {
+  private def testRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "test")
-    val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
+    val srcFolders = Array(new File(mainDir, "dwtest"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
-
     val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders)
     rootStructure
   }
@@ -79,6 +83,14 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
   }
 
   override def sampleDataManager(): Option[SampleDataManager] = {
-    Some(new WTFSampleDataManager(structure()))
+    Some(dataManager)
+  }
+
+  override def metadataProvider(): Option[MetadataProvider] = {
+    if (project.isStarted()) {
+      Some(sampleBaseMetadataProvider)
+    } else {
+      None
+    }
   }
 }

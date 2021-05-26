@@ -29,7 +29,7 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
   override def name(): String = "BAT"
 
 
-  override def setup(): Unit = {
+  override def start(): Unit = {
     val helper = new BatProjectHelper(logger)
     helper.setupBat()
   }
@@ -72,8 +72,8 @@ class BatDependencyManager(project: Project, logger: ClientLogger, eventBus: Eve
     }
   })
 
-  override def init(): Unit = {
-    super.init()
+  override def start(): Unit = {
+    super.start()
     loadBatVersion()
   }
 

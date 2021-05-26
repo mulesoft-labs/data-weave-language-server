@@ -8,6 +8,7 @@ import org.mule.weave.lsp.indexer.events.IndexingStartedEvent
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
+import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
@@ -39,14 +40,15 @@ import scala.collection.concurrent.TrieMap
 class LSPWeaveIndexService(eventBus: EventBus,
                            clientLogger: ClientLogger,
                            weaveLanguageClient: WeaveLanguageClient,
-                           projectVirtualFileSystem: ProjectVirtualFileSystem,
-                           projectKind: ProjectKind) extends WeaveIndexService {
+                           projectVirtualFileSystem: ProjectVirtualFileSystem
+                          ) extends WeaveIndexService with ToolingService {
 
   private val identifiersInLibraries: TrieMap[VirtualFileSystem, TrieMap[String, Array[LocatedResult[WeaveIdentifier]]]] = TrieMap()
   private val identifiersInProject: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = TrieMap()
   private val namesInLibraries: TrieMap[VirtualFileSystem, TrieMap[String, LocatedResult[WeaveDocument]]] = TrieMap()
   private val namesInProject: TrieMap[String, LocatedResult[WeaveDocument]] = TrieMap()
   private val indexedPool = new ForkJoinPool()
+  private var projectKind: ProjectKind = _
 
 
   projectVirtualFileSystem.changeListener(new ChangeListener {
@@ -68,6 +70,26 @@ class LSPWeaveIndexService(eventBus: EventBus,
       }
     }
   })
+
+  override def init(projectKind: ProjectKind): Unit = {
+    this.projectKind = projectKind
+  }
+
+
+  override def start(): Unit = {
+    eventBus.fire(new IndexingStartedEvent())
+    indexedPool.invoke(ForkJoinTask.adapt(
+      new Runnable {
+        override def run(): Unit = {
+          val value: util.Iterator[VirtualFile] = projectVirtualFileSystem.listFiles()
+          while (value.hasNext) {
+            indexProjectFile(value.next())
+          }
+        }
+      })
+    )
+    eventBus.fire(new IndexingFinishedEvent())
+  }
 
   private def indexProjectFile(vf: VirtualFile) = {
     val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
@@ -126,20 +148,6 @@ class LSPWeaveIndexService(eventBus: EventBus,
     }
   })
 
-  def init(): Unit = {
-    eventBus.fire(new IndexingStartedEvent())
-    indexedPool.invoke(ForkJoinTask.adapt(
-      new Runnable {
-        override def run(): Unit = {
-          val value: util.Iterator[VirtualFile] = projectVirtualFileSystem.listFiles()
-          while (value.hasNext) {
-            indexProjectFile(value.next())
-          }
-        }
-      })
-    )
-    eventBus.fire(new IndexingFinishedEvent())
-  }
 
   override def searchReferences(name: String): Array[LocatedResult[WeaveIdentifier]] = {
     val librarySymbols = identifiersInLibraries.values.flatMap((vf) => {
