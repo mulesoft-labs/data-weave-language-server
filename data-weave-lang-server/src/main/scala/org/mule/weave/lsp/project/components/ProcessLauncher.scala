@@ -169,8 +169,7 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
         val sampleManager: SampleDataManager = maybeSampleDataManager.get
         config.scenario match {
           case Some(scenario) if (scenario.nonEmpty) => {
-            val maybeScenario = sampleManager
-              .searchScenarioByName(theNameIdentifier, scenario)
+            val maybeScenario = sampleManager.searchScenarioByName(theNameIdentifier, scenario)
             if (maybeScenario.isEmpty) {
               scenarioPath = askToPickScenario(theNameIdentifier)
             } else {
@@ -178,7 +177,12 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
             }
           }
           case _ => {
-            scenarioPath = askToPickScenario(theNameIdentifier)
+            val scenarios = sampleManager.listScenarios(theNameIdentifier)
+            if (scenarios.length == 1) {
+              scenarioPath = Some(scenarios.head.file.getAbsolutePath)
+            } else {
+              scenarioPath = askToPickScenario(theNameIdentifier)
+            }
           }
         }
         if (scenarioPath.isDefined) {

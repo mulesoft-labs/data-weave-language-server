@@ -39,7 +39,7 @@ import java.util.concurrent.locks.ReentrantLock
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
   *
   */
-class WeaveAgentService(eventBus: EventBus, validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger) extends ToolingService {
+class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger) extends ToolingService {
 
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
@@ -47,15 +47,14 @@ class WeaveAgentService(eventBus: EventBus, validationService: DataWeaveToolingS
 
   val lock: Lock = new ReentrantLock()
 
-  override def init(projectKind: ProjectKind): Unit = {
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
+    eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
+      override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
+        restart()
+      }
+    })
   }
-
-  eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
-    override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
-      restart()
-    }
-  })
 
   private def restart(): Unit = {
     stop()

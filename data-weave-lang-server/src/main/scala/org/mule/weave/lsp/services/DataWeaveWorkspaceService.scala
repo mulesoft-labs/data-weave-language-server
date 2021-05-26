@@ -9,6 +9,7 @@ import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.CommandProvider
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
@@ -19,22 +20,29 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
- * DataWeave Implementation of the LSP Workspace Service
- *
- */
+  * DataWeave Implementation of the LSP Workspace Service
+  *
+  */
 class DataWeaveWorkspaceService(
                                  project: Project,
-                                 projectKind: ProjectKind,
-                                 eventBus: EventBus,
+
                                  vfs: VirtualFileSystem,
                                  projectVirtualFileSystem: ProjectVirtualFileSystem,
                                  clientLogger: ClientLogger,
                                  languageClient: WeaveLanguageClient,
                                  dataWeaveToolingService: DataWeaveToolingService
-                               ) extends WorkspaceService {
+                               ) extends WorkspaceService with ToolingService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
-  private val commandProvider: CommandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService)
+  private var eventBus: EventBus = _
+  private var projectKind: ProjectKind = _
+  private var commandProvider: CommandProvider = _
+
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.eventBus = eventBus
+    this.projectKind = projectKind
+    this.commandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService)
+  }
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
     logger.log(Level.INFO, "didChangeConfiguration: " + params.getSettings)

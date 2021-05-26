@@ -44,6 +44,8 @@ import org.mule.weave.lsp.client.LaunchConfiguration
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.service.ToolingService
+import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters._
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.BAT
@@ -57,7 +59,6 @@ import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
-import org.mule.weave.v2.editor.WeaveToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.AstNodeHelper
@@ -80,12 +81,16 @@ import scala.collection.JavaConverters
 class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
-                               projectKind: ProjectKind,
-                               vfs: VirtualFileSystem) extends TextDocumentService {
+                               vfs: VirtualFileSystem) extends TextDocumentService with ToolingService {
 
 
   private val codeActions = new CodeActions(toolingServices)
   private val logger: Logger = Logger.getLogger(getClass.getName)
+  private var projectKind: ProjectKind = _
+
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.projectKind = projectKind
+  }
 
   //FS Changes
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
@@ -113,7 +118,6 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     logger.log(Level.INFO, "DidSave: " + uri)
     projectFS.saved(params.getTextDocument.getUri)
   }
-
 
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {

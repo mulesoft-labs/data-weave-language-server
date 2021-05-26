@@ -12,7 +12,8 @@
     <name>@project-name@</name>
 
     <properties>
-        <weave.version>2.3.1</weave.version>
+        <weave.version>2.4.0-SNAPSHOT</weave.version>
+        <wtf.version>1.0.5</wtf.version>
     </properties>
 
     <dependencies>
@@ -41,7 +42,7 @@
         <dependency>
             <groupId>org.mule.weave</groupId>
             <artifactId>wtf</artifactId>
-            <version>1.0.3</version>
+            <version>${wtf.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

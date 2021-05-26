@@ -37,8 +37,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.concurrent.TrieMap
 
 
-class LSPWeaveIndexService(eventBus: EventBus,
-                           clientLogger: ClientLogger,
+class LSPWeaveIndexService(clientLogger: ClientLogger,
                            weaveLanguageClient: WeaveLanguageClient,
                            projectVirtualFileSystem: ProjectVirtualFileSystem
                           ) extends WeaveIndexService with ToolingService {
@@ -49,30 +48,71 @@ class LSPWeaveIndexService(eventBus: EventBus,
   private val namesInProject: TrieMap[String, LocatedResult[WeaveDocument]] = TrieMap()
   private val indexedPool = new ForkJoinPool()
   private var projectKind: ProjectKind = _
+  private var eventBus: EventBus = _
 
-
-  projectVirtualFileSystem.changeListener(new ChangeListener {
-    override def onDeleted(vf: VirtualFile): Unit = {
-      identifiersInProject.remove(vf.url())
-    }
-
-    override def onChanged(vf: VirtualFile): Unit = {
-      val projectStructure = projectKind.structure()
-      if (isAProjectFile(vf, projectStructure)) {
-        indexProjectFile(vf)
-      }
-    }
-
-    override def onCreated(vf: VirtualFile): Unit = {
-      val projectStructure: ProjectStructure = projectKind.structure()
-      if (isAProjectFile(vf, projectStructure)) {
-        indexProjectFile(vf)
-      }
-    }
-  })
-
-  override def init(projectKind: ProjectKind): Unit = {
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.eventBus = eventBus
     this.projectKind = projectKind
+    projectVirtualFileSystem.changeListener(new ChangeListener {
+      override def onDeleted(vf: VirtualFile): Unit = {
+        identifiersInProject.remove(vf.url())
+      }
+
+      override def onChanged(vf: VirtualFile): Unit = {
+        val projectStructure = projectKind.structure()
+        if (isAProjectFile(vf, projectStructure)) {
+          indexProjectFile(vf)
+        }
+      }
+
+      override def onCreated(vf: VirtualFile): Unit = {
+        val projectStructure: ProjectStructure = projectKind.structure()
+        if (isAProjectFile(vf, projectStructure)) {
+          indexProjectFile(vf)
+        }
+      }
+    })
+
+    eventBus.register(LibraryRemovedEvent.LIBRARY_REMOVED, new OnLibraryRemoved {
+      override def onLibraryRemoved(lib: VirtualFileSystem): Unit = {
+        identifiersInLibraries.remove(lib)
+      }
+    })
+
+    eventBus.register(LibraryAddedEvent.LIBRARY_ADDED, new OnLibraryAdded {
+      override def onLibrariesAdded(libaries: Array[ArtifactVirtualFileSystem]): Unit = {
+        val forks: Array[Callable[ArtifactVirtualFileSystem]] = libaries.map((vfs) => {
+          new Callable[ArtifactVirtualFileSystem] {
+            override def call(): ArtifactVirtualFileSystem = {
+              val virtualFiles: Iterator[VirtualFile] = vfs.listFiles().asScala
+              val vfsIdentifiers: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = identifiersInLibraries.getOrElseUpdate(vfs, TrieMap())
+              val vfsNames: TrieMap[String, LocatedResult[WeaveDocument]] = namesInLibraries.getOrElseUpdate(vfs, TrieMap())
+              clientLogger.logInfo(s"Start Indexing `${vfs.artifactId()}`.")
+              val startTime = System.currentTimeMillis()
+              virtualFiles.foreach((vf) => {
+                val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
+                //Only index DW files for now
+                //TODO figure out how to support other formats like .class or .raml etc
+                if (vf.url().endsWith(".dwl") && indexer.parse(vf, ParsingContextFactory.createParsingContext(false))) {
+                  vfsIdentifiers.put(vf.url(), index(vf, indexer))
+                  vfsNames.put(vf.url(), LocatedResult(vf.getNameIdentifier, indexer.document()))
+                }
+              })
+              clientLogger.logInfo(s"Indexing `${vfs.artifactId()}` took ${System.currentTimeMillis() - startTime}ms")
+              vfs
+            }
+          }
+        })
+        val start = System.currentTimeMillis()
+        eventBus.fire(new IndexingStartedEvent())
+        indexedPool.invokeAll(util.Arrays.asList(forks: _*))
+        eventBus.fire(new IndexingFinishedEvent())
+        clientLogger.logInfo(s"Indexing all libraries finished and took ${System.currentTimeMillis() - start}ms.")
+        weaveLanguageClient.showMessage(new MessageParams(MessageType.Info, "Project Indexed"))
+      }
+    })
+
+
   }
 
 
@@ -99,39 +139,6 @@ class LSPWeaveIndexService(eventBus: EventBus,
     }
   }
 
-  eventBus.register(LibraryAddedEvent.LIBRARY_ADDED, new OnLibraryAdded {
-    override def onLibrariesAdded(libaries: Array[ArtifactVirtualFileSystem]): Unit = {
-      val forks: Array[Callable[ArtifactVirtualFileSystem]] = libaries.map((vfs) => {
-        new Callable[ArtifactVirtualFileSystem] {
-          override def call(): ArtifactVirtualFileSystem = {
-            val virtualFiles: Iterator[VirtualFile] = vfs.listFiles().asScala
-            val vfsIdentifiers: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = identifiersInLibraries.getOrElseUpdate(vfs, TrieMap())
-            val vfsNames: TrieMap[String, LocatedResult[WeaveDocument]] = namesInLibraries.getOrElseUpdate(vfs, TrieMap())
-            clientLogger.logInfo(s"Start Indexing `${vfs.artifactId()}`.")
-            val startTime = System.currentTimeMillis()
-            virtualFiles.foreach((vf) => {
-              val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
-              //Only index DW files for now
-              //TODO figure out how to support other formats like .class or .raml etc
-              if (vf.url().endsWith(".dwl") && indexer.parse(vf, ParsingContextFactory.createParsingContext(false))) {
-                vfsIdentifiers.put(vf.url(), index(vf, indexer))
-                vfsNames.put(vf.url(), LocatedResult(vf.getNameIdentifier, indexer.document()))
-              }
-            })
-            clientLogger.logInfo(s"Indexing `${vfs.artifactId()}` took ${System.currentTimeMillis() - startTime}ms")
-            vfs
-          }
-        }
-      })
-      val start = System.currentTimeMillis()
-      eventBus.fire(new IndexingStartedEvent())
-      indexedPool.invokeAll(util.Arrays.asList(forks: _*))
-      eventBus.fire(new IndexingFinishedEvent())
-      clientLogger.logInfo(s"Indexing all libraries finished and took ${System.currentTimeMillis() - start}ms.")
-      weaveLanguageClient.showMessage(new MessageParams(MessageType.Info, "Project Indexed"))
-    }
-  })
-
 
   private def index(vf: VirtualFile, indexer: DefaultWeaveIndexer): Array[LocatedResult[WeaveIdentifier]] = {
     val nameIdentifier = vf.getNameIdentifier
@@ -141,12 +148,6 @@ class LSPWeaveIndexService(eventBus: EventBus,
     })
     locatedWeaveSymbols
   }
-
-  eventBus.register(LibraryRemovedEvent.LIBRARY_REMOVED, new OnLibraryRemoved {
-    override def onLibraryRemoved(lib: VirtualFileSystem): Unit = {
-      identifiersInLibraries.remove(lib)
-    }
-  })
 
 
   override def searchReferences(name: String): Array[LocatedResult[WeaveIdentifier]] = {

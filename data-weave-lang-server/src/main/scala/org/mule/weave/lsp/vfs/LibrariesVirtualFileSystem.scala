@@ -1,10 +1,12 @@
 package org.mule.weave.lsp.vfs
 
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnDependencyArtifactRemoved
 import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
+import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.events.LibraryAddedEvent
@@ -29,32 +31,36 @@ import scala.collection.mutable
   * @param maven                The Maven Dependency Manager
   * @param messageLoggerService The user logger
   */
-class LibrariesVirtualFileSystem(eventBus: EventBus, clientLogger: ClientLogger) extends VirtualFileSystem {
+class LibrariesVirtualFileSystem(clientLogger: ClientLogger) extends VirtualFileSystem with ToolingService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
   private val libraries: mutable.Map[String, ArtifactVirtualFileSystem] = new mutable.HashMap()
+  private var eventBus: EventBus = _
 
-  eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
-    override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
-      artifacts.foreach((artifact) => {
-        val libraryVFS = if (!artifact.artifact.isDirectory) {
-          new JarVirtualFileSystem(artifact.artifactId, artifact.artifact)
-        } else {
-          new FolderVirtualFileSystem(artifact.artifactId, artifact.artifact)
-        }
-        addLibrary(artifact.artifactId, libraryVFS)
-      })
-    }
-  })
+  override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
+    this.eventBus = eventBus
+    eventBus.register(DependencyArtifactResolvedEvent.ARTIFACT_RESOLVED, new OnDependencyArtifactResolved {
+      override def onArtifactsResolved(artifacts: Array[DependencyArtifact]): Unit = {
+        artifacts.foreach((artifact) => {
+          val libraryVFS = if (!artifact.artifact.isDirectory) {
+            new JarVirtualFileSystem(artifact.artifactId, artifact.artifact)
+          } else {
+            new FolderVirtualFileSystem(artifact.artifactId, artifact.artifact)
+          }
+          addLibrary(artifact.artifactId, libraryVFS)
+        })
+      }
+    })
 
-  eventBus.register(DependencyArtifactRemovedEvent.ARTIFACT_REMOVED, new OnDependencyArtifactRemoved {
-    override def onArtifactsRemoved(artifacts: Array[DependencyArtifact]): Unit = {
-      artifacts.foreach((a) => {
-        removeLibrary(a.artifactId)
-      })
-    }
-  })
+    eventBus.register(DependencyArtifactRemovedEvent.ARTIFACT_REMOVED, new OnDependencyArtifactRemoved {
+      override def onArtifactsRemoved(artifacts: Array[DependencyArtifact]): Unit = {
+        artifacts.foreach((a) => {
+          removeLibrary(a.artifactId)
+        })
+      }
+    })
+  }
 
   override def file(path: String): VirtualFile = {
     logger.log(Level.INFO, s"file ${path}")
