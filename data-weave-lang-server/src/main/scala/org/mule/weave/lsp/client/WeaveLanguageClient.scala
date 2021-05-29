@@ -48,8 +48,27 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonNotification("weave/workspace/openTextDocument")
   def openTextDocument(params: OpenTextDocumentParams): Unit
 
+  /**
+    * This notification is sent from the server to the client to show the live data of a script
+    *
+    * @param result The result of executing a script
+    */
+  @JsonNotification("weave/workspace/showPreviewResult")
+  def showPreviewResult(result: PreviewResult): Unit
+
   //def listConfigurations: Array[LaunchConfiguration]
 }
+
+
+case class PreviewResult(
+                          uri: String,
+                          success: Boolean,
+                          logs: java.util.List[String],
+                          content: String = null,
+                          mimeType: String = null,
+                          errorMessage: String = null,
+                          timeTaken: Long = 0
+                        )
 
 
 case class LaunchConfiguration(

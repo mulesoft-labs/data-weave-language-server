@@ -25,7 +25,7 @@ import java.io.File
 import java.util
 import scala.io.Source
 
-class CreateTest(projectKind: ProjectKind, weaveLanguageClient: WeaveLanguageClient) extends WeaveCommand {
+class CreateTestCommand(projectKind: ProjectKind, weaveLanguageClient: WeaveLanguageClient) extends WeaveCommand {
 
   val TEMPLATE_TEST: String = {
     val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("dw-template-test.dwl"), "UTF-8")

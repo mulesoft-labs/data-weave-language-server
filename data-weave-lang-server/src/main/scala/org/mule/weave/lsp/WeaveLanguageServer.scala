@@ -28,6 +28,7 @@ import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
+import org.mule.weave.lsp.services.PreviewService
 import org.mule.weave.lsp.services.TextDocumentServiceDelegate
 import org.mule.weave.lsp.services.WorkspaceServiceDelegate
 import org.mule.weave.lsp.utils.EventBus
@@ -107,7 +108,8 @@ class WeaveLanguageServer extends LanguageServer {
 
     //Create Services
     val dataWeaveToolingService = new DataWeaveToolingService(projectValue, client, globalFVS, createWeaveToolingService, executorService)
-    val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger)
+    val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue)
+    val previewService = new PreviewService(weaveAgentService, client, projectValue)
     indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 
     //Create the project
@@ -118,14 +120,17 @@ class WeaveLanguageServer extends LanguageServer {
     //Init The LSP Services
     val documentService = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
     textDocumentService.delegate = documentService
-    val workspaceService = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService)
+    val workspaceService = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, previewService)
     weaveWorkspaceService.delegate = workspaceService
+
+
 
     services.++=(Seq(
       workspaceService,
       documentService,
       weaveAgentService,
       dataWeaveToolingService,
+      previewService,
       indexService,
       projectVFS,
       librariesVFS

@@ -147,9 +147,55 @@ Known Client Commands
 
 
 # Testing
-
+```
 Client               LSP                              TLP
    |- run   -----> {mode: Test}                           
    |- showView(Test)  <- testStarted(port)             |
    |                 <--------------------- suiteStarted
    |                 <--------------------- testCaseStarted 
+
+```
+
+# Preview
+
+```js
+vscode.window.showTextDocument(document, {
+viewColumn: vscode.ViewColumn.Beside
+});
+```
+
+
+# Decorations
+
+
+```js
+ client.onNotification(DecorationTypeDidChange.type, (options) => {
+        decorationType = window.createTextEditorDecorationType(options);
+      });
+      client.onNotification(DecorationsRangesDidChange.type, (params) => {
+        const editors = window.visibleTextEditors;
+        const path = Uri.parse(params.uri).toString();
+        const editor = editors.find(
+          (editor) => editor.document.uri.toString() == path
+        );
+        if (editor) {
+          const options = params.options.map<DecorationOptions>((o) => {
+            return {
+              range: new Range(
+                new Position(o.range.start.line, o.range.start.character),
+                new Position(o.range.end.line, o.range.end.character)
+              ),
+              hoverMessage: o.hoverMessage?.value,
+              renderOptions: o.renderOptions,
+            };
+          });
+          if (params.uri.endsWith(".worksheet.sc"))
+            editor.setDecorations(worksheetDecorationType, options);
+          else editor.setDecorations(decorationType, options);
+        } else {
+          outputChannel.appendLine(
+            `Ignoring decorations for non-active document '${params.uri}'.`
+          );
+        }
+      });
+```

@@ -45,6 +45,10 @@ import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.service.ToolingService
+import org.mule.weave.lsp.services.events.DocumentChangedEvent
+import org.mule.weave.lsp.services.events.DocumentClosedEvent
+import org.mule.weave.lsp.services.events.DocumentOpenedEvent
+import org.mule.weave.lsp.services.events.DocumentSavedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters._
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils
@@ -57,6 +61,7 @@ import org.mule.weave.v2.completion.SuggestionResult
 import org.mule.weave.v2.completion.SuggestionType
 import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
+import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
@@ -87,36 +92,63 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
   private val codeActions = new CodeActions(toolingServices)
   private val logger: Logger = Logger.getLogger(getClass.getName)
   private var projectKind: ProjectKind = _
+  private var eventBus: EventBus = _
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
+    this.eventBus = eventBus
   }
 
   //FS Changes
   override def didOpen(openParam: DidOpenTextDocumentParams): Unit = {
     val textDocument: TextDocumentItem = openParam.getTextDocument
     val uri: String = textDocument.getUri
-    logger.log(Level.INFO, "DidOpen: " + uri)
-    projectFS.update(uri, openParam.getTextDocument.getText)
+    this.logger.log(Level.INFO, "DidOpen: " + uri)
+    val maybeVirtualFile: Option[VirtualFile] = projectFS.update(uri, openParam.getTextDocument.getText)
+    maybeVirtualFile match {
+      case Some(value) => {
+        this.eventBus.fire(new DocumentOpenedEvent(value))
+      }
+      case None =>
+    }
   }
 
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
     val textDocument = params.getTextDocument
     logger.log(Level.INFO, s"${System.nanoTime()} DidChange: " + textDocument.getUri)
-    projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
+    val maybeVirtualFile = projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
+    maybeVirtualFile match {
+      case Some(value) => {
+        this.eventBus.fire(new DocumentChangedEvent(value))
+      }
+      case None =>
+    }
   }
 
   override def didClose(params: DidCloseTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
     logger.log(Level.INFO, "DidClose: " + uri)
-    projectFS.closed(uri)
     toolingServices.closeDocument(uri)
+    val maybeVirtualFile = projectFS.closed(uri)
+    maybeVirtualFile match {
+      case Some(value) => {
+        this.eventBus.fire(new DocumentClosedEvent(value))
+      }
+      case None =>
+    }
+
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
     logger.log(Level.INFO, "DidSave: " + uri)
-    projectFS.saved(params.getTextDocument.getUri)
+    val maybeVirtualFile = projectFS.saved(params.getTextDocument.getUri)
+    maybeVirtualFile match {
+      case Some(value) => {
+        this.eventBus.fire(new DocumentSavedEvent(value))
+      }
+      case None =>
+    }
   }
 
 
@@ -126,8 +158,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
       val offset: Int = toolingService.offsetOf(position.getPosition.getLine, position.getPosition.getCharacter)
       val suggestionResult: SuggestionResult = toolingService.completion(offset)
       val result = new util.ArrayList[CompletionItem]()
-      var i = 0
-
+      var i: Int = 0
       val suggestions: Array[Suggestion] = suggestionResult.suggestions
       suggestions.foreach((sug) => {
         val index: String = i.toString

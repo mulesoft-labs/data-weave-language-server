@@ -40,7 +40,8 @@ case class ProjectSettings(eventBus: EventBus,
                            languageLevelVersion: Setting[String] = Setting(LANGUAGE_LEVEL_PROP_NAME, DEFAULT_VERSION),
                            validationLevel: Setting[String] = Setting(VALIDATION_LEVEL_PROP_NAME, TYPE_LEVEL),
                            batVersion: Setting[String] = Setting(BAT_VERSION_PROP_NAME, DEFAULT_BAT_VERSION),
-                           batWrapperVersion: Setting[String] = Setting(BAT_WRAPPER_VERSION_PROP_NAME, DEFAULT_BAT_WRAPPER_VERSION)
+                           batWrapperVersion: Setting[String] = Setting(BAT_WRAPPER_VERSION_PROP_NAME, DEFAULT_BAT_WRAPPER_VERSION),
+                           previewTimeout: Setting[String] = Setting(PREVIEW_TIMEOUT, PREVIEW_TIMEOUT_VALUE)
                           ) {
 
   def load(settings: AnyRef): Array[String] = {
@@ -83,6 +84,7 @@ object Settings {
   val DEFAULT_VERSION: String = "2.3.1-SNAPSHOT"
   val DEFAULT_BAT_VERSION = "1.0.88"
   val DEFAULT_BAT_WRAPPER_VERSION = "1.0.58"
+  val PREVIEW_TIMEOUT_VALUE = 50000.toString
   val DEFAULT_BAT_HOME = ".bat"
   val TYPE_LEVEL = "type"
   val SCOPE_LEVEL = "scope"
@@ -92,6 +94,7 @@ object Settings {
   val VALIDATION_LEVEL_PROP_NAME = "validationLevel"
   val BAT_VERSION_PROP_NAME = "batVersion"
   val BAT_WRAPPER_VERSION_PROP_NAME = "batWrapperVersion"
+  val PREVIEW_TIMEOUT = "previewTimeout"
 
 
   def isTypeLevel(settings: ProjectSettings): Boolean = settings.validationLevel.value() == TYPE_LEVEL
@@ -101,7 +104,7 @@ object Settings {
   def isParseLevel(settings: ProjectSettings): Boolean = settings.validationLevel.value() == PARSE_LEVEL
 }
 
-case class Setting[T <: AnyRef](settingName: String, initialValue: T) {
+case class Setting[T <: Any](settingName: String, initialValue: T) {
 
   private var valueHolder: T = initialValue
 

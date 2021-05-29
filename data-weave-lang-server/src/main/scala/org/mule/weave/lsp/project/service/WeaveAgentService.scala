@@ -1,9 +1,13 @@
 package org.mule.weave.lsp.project.service
 
+import org.mule.weave.lsp.client.PreviewResult
+import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.components.InputMetadata
 import org.mule.weave.lsp.project.components.JavaWeaveLauncher
+import org.mule.weave.lsp.project.components.ProjectStructure.mainSourceFolders
+import org.mule.weave.lsp.project.components.ProjectStructure.mainTargetFolders
 import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.project.components.WeaveTypeBind
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
@@ -20,7 +24,11 @@ import org.mule.weave.v2.debugger.client.tcp.TcpClientProtocol
 import org.mule.weave.v2.debugger.event.DataFormatsDefinitionsEvent
 import org.mule.weave.v2.debugger.event.ImplicitInputTypesEvent
 import org.mule.weave.v2.debugger.event.InferWeaveTypeEvent
+import org.mule.weave.v2.debugger.event.PreviewExecutedEvent
+import org.mule.weave.v2.debugger.event.PreviewExecutedFailedEvent
+import org.mule.weave.v2.debugger.event.PreviewExecutedSuccessfulEvent
 import org.mule.weave.v2.debugger.event.WeaveDataFormatProperty
+import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.ts.WeaveType
 
 import java.io.BufferedReader
@@ -39,7 +47,7 @@ import java.util.concurrent.locks.ReentrantLock
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
   *
   */
-class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger) extends ToolingService {
+class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project) extends ToolingService {
 
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
@@ -130,10 +138,14 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
   }
 
   def checkConnected(): Boolean = {
-    if (weaveAgentClient == null || !weaveAgentClient.isConnected()) {
+    if (isDisconnected) {
       restart()
     }
     weaveAgentClient != null && weaveAgentClient.isConnected()
+  }
+
+  private def isDisconnected = {
+    weaveAgentClient == null || !weaveAgentClient.isConnected()
   }
 
   def inferOutputMetadataForScenario(scenario: Scenario): CompletableFuture[Option[WeaveType]] = {
@@ -157,6 +169,43 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
     }, executor)
   }
 
+  def run(nameIdentifier: NameIdentifier, content: String, url: String): CompletableFuture[PreviewResult] = {
+    CompletableFuture.supplyAsync(() => {
+      val runResult = new FutureValue[PreviewResult]()
+      val libs: Array[String] = projectKind.dependencyManager().dependencies().map(_.artifact.getAbsolutePath) //
+      val sources: Array[String] = mainSourceFolders(projectKind.structure()).map(_.getAbsolutePath)
+      val targets: Array[String] = mainTargetFolders(projectKind.structure()).map(_.getAbsolutePath)
+
+      val inputsPath: String =
+        projectKind.sampleDataManager().flatMap((sampleManager) => {
+          //TODO we should have a way to pick what scenario and store it somewhere. Maybe Configuration Objects
+          sampleManager.listScenarios(nameIdentifier).headOption
+            .map(_.inputs().getAbsolutePath)
+        }).getOrElse("")
+
+      if (isDisconnected) {
+        PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+      } else {
+        val startTime = System.currentTimeMillis()
+        weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets, new DefaultWeaveAgentClientListener {
+          override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
+            val endTime = System.currentTimeMillis()
+            result match {
+              case PreviewExecutedFailedEvent(message, messages) => {
+                val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
+                runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+              }
+              case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages) => {
+                val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
+                runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+              }
+            }
+          }
+        })
+        runResult.get()
+      }
+    }, executor)
+  }
 
   def definedDataFormats(): CompletableFuture[Array[DataFormatDescriptor]] = {
     CompletableFuture.supplyAsync(() => {

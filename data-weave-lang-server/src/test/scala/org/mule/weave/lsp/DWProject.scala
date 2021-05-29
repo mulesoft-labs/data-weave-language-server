@@ -37,6 +37,7 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.client.LaunchConfiguration
 import org.mule.weave.lsp.client.OpenTextDocumentParams
 import org.mule.weave.lsp.client.OpenWindowsParams
+import org.mule.weave.lsp.client.PreviewResult
 import org.mule.weave.lsp.client.WeaveInputBoxParams
 import org.mule.weave.lsp.client.WeaveInputBoxResult
 import org.mule.weave.lsp.client.WeaveLanguageClient
@@ -354,6 +355,8 @@ class DWProject(val workspaceRoot: Path) {
       override def openTextDocument(params: OpenTextDocumentParams): Unit = {
         clientUI.openTextDocument(params)
       }
+
+      override def showPreviewResult(result: PreviewResult): Unit = {}
     })
   }
 

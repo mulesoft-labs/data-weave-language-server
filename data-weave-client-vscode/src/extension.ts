@@ -22,11 +22,11 @@ import { ProjectCreation } from './interfaces/project'
 
 export function activate(context: ExtensionContext) {
   //Run Mapping
-  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave', new DataWeaveRunDebugAdapterDescriptorFactory()));  
+  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave', new DataWeaveRunDebugAdapterDescriptorFactory()));
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave', new DataWeaveRunConfigurationProvider()));
-  
+
   //Run Tests
-  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-testing', new DataWeaveRunDebugAdapterDescriptorFactory()));  
+  context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('data-weave-testing', new DataWeaveRunDebugAdapterDescriptorFactory()));
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-testing', new DataWeaveTestingRunConfigurationProvider()));
 
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('jar', new JarFileSystemProvider(), { isReadonly: true, isCaseSensitive: true }));
@@ -118,7 +118,9 @@ export function activate(context: ExtensionContext) {
   // Create the language client and start the client.
 
   const disposableClient = client.start()
-  client.onReady().then(() => handleCustomMessages(client));
+  client.onReady().then(() => {
+    handleCustomMessages(client, context)
+  });
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation
   const dwProjectCreateCommand = 'dw.project.create';
@@ -132,6 +134,8 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand("dw.test.create", () => {
     vscode.commands.executeCommand("dw.createTest")
   }));
+
+  
 
   context.subscriptions.push(disposableClient)
 

@@ -25,12 +25,12 @@ import java.util.logging.Logger
   */
 class DataWeaveWorkspaceService(
                                  project: Project,
-
                                  vfs: VirtualFileSystem,
                                  projectVirtualFileSystem: ProjectVirtualFileSystem,
                                  clientLogger: ClientLogger,
                                  languageClient: WeaveLanguageClient,
-                                 dataWeaveToolingService: DataWeaveToolingService
+                                 dataWeaveToolingService: DataWeaveToolingService,
+                                 previewService: PreviewService
                                ) extends WorkspaceService with ToolingService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -41,7 +41,7 @@ class DataWeaveWorkspaceService(
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.eventBus = eventBus
     this.projectKind = projectKind
-    this.commandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService)
+    this.commandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService, previewService)
   }
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {
