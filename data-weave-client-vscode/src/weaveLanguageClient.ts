@@ -43,9 +43,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("dw.preview.disable", () => {
-        if (vscode.window.activeTextEditor) {
-            vscode.commands.executeCommand("dw.enablePreview", false, vscode.window.activeTextEditor.document.uri.toString());
-        }
+        vscode.commands.executeCommand("dw.enablePreview", false);        
     }));
 
 

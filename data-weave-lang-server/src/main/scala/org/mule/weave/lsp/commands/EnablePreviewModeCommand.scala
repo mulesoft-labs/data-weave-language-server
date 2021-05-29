@@ -12,8 +12,8 @@ class EnablePreviewModeCommand(previewService: PreviewService, virtualFile: Virt
 
   override def execute(params: ExecuteCommandParams): AnyRef = {
     val enabled = argAsBoolean(params.getArguments, 0)
-    val uri = argAsString(params.getArguments, 1)
     if (enabled) {
+      val uri = argAsString(params.getArguments, 1)
       previewService.start()
       val file: VirtualFile = virtualFile.file(uri)
       if (file != null) {
