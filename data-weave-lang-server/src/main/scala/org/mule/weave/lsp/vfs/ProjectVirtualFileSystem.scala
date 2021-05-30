@@ -75,10 +75,11 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     })
   }
 
-  def update(uri: String, content: String): Unit = {
+  def update(uri: String, content: String): Option[VirtualFile] = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"Update: Ignoring ${uri} as it is not supported. Most probably is a read only")
+      None
     } else {
       logger.log(Level.INFO, s"Update `${uri}` -> ${content}")
       Option(file(uri)) match {
@@ -87,11 +88,13 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
           if (written) {
             triggerChanges(vf)
           }
+          Some(vf)
         }
         case None => {
           val virtualFile: ProjectVirtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
           inMemoryFiles.put(uri, virtualFile)
           triggerChanges(virtualFile)
+          Some(virtualFile)
         }
       }
     }
@@ -111,10 +114,11 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     *
     * @param uri The Uri of the file
     */
-  def closed(uri: String): Unit = {
+  def closed(uri: String): Option[VirtualFile] = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"closed: Ignoring ${uri} as it is not supported. Most probably is a read only")
+      None
     } else {
       logger.log(Level.INFO, s"closed ${uri}")
       inMemoryFiles.remove(uri)
@@ -126,10 +130,11 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     *
     * @param uri The uri to be marked as saved
     */
-  def saved(uri: String): Unit = {
+  def saved(uri: String): Option[VirtualFile] = {
     val supportedScheme = isSupportedScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"saved: Ignoring ${uri} as it is not supported. Most probably is a read only")
+      None
     } else {
       logger.log(Level.INFO, s"saved: ${uri}")
       inMemoryFiles.get(uri).map(_.save())

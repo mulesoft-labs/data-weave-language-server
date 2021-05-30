@@ -185,13 +185,40 @@
       {
         "command": "dw.test.create",
         "title": "DataWeave: Create new test"
+      },
+      {
+        "command": "dw.preview.enable",
+        "title": "DataWeave: Enable Preview",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "dw.preview.disable",
+        "title": "DataWeave: Disable Preview",
+        "icon": "$(debug-pause)"
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "when": "editorLangId == data-weave",
+          "command": "dw.preview.enable",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "when": "!inOutput && editorLangId == data-weave",
           "command": "bat.runCurrentBatTest.invoked",
+          "group": "navigation"
+        },
+        {
+          "when": "editorLangId == data-weave",
+          "command": "dw.preview.enable",
+          "group": "navigation"
+        },
+        {
+          "when": "editorLangId == data-weave",
+          "command": "dw.preview.disable",
           "group": "navigation"
         }
       ]

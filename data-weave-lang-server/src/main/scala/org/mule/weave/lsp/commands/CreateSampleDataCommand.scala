@@ -19,7 +19,7 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import java.io.File
 import java.util
 
-class CreateSampleData(projectKind: ProjectKind, weaveLanguageClient: WeaveLanguageClient) extends WeaveCommand {
+class CreateSampleDataCommand(projectKind: ProjectKind, weaveLanguageClient: WeaveLanguageClient) extends WeaveCommand {
 
   override def commandId(): String = Commands.DW_DEFINE_SAMPLE_DATA
 

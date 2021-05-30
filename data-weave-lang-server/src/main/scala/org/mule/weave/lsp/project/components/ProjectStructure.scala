@@ -80,5 +80,13 @@ object ProjectStructure {
       })
     })
   }
+
+  def mainTargetFolders(projectStructure: ProjectStructure): Array[File] = {
+    projectStructure.modules.flatMap((module) => {
+      module.target
+        .filter((target) => target.kind == TargetKind.CLASS || target.kind == TargetKind.RESOURCES)
+        .flatMap((target) => target.file)
+    })
+  }
 }
 
