@@ -9,9 +9,8 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
   onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this.emitter.event;
 
   public watch(_uri: vscode.Uri, _options: { recursive: boolean; excludes: string[]; }): vscode.Disposable {
-    return new vscode.Disposable(() => {});
+    return new vscode.Disposable(() => { });
   }
-
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     // Trim the leading zero to meet the format used by JSZip
@@ -21,9 +20,7 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
     const archive = await this.parse(archiveUri);
     const { ctime, mtime, size } = await vscode.workspace.fs.stat(archiveUri);
 
-    
-
-    if (!entryPath) {
+    if (!entryPath || entryPath.length == 0) {
       return { type: vscode.FileType.Directory, ctime, mtime, size };
     }
 
@@ -38,7 +35,9 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
 
   private getEntryPath(uri: vscode.Uri) {
     const result = uri.path.split("!")[1];
-    if(result.startsWith("/"))
+    if (!result) {
+      return ""  
+    } else if (result.startsWith("/"))
       return result.substr(1);
     else
       return result;
@@ -52,8 +51,8 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
 
     const jarEntry = this.getEntryPath(uri);
     // Append trailing slash to meet the format used by the archive entries
-     const _searchPath = jarEntry.length == 0? jarEntry : jarEntry + "/"
-  
+    const _searchPath = jarEntry.length == 0 ? jarEntry : jarEntry + "/"
+
     archive.forEach((path, entry) => {
 
       // Skip the entry if it is not in the subtree of the scope
@@ -91,15 +90,15 @@ export default class JarFileSystemProvider implements vscode.FileSystemProvider 
   }
 
   public writeFile(_uri: vscode.Uri, _content: Uint8Array, _options: { create: boolean; overwrite: boolean; }): void | Thenable<void> {
-    
+
   }
 
   public delete(_uri: vscode.Uri, _options: { recursive: boolean; }): void | Thenable<void> {
-    
+
   }
 
   public rename(_oldUri: vscode.Uri, _newUri: vscode.Uri, _options: { overwrite: boolean; }): void | Thenable<void> {
-    
+
   }
 
   private async parse(uri: vscode.Uri): Promise<JSZip> {

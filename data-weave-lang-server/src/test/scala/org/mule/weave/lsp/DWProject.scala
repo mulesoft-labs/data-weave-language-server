@@ -34,15 +34,16 @@ import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
-import org.mule.weave.lsp.client.LaunchConfiguration
-import org.mule.weave.lsp.client.OpenTextDocumentParams
-import org.mule.weave.lsp.client.OpenWindowsParams
-import org.mule.weave.lsp.client.PreviewResult
-import org.mule.weave.lsp.client.WeaveInputBoxParams
-import org.mule.weave.lsp.client.WeaveInputBoxResult
-import org.mule.weave.lsp.client.WeaveLanguageClient
-import org.mule.weave.lsp.client.WeaveQuickPickParams
-import org.mule.weave.lsp.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.OpenWindowsParams
+import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
+import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
@@ -357,6 +358,8 @@ class DWProject(val workspaceRoot: Path) {
       }
 
       override def showPreviewResult(result: PreviewResult): Unit = {}
+
+      override def publishDependencies(resolvedDependency: DependenciesParams): Unit = {}
     })
   }
 

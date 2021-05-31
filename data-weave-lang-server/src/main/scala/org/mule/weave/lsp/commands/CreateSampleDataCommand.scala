@@ -8,9 +8,9 @@ import org.eclipse.lsp4j.ResourceOperation
 import org.eclipse.lsp4j.TextDocumentEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages._
-import org.mule.weave.lsp.client.OpenTextDocumentParams
-import org.mule.weave.lsp.client.WeaveInputBoxParams
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl

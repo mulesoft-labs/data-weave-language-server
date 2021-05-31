@@ -1,6 +1,6 @@
 package org.mule.weave.lsp.project.service
 
-import org.mule.weave.lsp.client.PreviewResult
+import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.DependencyArtifact

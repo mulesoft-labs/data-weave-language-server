@@ -1,10 +1,10 @@
 package org.mule.weave.lsp.project.commands
 
-import org.mule.weave.lsp.client.OpenWindowsParams
-import org.mule.weave.lsp.client.WeaveInputBoxParams
-import org.mule.weave.lsp.client.WeaveLanguageClient
-import org.mule.weave.lsp.client.WeaveQuickPickItem
-import org.mule.weave.lsp.client.WeaveQuickPickParams
+import org.mule.weave.lsp.extension.client.OpenWindowsParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveQuickPickItem
+import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
 import org.mule.weave.lsp.utils.Icons
 import org.mule.weave.lsp.utils.Messages.NewDwProject
 import org.mule.weave.lsp.utils.WeaveEnrichments.OptionFutureTransformer

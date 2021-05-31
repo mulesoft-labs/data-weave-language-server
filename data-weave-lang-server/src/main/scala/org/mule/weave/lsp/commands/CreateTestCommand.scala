@@ -10,10 +10,10 @@ import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
-import org.mule.weave.lsp.client.OpenTextDocumentParams
-import org.mule.weave.lsp.client.WeaveInputBoxParams
-import org.mule.weave.lsp.client.WeaveInputBoxResult
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl

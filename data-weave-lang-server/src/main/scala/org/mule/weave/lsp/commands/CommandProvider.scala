@@ -1,6 +1,6 @@
 package org.mule.weave.lsp.commands
 
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.ClientLogger
