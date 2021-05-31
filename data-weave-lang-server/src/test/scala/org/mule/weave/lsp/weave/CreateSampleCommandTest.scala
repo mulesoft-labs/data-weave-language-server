@@ -3,10 +3,10 @@ package org.mule.weave.lsp.weave
 import org.mule.weave.lsp.ClientUI
 import org.mule.weave.lsp.DWLspServerUtils.getMavenProjectWithSamplesWorkspace
 import org.mule.weave.lsp.DWProject
-import org.mule.weave.lsp.client.WeaveInputBoxParams
-import org.mule.weave.lsp.client.WeaveInputBoxResult
-import org.mule.weave.lsp.client.WeaveQuickPickParams
-import org.mule.weave.lsp.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
+import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
+import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
+import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
 import org.mule.weave.lsp.commands.Commands
 import org.scalatest.FreeSpec
 

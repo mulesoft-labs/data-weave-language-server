@@ -5,7 +5,7 @@ import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
 import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher.launch
 import org.mule.weave.lsp.IDEExecutors
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher

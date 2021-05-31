@@ -2,7 +2,7 @@ package org.mule.weave.lsp
 
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import org.eclipse.lsp4j.launch.LSPLauncher
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 
 import java.net.Socket
 import java.util.logging.Level

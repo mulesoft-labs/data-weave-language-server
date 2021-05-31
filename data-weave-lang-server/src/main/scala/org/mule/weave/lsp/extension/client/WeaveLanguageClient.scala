@@ -1,4 +1,4 @@
-package org.mule.weave.lsp.client
+package org.mule.weave.lsp.extension.client
 
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
@@ -56,8 +56,26 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonNotification("weave/workspace/showPreviewResult")
   def showPreviewResult(result: PreviewResult): Unit
 
-  //def listConfigurations: Array[LaunchConfiguration]
+  /**
+    * This notification is sent from the server to the client to publish all the resolved dependencies of this workspace
+    *
+    * @param resolvedDependency The list of all the resolved dependencies
+    */
+  @JsonNotification("weave/workspace/publishDependencies")
+  def publishDependencies(resolvedDependency: DependenciesParams)
 }
+
+case class DependenciesParams(
+                               //The list of dependencies
+                               dependencies: util.List[DependencyDefinition]
+                             )
+
+case class DependencyDefinition(
+                                 // The id of this dependency
+                                 id: String,
+                                 // The uri where this dependency can be located
+                                 uri: String
+                               )
 
 
 case class PreviewResult(

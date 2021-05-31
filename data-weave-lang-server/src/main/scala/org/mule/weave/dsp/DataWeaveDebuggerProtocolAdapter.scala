@@ -16,7 +16,7 @@ import org.eclipse.lsp4j.debug.SourceBreakpoint
 import org.eclipse.lsp4j.debug._
 import org.eclipse.lsp4j.debug.services.IDebugProtocolClient
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger

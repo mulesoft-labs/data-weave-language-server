@@ -40,7 +40,7 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.actions.CodeActions
-import org.mule.weave.lsp.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind

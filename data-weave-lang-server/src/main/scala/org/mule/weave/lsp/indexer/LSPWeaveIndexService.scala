@@ -2,7 +2,7 @@ package org.mule.weave.lsp.indexer
 
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.IndexingStartedEvent
 import org.mule.weave.lsp.project.ProjectKind

@@ -8,12 +8,14 @@ import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.ServerCapabilities
 import org.eclipse.lsp4j.TextDocumentSyncKind
+import org.eclipse.lsp4j.jsonrpc.services.JsonDelegate
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
-import org.mule.weave.lsp.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.Commands
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.services.DependencyManagerService
 import org.mule.weave.lsp.indexer.LSPWeaveIndexService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
@@ -25,12 +27,14 @@ import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.DataWeaveDependencyManagerService
 import org.mule.weave.lsp.services.DataWeaveDocumentService
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.PreviewService
-import org.mule.weave.lsp.services.TextDocumentServiceDelegate
-import org.mule.weave.lsp.services.WorkspaceServiceDelegate
+import org.mule.weave.lsp.services.delegate.DependencyManagerServiceDelegate
+import org.mule.weave.lsp.services.delegate.TextDocumentServiceDelegate
+import org.mule.weave.lsp.services.delegate.WorkspaceServiceDelegate
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.lsp.vfs.LibrariesVirtualFileSystem
@@ -56,7 +60,9 @@ class WeaveLanguageServer extends LanguageServer {
   private val eventbus = new EventBus(IDEExecutors.eventsExecutor())
   private val executorService = IDEExecutors.defaultExecutor()
 
-  private val weaveWorkspaceService: WorkspaceServiceDelegate = new WorkspaceServiceDelegate()
+  private val workspaceService: WorkspaceServiceDelegate = new WorkspaceServiceDelegate()
+
+  private val dependencyManagerService: DependencyManagerServiceDelegate = new DependencyManagerServiceDelegate()
   private var globalFVS: VirtualFileSystem = _
 
   private val textDocumentService: TextDocumentServiceDelegate = new TextDocumentServiceDelegate()
@@ -117,17 +123,18 @@ class WeaveLanguageServer extends LanguageServer {
     clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
     clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
 
-    //Init The LSP Services
-    val documentService = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
-    textDocumentService.delegate = documentService
-    val workspaceService = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, previewService)
-    weaveWorkspaceService.delegate = workspaceService
-
-
+    //Init The LSP Services And wire the implementation
+    val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
+    textDocumentService.delegate = documentServiceImpl
+    val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, previewService)
+    workspaceService.delegate = workspaceServiceImpl
+    val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
+    dependencyManagerService.delegate = dependencyManagerImpl
 
     services.++=(Seq(
-      workspaceService,
-      documentService,
+      dependencyManagerImpl,
+      workspaceServiceImpl,
+      documentServiceImpl,
       weaveAgentService,
       dataWeaveToolingService,
       previewService,
@@ -207,7 +214,13 @@ class WeaveLanguageServer extends LanguageServer {
 
   override def getWorkspaceService: WorkspaceService = {
     logger.log(Level.INFO, "getWorkspaceService")
-    weaveWorkspaceService
+    workspaceService
+  }
+
+  @JsonDelegate
+  def getDependencyManager: DependencyManagerService = {
+    logger.log(Level.INFO, "getDependencyManager")
+    dependencyManagerService
   }
 
   def connect(client: WeaveLanguageClient): Unit = {

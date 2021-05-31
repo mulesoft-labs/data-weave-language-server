@@ -8,6 +8,9 @@ import { showInputBox, showQuickPick } from './widgets';
 import { LaunchConfiguration } from './interfaces/configurations';
 import { OpenTextDocument } from './interfaces/openTextDocument';
 import { ShowPreviewResult } from './interfaces/preview';
+import { PublishDependenciesNotification } from './interfaces/dependency';
+import { WeaveDependenciesProvider } from './dependencyTree';
+import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
 
 
 export function handleCustomMessages(client: LanguageClient, context: ExtensionContext) {
@@ -16,7 +19,6 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     client.onRequest(WeaveInputBox.type, (options, requestToken) => {
         return showInputBox(options);
     });
-
 
     client.onRequest(WeaveQuickPick.type, (options, requestToken) => {
         return showQuickPick(options);
@@ -30,22 +32,30 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         );
     })
 
-
-
     const previewLogs: OutputChannel = vscode.window.createOutputChannel("DataWeave Preview Logs");
     let languages: string[] = null
 
 
-    context.subscriptions.push(vscode.commands.registerCommand("dw.preview.enable", () => {
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ENABLE_PREVIEW, () => {
         if (vscode.window.activeTextEditor) {
-            vscode.commands.executeCommand("dw.enablePreview", true, vscode.window.activeTextEditor.document.uri.toString());
+            vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, true, vscode.window.activeTextEditor.document.uri.toString());
         }
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand("dw.preview.disable", () => {
-        vscode.commands.executeCommand("dw.enablePreview", false);        
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
+        vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
     }));
 
+    let pendenciesProvider = new WeaveDependenciesProvider()
+
+    vscode.window.createTreeView('weaveDependencies', {
+        treeDataProvider: pendenciesProvider
+    }
+    );
+
+    client.onNotification(PublishDependenciesNotification.type, (dependenciesParam) => {
+        pendenciesProvider.dependencies = dependenciesParam.dependencies
+    })
 
     client.onNotification(ShowPreviewResult.type, async (result) => {
         var previewUrl: vscode.Uri = vscode.Uri.parse("untitled:" + "/PreviewResult");

@@ -2,7 +2,7 @@ package org.mule.weave.dsp
 
 import org.eclipse.lsp4j.debug.launch.DSPLauncher
 import org.mule.weave.lsp.IDEExecutors
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger

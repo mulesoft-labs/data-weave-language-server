@@ -1,7 +1,7 @@
 package org.mule.weave.lsp.services
 
-import org.mule.weave.lsp.client.PreviewResult
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.events.OnProjectStarted
@@ -54,6 +54,9 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   }
 
   def runPreview(vf: VirtualFile): Unit = {
+    if (!vf.url().endsWith("dwl")) {
+      return
+    }
     if (!project.isStarted()) {
       pendingProjectStart = Some(vf)
       weaveLanguageClient.showPreviewResult(

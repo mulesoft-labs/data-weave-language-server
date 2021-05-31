@@ -5,13 +5,13 @@ import com.google.gson.JsonObject
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.ConfigurationParams
 import org.eclipse.lsp4j.ExecuteCommandParams
-import org.mule.weave.lsp.client.LaunchConfiguration
-import org.mule.weave.lsp.client.LaunchConfiguration._
-import org.mule.weave.lsp.client.LaunchConfigurationProperty
-import org.mule.weave.lsp.client.WeaveLanguageClient
-import org.mule.weave.lsp.client.WeaveQuickPickItem
-import org.mule.weave.lsp.client.WeaveQuickPickParams
-import org.mule.weave.lsp.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.client.LaunchConfiguration._
+import org.mule.weave.lsp.extension.client.LaunchConfigurationProperty
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveQuickPickItem
+import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
+import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
 import org.mule.weave.lsp.utils.Icons
 
 import java.util

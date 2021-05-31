@@ -19,6 +19,7 @@ import { findJavaExecutable } from './javaUtils'
 import JarFileSystemProvider from './jarFileSystemProvider'
 import { handleCustomMessages } from './weaveLanguageClient'
 import { ProjectCreation } from './interfaces/project'
+import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands'
 
 export function activate(context: ExtensionContext) {
   //Run Mapping
@@ -123,19 +124,21 @@ export function activate(context: ExtensionContext) {
   });
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation
-  const dwProjectCreateCommand = 'dw.project.create';
+
 
   const dwProjectCreateCommandHandler = () => {
     client.onReady().then(() => client.sendNotification(ProjectCreation.type))
   };
 
-  context.subscriptions.push(vscode.commands.registerCommand(dwProjectCreateCommand, dwProjectCreateCommandHandler));
+  context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.CREATE_PROJECT, dwProjectCreateCommandHandler));
 
-  context.subscriptions.push(vscode.commands.registerCommand("dw.test.create", () => {
-    vscode.commands.executeCommand("dw.createTest")
+  context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.CREATE_TEST, () => {
+    vscode.commands.executeCommand(ServerWeaveCommands.CREATE_TEST)
   }));
 
-  
+  context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
+    vscode.window.showTextDocument(resource);
+  }));
 
   context.subscriptions.push(disposableClient)
 

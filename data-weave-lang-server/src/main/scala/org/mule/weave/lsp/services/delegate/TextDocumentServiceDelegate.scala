@@ -1,4 +1,4 @@
-package org.mule.weave.lsp.services
+package org.mule.weave.lsp.services.delegate
 
 import org.eclipse.lsp4j
 import org.eclipse.lsp4j.CallHierarchyIncomingCall

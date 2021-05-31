@@ -199,3 +199,9 @@ viewColumn: vscode.ViewColumn.Beside
         }
       });
 ```
+
+
+
+ - InlineValueProvider
+ - 
+

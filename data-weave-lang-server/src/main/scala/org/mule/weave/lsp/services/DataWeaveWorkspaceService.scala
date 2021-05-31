@@ -5,7 +5,7 @@ import org.eclipse.lsp4j.DidChangeWatchedFilesParams
 import org.eclipse.lsp4j.DidChangeWorkspaceFoldersParams
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.services.WorkspaceService
-import org.mule.weave.lsp.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.CommandProvider
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind

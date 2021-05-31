@@ -38,6 +38,7 @@ object MavenDependencyManagerUtils {
 
     override def downloaded(id: String, kind: String, artifact: Future[Seq[Artifact]]): Unit = {
       Await.result(artifact, Duration.Inf).foreach((art) => {
+        onResolved(id, Seq(art))
         eventBus.fire(new DependencyArtifactResolvedEvent(Array(DependencyArtifact(id, art.file))))
       })
     }
