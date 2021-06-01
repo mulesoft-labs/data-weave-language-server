@@ -20,6 +20,7 @@ import JarFileSystemProvider from './jarFileSystemProvider'
 import { handleCustomMessages } from './weaveLanguageClient'
 import { ProjectCreation } from './interfaces/project'
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands'
+import PreviewSystemProvider from './previewFileSystemProvider'
 
 export function activate(context: ExtensionContext) {
   //Run Mapping
@@ -31,6 +32,9 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('data-weave-testing', new DataWeaveTestingRunConfigurationProvider()));
 
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('jar', new JarFileSystemProvider(), { isReadonly: true, isCaseSensitive: true }));
+
+  const previewFS = new PreviewSystemProvider()
+  context.subscriptions.push(vscode.workspace.registerFileSystemProvider('preview', previewFS, { isReadonly: true, isCaseSensitive: true }));
 
 
   function createServer(): Promise<StreamInfo> {
@@ -120,7 +124,7 @@ export function activate(context: ExtensionContext) {
 
   const disposableClient = client.start()
   client.onReady().then(() => {
-    handleCustomMessages(client, context)
+    handleCustomMessages(client, context, previewFS)
   });
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation

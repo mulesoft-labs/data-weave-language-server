@@ -11,9 +11,10 @@ import { ShowPreviewResult } from './interfaces/preview';
 import { PublishDependenciesNotification } from './interfaces/dependency';
 import { WeaveDependenciesProvider } from './dependencyTree';
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
+import PreviewSystemProvider from './previewFileSystemProvider';
 
 
-export function handleCustomMessages(client: LanguageClient, context: ExtensionContext) {
+export function handleCustomMessages(client: LanguageClient, context: ExtensionContext, previewContent: PreviewSystemProvider) {
 
 
     client.onRequest(WeaveInputBox.type, (options, requestToken) => {
@@ -57,17 +58,17 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         pendenciesProvider.dependencies = dependenciesParam.dependencies
     })
 
-    client.onNotification(ShowPreviewResult.type, async (result) => {
-        var previewUrl: vscode.Uri = vscode.Uri.parse("untitled:" + "/PreviewResult");
+    client.onNotification(ShowPreviewResult.type, async (result) => {        
         const editors = vscode.window.visibleTextEditors;
         let previewEditor = vscode.window.visibleTextEditors.find((editor) => {
-            return editor.document.uri == previewUrl
+            return editor.document.uri == PreviewSystemProvider.OUTPUT_FILE_URI
         })
+
         if (languages == null) {
             languages = await vscode.languages.getLanguages()
         }
         if (!previewEditor) {
-            previewEditor = await vscode.workspace.openTextDocument(previewUrl)
+            previewEditor = await vscode.workspace.openTextDocument(PreviewSystemProvider.OUTPUT_FILE_URI)
                 .then((document) => {
                     vscode.languages.setTextDocumentLanguage(document, "json");
                     return vscode.window.showTextDocument(document, vscode.ViewColumn.Beside, true)
@@ -89,15 +90,9 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         }
 
         if (result.success) {
-            previewEditor.edit((edit) => {
-                clearPreviewEditor(edit, previewEditor);
-                edit.insert(new vscode.Position(0, 0), result.content)
-            })
+            previewContent.previewContent = result.content            
         } else {
-            previewEditor.edit((edit) => {
-                clearPreviewEditor(edit, previewEditor);
-                edit.insert(new vscode.Position(0, 0), result.errorMessage)
-            })
+            previewContent.previewContent = result.errorMessage            
         }
 
         //Show logs in debugg console
@@ -123,7 +118,6 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     })
 
     client.onNotification(LaunchConfiguration.type, (params) => {
-
         const additionalProps = params.properties.reduce((acc, cur, i) => {
             acc[cur.name] = cur.value;
             return acc;
@@ -138,15 +132,6 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         }
         const workspaceFolder: WorkspaceFolder = vscode.workspace.workspaceFolders[0];
         vscode.debug.startDebugging(workspaceFolder, config)
-    });
-
-    function clearPreviewEditor(edit: vscode.TextEditorEdit, previewEditor: TextEditor) {
-        if (previewEditor.document) {
-            var firstLine = previewEditor.document.lineAt(0);
-            var lastLine = previewEditor.document.lineAt(previewEditor.document.lineCount - 1);
-            var textRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
-            edit.delete(textRange);
-        }
-    }
+    });    
 }
 

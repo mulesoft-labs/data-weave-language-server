@@ -11,6 +11,22 @@ import scala.util.Try
   */
 object URLUtils {
 
+  def isSupportedDocumentScheme(uri: String) = {
+    toURI(uri)
+      .exists((uri) => {
+        val scheme: String = uri.getScheme
+        scheme == "file" || scheme == "untitled" || scheme == "preview" || scheme == "jar"
+      })
+  }
+
+  def isSupportedEditableScheme(uri: String) = {
+    toURI(uri)
+      .exists((uri) => {
+        val scheme: String = uri.getScheme
+        scheme == "file" || scheme == "untitled"
+      })
+  }
+
   def toURI(path: String): Option[URI] = {
     Try(new URI(path)).toOption
   }

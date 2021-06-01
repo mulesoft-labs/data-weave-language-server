@@ -13,6 +13,7 @@ import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.OnDocumentChanged
 import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.editor.VirtualFile
 
 import java.util.Collections
@@ -22,14 +23,14 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   private var eventBus: EventBus = _
 
   @volatile
-  private var started: Boolean = false
+  private var enableValue: Boolean = false
   private var pendingProjectStart: Option[VirtualFile] = None
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.eventBus = eventBus
     eventBus.register(DocumentChangedEvent.DOCUMENT_CHANGED, new OnDocumentChanged {
       override def onDocumentChanged(vf: VirtualFile): Unit = {
-        if (started) {
+        if (enableValue) {
           runPreview(vf)
         }
       }
@@ -37,7 +38,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
     eventBus.register(DocumentOpenedEvent.DOCUMENT_OPENED, new OnDocumentOpened {
       override def onDocumentOpened(vf: VirtualFile): Unit = {
-        if (started) {
+        if (enableValue) {
           runPreview(vf)
         }
       }
@@ -45,7 +46,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
     eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
       override def onProjectStarted(project: Project): Unit = {
-        if (started && pendingProjectStart.isDefined) {
+        if (enableValue && pendingProjectStart.isDefined) {
           runPreview(pendingProjectStart.get)
           pendingProjectStart = None
         }
@@ -54,7 +55,8 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   }
 
   def runPreview(vf: VirtualFile): Unit = {
-    if (!vf.url().endsWith("dwl")) {
+    //If is the Preview scheme then we should ignore it
+    if (!URLUtils.isSupportedEditableScheme(vf.url())) {
       return
     }
     if (!project.isStarted()) {
@@ -70,16 +72,16 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
       agentService.run(vf.getNameIdentifier, vf.read(), vf.url())
         .thenApply((previewResult) => {
           weaveLanguageClient.showPreviewResult(previewResult)
-          return null
+          null
         })
     }
   }
 
-  override def start(): Unit = {
-    started = true
+  def enable(): Unit = {
+    this.enableValue = true
   }
 
-  override def stop(): Unit = {
-    started = false
+  def disable(): Unit = {
+    this.enableValue = false
   }
 }
