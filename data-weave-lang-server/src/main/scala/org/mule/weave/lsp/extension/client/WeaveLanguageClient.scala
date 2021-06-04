@@ -5,6 +5,7 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.services.LanguageClient
 
 import java.util
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import javax.annotation.Nullable
 
@@ -29,7 +30,10 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonRequest("weave/quickPick")
   def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult]
 
-
+  /**
+    * Opens a folder in a new window
+    * @param params
+    */
   @JsonNotification("weave/folder/open")
   def openWindow(params: OpenWindowsParams): Unit
 
@@ -62,8 +66,28 @@ trait WeaveLanguageClient extends LanguageClient {
     * @param resolvedDependency The list of all the resolved dependencies
     */
   @JsonNotification("weave/workspace/publishDependencies")
-  def publishDependencies(resolvedDependency: DependenciesParams)
+  def publishDependencies(resolvedDependency: DependenciesParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to inform the user that a background job has started.
+    *
+    * @param job The job information that has started
+    */
+  @JsonNotification("weave/workspace/notifyJobStarted")
+  def notifyJobStarted(job: JobStartedParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to inform the user that a background job has finish.
+    *
+    * @param job The job information that has ended
+    */
+  @JsonNotification("weave/workspace/notifyJobEnded")
+  def notifyJobEnded(job: JobEndedParams): Unit
 }
+
+case class JobStartedParams(id: String = UUID.randomUUID().toString, label: String, description: String)
+
+case class JobEndedParams(id: String)
 
 case class DependenciesParams(
                                //The list of dependencies

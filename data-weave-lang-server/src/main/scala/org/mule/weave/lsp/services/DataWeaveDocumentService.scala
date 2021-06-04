@@ -44,7 +44,6 @@ import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.project.ProjectKind
-import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentClosedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent

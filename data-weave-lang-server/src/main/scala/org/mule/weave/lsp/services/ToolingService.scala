@@ -1,4 +1,4 @@
-package org.mule.weave.lsp.project.service
+package org.mule.weave.lsp.services
 
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.utils.EventBus

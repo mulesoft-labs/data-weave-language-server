@@ -4,7 +4,7 @@ import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
-import org.mule.weave.lsp.project.service.ToolingService
+import org.mule.weave.lsp.services.ToolingService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus

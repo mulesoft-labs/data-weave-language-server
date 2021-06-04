@@ -9,7 +9,7 @@ import * as path from 'path'
 import * as net from 'net'
 import * as child_process from 'child_process'
 
-import { workspace, ExtensionContext, commands, window, Uri } from 'vscode'
+import { workspace, ExtensionContext, commands, window, Uri, ProgressLocation } from 'vscode'
 import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-languageclient'
 import { BatRunner } from './batRunner'
 import { PassThrough } from 'stream'
@@ -121,13 +121,13 @@ export function activate(context: ExtensionContext) {
   }
   const client = new LanguageClient('data-weave', 'Data Weave Language Server', createServer, clientOptions)
   // Create the language client and start the client.
-
   const disposableClient = client.start()
   client.onReady().then(() => {
     handleCustomMessages(client, context, previewFS)
   });
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation
+  context.subscriptions.push(disposableClient)
 
 
   const dwProjectCreateCommandHandler = () => {
@@ -143,10 +143,6 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
     vscode.window.showTextDocument(resource);
   }));
-
-  context.subscriptions.push(disposableClient)
-
-
 
 }
 

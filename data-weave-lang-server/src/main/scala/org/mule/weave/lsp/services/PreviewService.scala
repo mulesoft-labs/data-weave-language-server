@@ -1,13 +1,12 @@
 package org.mule.weave.lsp.services
 
+import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
-import org.mule.weave.lsp.project.service.ToolingService
-import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.OnDocumentChanged

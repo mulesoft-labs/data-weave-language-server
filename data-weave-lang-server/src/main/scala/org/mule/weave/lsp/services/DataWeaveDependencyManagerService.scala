@@ -12,7 +12,6 @@ import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnDependencyArtifactRemoved
 import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
-import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 
 import java.util

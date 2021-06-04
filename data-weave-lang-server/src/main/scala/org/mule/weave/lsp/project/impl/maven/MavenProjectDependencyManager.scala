@@ -13,7 +13,7 @@ import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.services.ClientLogger
-import org.mule.weave.lsp.services.JavaLoggerForwarder.interceptLog
+import org.mule.weave.lsp.utils.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus

@@ -15,7 +15,6 @@ import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
-import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
