@@ -1,4 +1,6 @@
-package org.mule.weave.lsp.services
+package org.mule.weave.lsp.utils
+
+import org.mule.weave.lsp.services.ClientLogger
 
 import java.util.logging.Handler
 import java.util.logging.Level

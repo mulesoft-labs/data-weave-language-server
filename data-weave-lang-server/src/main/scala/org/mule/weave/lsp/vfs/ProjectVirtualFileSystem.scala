@@ -4,12 +4,11 @@ import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
-import org.mule.weave.lsp.project.service.ToolingService
+import org.mule.weave.lsp.services.ToolingService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
-import org.mule.weave.lsp.utils.URLUtils.toURI
 import org.mule.weave.lsp.utils.VFUtils
 import org.mule.weave.lsp.vfs.resource.FolderWeaveResourceResolver
 import org.mule.weave.v2.editor.ChangeListener
@@ -76,7 +75,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
   def update(uri: String, content: String): Option[VirtualFile] = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"Update: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -101,13 +100,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
 
-  private def isSupportedScheme(uri: String) = {
-    toURI(uri)
-      .exists((uri) => {
-        val scheme = uri.getScheme
-        scheme == "file" || scheme == "untitled"
-      })
-  }
+
 
   /**
     * Mark the specified Uri as closed. All memory representation should be cleaned
@@ -115,7 +108,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The Uri of the file
     */
   def closed(uri: String): Option[VirtualFile] = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"closed: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -131,7 +124,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be marked as saved
     */
   def saved(uri: String): Option[VirtualFile] = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"saved: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -147,7 +140,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be marked as changed
     */
   private def changed(uri: String): Unit = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"changed: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -165,7 +158,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be deleted
     */
   private def deleted(uri: String): Unit = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"deleted: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -180,7 +173,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
   private def created(uri: String): Unit = {
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"created: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -214,7 +207,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
 
   override def file(uri: String): VirtualFile = {
     logger.log(Level.INFO, s"file ${uri}")
-    val supportedScheme = isSupportedScheme(uri)
+    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"Ignoring ${uri} as it is not supported. Most probably is a read only")
       null

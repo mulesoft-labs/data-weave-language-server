@@ -1,4 +1,4 @@
-package org.mule.weave.lsp.project.service
+package org.mule.weave.lsp.agent
 
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.project.Project
@@ -14,6 +14,7 @@ import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
+import org.mule.weave.lsp.services.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.v2.completion.DataFormatDescriptor

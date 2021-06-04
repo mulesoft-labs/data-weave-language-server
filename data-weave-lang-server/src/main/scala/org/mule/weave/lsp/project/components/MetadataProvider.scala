@@ -1,7 +1,7 @@
 package org.mule.weave.lsp.project.components
 
 import org.eclipse.lsp4j.FileChangeType
-import org.mule.weave.lsp.project.service.WeaveAgentService
+import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus

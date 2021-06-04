@@ -25,7 +25,7 @@ import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 import java.io.File
 
 class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus) extends ProjectKind {
-  override def name(): String = "Simple"
+  override def name(): String = "DW `Simple`"
 
   override def structure(): ProjectStructure = {
     val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)

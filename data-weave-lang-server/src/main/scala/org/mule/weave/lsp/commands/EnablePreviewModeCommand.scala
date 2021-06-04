@@ -14,13 +14,13 @@ class EnablePreviewModeCommand(previewService: PreviewService, virtualFile: Virt
     val enabled = argAsBoolean(params.getArguments, 0)
     if (enabled) {
       val uri = argAsString(params.getArguments, 1)
-      previewService.start()
+      previewService.enable()
       val file: VirtualFile = virtualFile.file(uri)
       if (file != null) {
         previewService.runPreview(file)
       }
     } else {
-      previewService.stop()
+      previewService.disable()
     }
     null
   }

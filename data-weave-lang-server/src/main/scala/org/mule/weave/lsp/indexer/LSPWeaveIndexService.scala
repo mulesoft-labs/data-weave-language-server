@@ -2,14 +2,16 @@ package org.mule.weave.lsp.indexer
 
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
+import org.mule.weave.lsp.extension.client.JobEndedParams
+import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.IndexingStartedEvent
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
-import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.ArtifactVirtualFileSystem
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
@@ -29,6 +31,7 @@ import org.mule.weave.v2.editor.indexing.WeaveIndexService
 import org.mule.weave.v2.sdk.ParsingContextFactory
 
 import java.util
+import java.util.UUID
 import java.util.concurrent.Callable
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.ForkJoinTask
@@ -103,16 +106,17 @@ class LSPWeaveIndexService(clientLogger: ClientLogger,
             }
           }
         })
+        val jobId = UUID.randomUUID().toString
+        weaveLanguageClient.notifyJobStarted(JobStartedParams(id = jobId, label = "Indexing Project", description = "Indexing all project dependencies"))
         val start = System.currentTimeMillis()
         eventBus.fire(new IndexingStartedEvent())
         indexedPool.invokeAll(util.Arrays.asList(forks: _*))
         eventBus.fire(new IndexingFinishedEvent())
         clientLogger.logInfo(s"Indexing all libraries finished and took ${System.currentTimeMillis() - start}ms.")
+        weaveLanguageClient.notifyJobEnded(JobEndedParams(jobId))
         weaveLanguageClient.showMessage(new MessageParams(MessageType.Info, "Project Indexed"))
       }
     })
-
-
   }
 
 

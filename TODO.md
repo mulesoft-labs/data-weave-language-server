@@ -16,6 +16,7 @@ THIN CLIENT
 
 MULEDX Platform
   - Service Client Proxy (what can be resolved local it is resolved if not remote)
+  - https://github.com/pf4j/pf4j (plugins architecture)
 
 
 We should be able to do all the logic on the server and the UI should just be UI components.

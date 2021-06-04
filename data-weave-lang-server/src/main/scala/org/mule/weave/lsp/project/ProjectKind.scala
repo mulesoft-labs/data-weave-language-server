@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.project
 
+import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.project.components.BuildManager
 import org.mule.weave.lsp.project.components.MetadataProvider
 import org.mule.weave.lsp.project.components.NoBuildManager
@@ -10,7 +11,6 @@ import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.impl.bat.BatProjectKindDetector
 import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
-import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 

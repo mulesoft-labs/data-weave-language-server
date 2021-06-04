@@ -9,7 +9,6 @@ import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.CommandProvider
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
-import org.mule.weave.lsp.project.service.ToolingService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem

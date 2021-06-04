@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.project.impl.maven
 
+import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
@@ -15,7 +16,6 @@ import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.components.TargetFolder
 import org.mule.weave.lsp.project.components.TargetKind
 import org.mule.weave.lsp.project.components.WTFSampleDataManager
-import org.mule.weave.lsp.project.service.WeaveAgentService
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
 
@@ -41,7 +41,7 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
   private val dataManager = new WTFSampleDataManager(structure())
   private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(dataManager, weaveAgentService, eventBus)
 
-  override def name(): String = "Maven"
+  override def name(): String = "DW `Maven`"
 
   override def structure(): ProjectStructure = {
     projectStructure
