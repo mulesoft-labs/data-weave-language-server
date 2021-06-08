@@ -46,7 +46,7 @@ export function showQuickPick(options: WeaveQuickPickParams) {
         quickPick.title = options.title;
         quickPick.ignoreFocusOut = options.ignoreFocusOut;
         quickPick.step = options.step;
-        quickPick.totalSteps = options.totalSteps;
+        quickPick.totalSteps = options.totalSteps;  
         quickPick.items = options.items
 
         if(options.buttons){

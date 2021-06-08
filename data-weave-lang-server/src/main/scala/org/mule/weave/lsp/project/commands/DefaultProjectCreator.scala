@@ -8,9 +8,9 @@ import java.nio.file.Files
 import scala.io.Source._
 
 
-class ProjectCreator(projectInfo: ProjectCreationInfo) {
+class DefaultProjectCreator() extends ProjectCreator {
 
-  def create() : Unit = {
+  def create(projectInfo: ProjectCreationInfo) : Unit = {
     val source = fromResource("pom-default.xml")
     val projectPath = new File(projectInfo.pathToCreate.resolve(projectInfo.projectName)).toPath
     Files.createDirectories(projectPath)
@@ -39,4 +39,9 @@ class ProjectCreator(projectInfo: ProjectCreationInfo) {
   }
 }
 
-case class ProjectCreationInfo(groupId: String, artifactId: String, version: String, projectName: String, pathToCreate: URI)
+trait ProjectCreator{
+
+  def create(projectInfo: ProjectCreationInfo)
+}
+
+case class ProjectCreationInfo(var groupId: String = "", var artifactId: String = "", var version: String = "", var projectName: String = "", var pathToCreate: URI = null)

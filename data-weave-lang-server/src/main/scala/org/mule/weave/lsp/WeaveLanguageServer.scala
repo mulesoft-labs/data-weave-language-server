@@ -235,7 +235,10 @@ class WeaveLanguageServer extends LanguageServer {
 
   @JsonNotification("weave/project/create")
   def createProject(): Unit = {
-    val projectProvider = new ProjectProvider(client, workspaceUri)
-    projectProvider.newProject()
+    CompletableFuture.supplyAsync(() => {
+      val projectProvider = new ProjectProvider(client, workspaceUri)
+      projectProvider.newProject()
+    })
+
   }
 }
