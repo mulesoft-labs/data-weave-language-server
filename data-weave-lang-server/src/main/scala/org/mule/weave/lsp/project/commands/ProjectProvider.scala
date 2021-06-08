@@ -27,42 +27,43 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
 
   def newProject(): Unit = {
 
+    val createProjectTitle = "Create Project"
     val orgIdStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
-      .widgetBuilder(new InputWidgetBuilder(client).title("Organization Id").default("org.mycompany").prompt("Organization ID").result((projectInfo, result) => {
+      .widgetBuilder(new InputWidgetBuilder(client).title(createProjectTitle).default("org.mycompany").prompt("Organization ID").result((projectInfo, result) => {
         projectInfo.groupId = result
         projectInfo
       }))
 
     val artifactIdStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
-      .widgetBuilder(new InputWidgetBuilder(client).default("example").prompt("Artifact ID").result((projectInfo, result) => {
+      .widgetBuilder(new InputWidgetBuilder(client).title(createProjectTitle).default("example").prompt("Artifact ID").result((projectInfo, result) => {
         projectInfo.artifactId = result
         projectInfo
       }))
 
 
     val versionStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
-      .widgetBuilder(new InputWidgetBuilder(client).default("1.0.0-SNAPSHOT").prompt("Version").result((projectInfo, result) => {
+      .widgetBuilder(new InputWidgetBuilder(client).title(createProjectTitle).default("1.0.0-SNAPSHOT").prompt("Version").result((projectInfo, result) => {
         projectInfo.version = result
         projectInfo
       }))
 
     val projectNameStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
-      .widgetBuilder(new InputWidgetBuilder(client).default("example-project").prompt("Project name").result((projectInfo, result) => {
+      .widgetBuilder(new InputWidgetBuilder(client).title(createProjectTitle).default("example-project").prompt("Project name").result((projectInfo, result) => {
         projectInfo.projectName = result
         projectInfo
       }))
 
     val pathStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
-      .widgetBuilder(createFSChooser(Some(new File(workspaceLocation).toPath)))
+      .widgetBuilder(createFSChooser(Some(new File(workspaceLocation).toPath)).title(createProjectTitle))
 
 
     val info = new DefaultWizardBuilder[ProjectCreationInfo] //
-      .modelProvider(() => ProjectCreationInfo(groupId = "org.mycompany", artifactId = "example", version = "1.0.0-SNAPSHOT", projectName = "example-project", pathToCreate = new File(workspaceLocation).toPath.toUri))
+      .modelProvider(() => ProjectCreationInfo(groupId = "org.mycompany", artifactId = "example", version = "1.0.0-SNAPSHOT", projectName = "example-project", pathToCreate = new File(workspaceLocation).toPath))
       .step(orgIdStep).step(artifactIdStep).step(versionStep).step(projectNameStep).step(pathStep).create().open()
 
     new DefaultProjectCreator().create(info)
 
-    askForWindow(info.pathToCreate.resolve(info.projectName))
+    askForWindow(info.pathToCreate.resolve(info.projectName).toUri)
 
   }
 
@@ -86,7 +87,7 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
       (WeaveQuickPickItem(
         id = filename,
         label = s"${icons.folder} $filename"
-      ), (projectInfo: ProjectCreationInfo) => createFSChooser(Some(new File(projectInfo.pathToCreate).toPath)).create().show(projectInfo))
+      ), (projectInfo: ProjectCreationInfo) => createFSChooser(Some(projectInfo.pathToCreate)).create().show(projectInfo))
     }
 
     val paths: List[(WeaveQuickPickItem, ProjectCreationInfo => WidgetResult[ProjectCreationInfo])] = from match {

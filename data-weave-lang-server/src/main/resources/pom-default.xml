@@ -4,19 +4,22 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>@group-id@</groupId>
     <artifactId>@artifact-id@</artifactId>
     <version>@version@</version>
+
+
+    <packaging>dw-library</packaging>
 
     <name>@project-name@</name>
 
     <properties>
         <weave.version>2.4.0-SNAPSHOT</weave.version>
-        <wtf.version>1.0.5</wtf.version>
+        <wtf.version>1.0.3-SNAPSHOT</wtf.version>
     </properties>
 
     <dependencies>
+
         <dependency>
             <groupId>org.mule.weave</groupId>
             <artifactId>runtime</artifactId>
