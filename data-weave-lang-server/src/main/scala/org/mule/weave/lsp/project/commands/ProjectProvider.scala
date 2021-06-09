@@ -1,7 +1,6 @@
 package org.mule.weave.lsp.project.commands
 
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
-import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveQuickPickItem
 import org.mule.weave.lsp.ui.wizard.DefaultWizardBuilder
@@ -129,29 +128,5 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
           openWindow(newWindow = true)
         case _ =>
       }
-  }
-
-
-  private def askForName(
-                          default: String,
-                          prompt: String
-                        ): Future[Option[String]] = {
-    client
-      .weaveInputBox(
-        WeaveInputBoxParams(
-          prompt = prompt,
-          value = default
-        )
-      )
-      .toScala
-      .flatMap {
-        case name if !name.cancelled && name.value != null =>
-          Future.successful(Some(name.value))
-        case name if name.cancelled =>
-          Future.successful(None)
-        // reask if empty
-        case _ => askForName(default, prompt)
-      }
-
   }
 }
