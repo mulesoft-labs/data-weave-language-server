@@ -25,6 +25,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         jobs[jobId.id] = { label: jobId.label, description: jobId.description }
         statusBar.text = "$(sync~spin) " + jobId.label + " ..."
         statusBar.tooltip = jobId.description
+        statusBar.command = ClientWeaveCommands.SHOW_LOG
         statusBar.show()
     });
 
@@ -79,6 +80,10 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
+    }));  
+    
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.SHOW_LOG, () => {
+        client.outputChannel.show(true)
     }));
 
 

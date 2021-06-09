@@ -1,6 +1,7 @@
 package org.mule.weave.lsp.commands
 
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.ClientLogger
@@ -15,6 +16,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
                       languageClient: WeaveLanguageClient,
                       project: Project,
                       projectKind: ProjectKind,
+                      jobManagerService: JobManagerService,
                       validationService: DataWeaveToolingService,
                       previewService: PreviewService
                      ) {
@@ -26,7 +28,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new CreateTestCommand(projectKind, languageClient),
     new EnablePreviewModeCommand(previewService, virtualFileSystem),
     new InstallBatCommand(clientLogger),
-    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, languageClient),
+    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient),
     new LaunchWeaveCommand(languageClient),
     new QuickFixCommand(validationService),
     new InsertDocumentationCommand(validationService)

@@ -7,6 +7,7 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.commands.CommandProvider
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.events.FileChangedEvent
@@ -29,6 +30,7 @@ class DataWeaveWorkspaceService(
                                  clientLogger: ClientLogger,
                                  languageClient: WeaveLanguageClient,
                                  dataWeaveToolingService: DataWeaveToolingService,
+                                 jobManagerService: JobManagerService,
                                  previewService: PreviewService
                                ) extends WorkspaceService with ToolingService {
 
@@ -40,7 +42,15 @@ class DataWeaveWorkspaceService(
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.eventBus = eventBus
     this.projectKind = projectKind
-    this.commandProvider = new CommandProvider(vfs, projectVirtualFileSystem, clientLogger, languageClient, project, projectKind, dataWeaveToolingService, previewService)
+    this.commandProvider = new CommandProvider(vfs,
+      projectVirtualFileSystem,
+      clientLogger,
+      languageClient,
+      project,
+      projectKind,
+      jobManagerService,
+      dataWeaveToolingService,
+      previewService)
   }
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {

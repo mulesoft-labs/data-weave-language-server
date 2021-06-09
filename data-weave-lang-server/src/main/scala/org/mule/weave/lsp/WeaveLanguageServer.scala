@@ -126,15 +126,15 @@ class WeaveLanguageServer extends LanguageServer {
       projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
-
+      jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
       val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, previewService)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, previewService)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
-      jobManagerService = new JobManagerService(executorService, client)
+
 
       services.++=(Seq(
         dependencyManagerImpl,
@@ -174,7 +174,7 @@ class WeaveLanguageServer extends LanguageServer {
 
   override def initialized(params: InitializedParams): Unit = {
     //Start the project
-    jobManagerService.submit(new Runnable {
+    jobManagerService.schedule(new Runnable {
       override def run(): Unit = {
         try {
           clientLogger.logInfo(s"[DataWeave] Project Kind: ${projectKind.name()} Starting.")

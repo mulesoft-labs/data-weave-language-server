@@ -4,8 +4,8 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
 import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher.launch
-import org.mule.weave.lsp.IDEExecutors
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
@@ -14,8 +14,6 @@ import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
-import java.io.IOException
-import java.net.ServerSocket
 import java.util.concurrent.CountDownLatch
 
 //LSP .....
@@ -27,6 +25,7 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
                       project: Project,
                       projectKind: ProjectKind,
                       clientLogger: ClientLogger,
+                      jobManagerService: JobManagerService,
                       languageClient: WeaveLanguageClient) extends WeaveCommand {
 
   override def commandId(): String = Commands.DW_RUN_MAPPING
@@ -43,12 +42,10 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
     } else {
       val port: Int = NetUtils.freePort()
       val latch = new CountDownLatch(1)
-      IDEExecutors.defaultExecutor().submit(new Runnable {
-        override def run(): Unit = {
-          val launcher: ProcessLauncher = ProcessLauncher.createLauncherByType(config, projectKind, clientLogger, languageClient, projectVirtualFileSystem)
-          launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, () => latch.countDown(), port)
-        }
-      })
+      jobManagerService.schedule(() => {
+        val launcher: ProcessLauncher = ProcessLauncher.createLauncherByType(config, projectKind, clientLogger, languageClient, projectVirtualFileSystem)
+        launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, jobManagerService, () => latch.countDown(), port)
+      }, "Starting Debugger Server", "Starting Debugger Server")
       latch.await()
       port
     }

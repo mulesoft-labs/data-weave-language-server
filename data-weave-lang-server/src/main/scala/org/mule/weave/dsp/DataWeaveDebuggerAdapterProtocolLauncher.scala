@@ -3,6 +3,7 @@ package org.mule.weave.dsp
 import org.eclipse.lsp4j.debug.launch.DSPLauncher
 import org.mule.weave.lsp.IDEExecutors
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
@@ -26,6 +27,7 @@ object DataWeaveDebuggerAdapterProtocolLauncher {
              languageClient: WeaveLanguageClient,
              processLauncher: ProcessLauncher,
              projectKind: ProjectKind,
+             jobManagerService: JobManagerService,
              onServerStarted: () => Unit,
              dapPort: Int): Unit = {
     logger.log(Level.INFO, s"[DataWeaveDebuggerAdapterProtocolLauncher] Starting Adapter Protocol Process at ${dapPort}.")
@@ -35,7 +37,16 @@ object DataWeaveDebuggerAdapterProtocolLauncher {
     logger.log(Level.INFO, s"[DataWeaveDebuggerAdapterProtocolLauncher] Connection established.")
     val in: InputStream = socket.getInputStream
     val out: OutputStream = socket.getOutputStream
-    val testDebugServer = new DataWeaveDebuggerProtocolAdapter(virtualFileSystem, clientLogger, languageClient, processLauncher, projectKind, IDEExecutors.debuggingExecutor())
+    val testDebugServer: DataWeaveDebuggerProtocolAdapter =
+      new DataWeaveDebuggerProtocolAdapter(
+        virtualFileSystem = virtualFileSystem,
+        clientLogger = clientLogger,
+        languageClient = languageClient,
+        launcher = processLauncher,
+        projectKind = projectKind,
+        executor = IDEExecutors.debuggingExecutor(),
+        jobManagerService = jobManagerService)
+
     val launcher = DSPLauncher.createServerLauncher(testDebugServer, in, out)
     testDebugServer.connect(launcher.getRemoteProxy)
     launcher.startListening
