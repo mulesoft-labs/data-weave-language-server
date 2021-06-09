@@ -5,6 +5,7 @@ export class ClientWeaveCommands {
     public static CREATE_PROJECT = 'dw.project.create';
     public static ENABLE_PREVIEW = "dw.preview.enable"
     public static DISABLE_PREVIEW = "dw.preview.disable"
+    public static SHOW_LOG = "dw.showLog"
 }
 
 export class ServerWeaveCommands {

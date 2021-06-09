@@ -17,6 +17,7 @@ import org.eclipse.lsp4j.debug._
 import org.eclipse.lsp4j.debug.services.IDebugProtocolClient
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
@@ -65,7 +66,8 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
                                        languageClient: WeaveLanguageClient,
                                        launcher: ProcessLauncher,
                                        projectKind: ProjectKind,
-                                       executor: ExecutorService
+                                       executor: ExecutorService,
+                                       jobManagerService: JobManagerService
                                       ) extends IDebugProtocolServer with DebuggerClientListener {
 
   val MAX_RETRY = 20
@@ -161,10 +163,15 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
 
       //Trigger build before each run
       if (config.buildBefore) {
-        projectKind.buildManager().build()
+        jobManagerService.execute(() => {
+          projectKind.buildManager().build()
+        }, "Building Project", s"Building `${projectKind.name()}` Project.")
+
       }
 
-      process = launcher.launch(config, debugMode)
+      jobManagerService.execute(() => {
+        process = launcher.launch(config, debugMode)
+      }, "Launching Process", s"Launching Process.")
       if (process.isDefined) {
         executor.execute(() => {
           //Block the process
