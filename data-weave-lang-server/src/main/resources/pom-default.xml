@@ -8,9 +8,6 @@
     <artifactId>@artifact-id@</artifactId>
     <version>@version@</version>
 
-
-    <packaging>dw-library</packaging>
-
     <name>@project-name@</name>
 
     <properties>
