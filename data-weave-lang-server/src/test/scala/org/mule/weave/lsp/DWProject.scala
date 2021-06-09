@@ -35,6 +35,8 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.JobEndedParams
+import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
@@ -360,6 +362,20 @@ class DWProject(val workspaceRoot: Path) {
       override def showPreviewResult(result: PreviewResult): Unit = {}
 
       override def publishDependencies(resolvedDependency: DependenciesParams): Unit = {}
+
+      /**
+        * This notification is sent from the server to the client to inform the user that a background job has started.
+        *
+        * @param job The job information that has started
+        */
+      override def notifyJobStarted(job: JobStartedParams): Unit = ???
+
+      /**
+        * This notification is sent from the server to the client to inform the user that a background job has finish.
+        *
+        * @param job The job information that has ended
+        */
+      override def notifyJobEnded(job: JobEndedParams): Unit = ???
     })
   }
 

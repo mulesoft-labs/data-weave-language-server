@@ -447,7 +447,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
           } else {
             logger.log(Level.INFO, s"[DWDebuggerAdapter] variable ${args.getVariablesReference} Is not present in registry  : \n-" + variablesRegistry.map(_.typeName()).mkString("\n- "))
             Array()
-          }
+          } 
         }
         response.setVariables(variables)
       }
