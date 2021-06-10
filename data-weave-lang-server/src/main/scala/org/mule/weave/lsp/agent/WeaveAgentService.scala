@@ -190,28 +190,25 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             sampleManager.listScenarios(nameIdentifier).headOption
               .map(_.inputs().getAbsolutePath)
           }).getOrElse("")
-
-        if (isDisconnected) {
-          PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
-        } else {
-          val startTime = System.currentTimeMillis()
-          weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets, new DefaultWeaveAgentClientListener {
-            override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
-              val endTime = System.currentTimeMillis()
-              result match {
-                case PreviewExecutedFailedEvent(message, messages) => {
-                  val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                  runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
-                }
-                case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages) => {
-                  val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                  runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
-                }
+        val startTime = System.currentTimeMillis()
+        weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets, new DefaultWeaveAgentClientListener {
+          override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
+            val endTime = System.currentTimeMillis()
+            result match {
+              case PreviewExecutedFailedEvent(message, messages) => {
+                val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
+                runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+              }
+              case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages) => {
+                val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
+                runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
               }
             }
-          })
-          runResult.get()
-        }
+          }
+        })
+        runResult.get()
+      } else {
+        PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
       }
     }, executor)
   }
