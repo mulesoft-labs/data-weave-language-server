@@ -4,7 +4,7 @@ import { LanguageClient } from 'vscode-languageclient'
 import { OpenFolder } from './interfaces/openFolder';
 import { WeaveInputBox } from './interfaces/weaveInputBox';
 import { WeaveQuickPick } from './interfaces/weaveQuickPick';
-import { showInputBox, showQuickPick } from './widgets';
+import { showInputBox, showQuickPick, TextEditorPosition } from './widgets';
 import { LaunchConfiguration } from './interfaces/configurations';
 import { OpenTextDocument } from './interfaces/openTextDocument';
 import { ShowPreviewResult } from './interfaces/preview';
@@ -80,8 +80,8 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
-    }));  
-    
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.SHOW_LOG, () => {
         client.outputChannel.show(true)
     }));
@@ -153,7 +153,14 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         vscode.workspace.openTextDocument(documentUri)
             .then(document => {
                 console.log("opening " + documentUri);
-                vscode.window.showTextDocument(document);
+                const previousActiveEditor = vscode.window.activeTextEditor;
+                var editorOpenPosition = params.position
+                if (params.position == TextEditorPosition.LEFT_FROM_ACTIVE_EDITOR && previousActiveEditor) {
+                    var previousDocument = previousActiveEditor.document
+                    editorOpenPosition = previousActiveEditor.viewColumn;
+                    vscode.window.showTextDocument(previousDocument, editorOpenPosition + 1)
+                }
+                vscode.window.showTextDocument(document, editorOpenPosition);
             });
     })
 

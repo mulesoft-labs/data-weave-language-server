@@ -9,6 +9,7 @@ import org.eclipse.lsp4j.TextDocumentEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages._
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.TextDocumentPosition
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
@@ -43,7 +44,7 @@ class CreateSampleDataCommand(projectKind: ProjectKind, weaveLanguageClient: Wea
           val edits: util.List[Either[TextDocumentEdit, ResourceOperation]] = util.Arrays.asList(createFile)
           val response = weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits))).get()
           if (response.isApplied) {
-            weaveLanguageClient.openTextDocument(OpenTextDocumentParams(toLSPUrl(inputFile)))
+            weaveLanguageClient.openTextDocument(OpenTextDocumentParams(toLSPUrl(inputFile), TextDocumentPosition.LEFT_ACTIVE_EDITOR))
           }
         }
       }

@@ -11,6 +11,7 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.TextDocumentPosition
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -58,12 +59,12 @@ class CreateTestCommand(projectKind: ProjectKind, weaveLanguageClient: WeaveLang
           val edits = util.Arrays.asList(createFile, insertText)
           val response = weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits))).get()
           if (response.isApplied) {
-            weaveLanguageClient.openTextDocument(OpenTextDocumentParams(testFileURL))
+            weaveLanguageClient.openTextDocument(OpenTextDocumentParams(testFileURL, TextDocumentPosition.REPLACE_ACTIVE_EDITOR))
           }
         }
         case None =>
       }
-    }else{
+    } else {
 
     }
     null

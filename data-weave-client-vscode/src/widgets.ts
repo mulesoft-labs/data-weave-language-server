@@ -16,7 +16,7 @@ export function showInputBox(options: InputBoxOptions) {
         inputBox.totalSteps = options.totalSteps;
         inputBox.prompt = options.prompt;
 
-        if(options.buttons){
+        if (options.buttons) {
             inputBox.buttons = options.buttons?.map((button) => {
                 var mappedButton = mapClientButton(button);
                 buttonMap.set(mappedButton, button.id);
@@ -46,15 +46,15 @@ export function showQuickPick(options: WeaveQuickPickParams) {
         quickPick.title = options.title;
         quickPick.ignoreFocusOut = options.ignoreFocusOut;
         quickPick.step = options.step;
-        quickPick.totalSteps = options.totalSteps;  
+        quickPick.totalSteps = options.totalSteps;
         quickPick.items = options.items
 
-        if(options.buttons){
-          quickPick.buttons = options.buttons?.map((button) => {
-              var mappedButton = mapClientButton(button);
-              buttonMap.set(mappedButton, button.id);
-              return mappedButton;
-          })
+        if (options.buttons) {
+            quickPick.buttons = options.buttons?.map((button) => {
+                var mappedButton = mapClientButton(button);
+                buttonMap.set(mappedButton, button.id);
+                return mappedButton;
+            })
         }
 
         quickPick.onDidTriggerButton((button) => {
@@ -88,3 +88,9 @@ export function mapClientButton(button: WeaveInputButton): QuickInputButton {
         }
     }
 }
+
+export enum CustomTextEditorPosition {
+    LEFT_FROM_ACTIVE_EDITOR = -3
+}
+
+export const TextEditorPosition = { ...CustomTextEditorPosition, ...vscode.ViewColumn }

@@ -32,6 +32,7 @@ trait WeaveLanguageClient extends LanguageClient {
 
   /**
     * Opens a folder in a new window
+    *
     * @param params
     */
   @JsonNotification("weave/folder/open")
@@ -142,6 +143,15 @@ object LaunchConfiguration {
   val DEFAULT_CONFIG_NAMES: util.List[String] = util.Arrays.asList(TYPE_PROP_NAME, REQUEST_PROP_NAME, NAME_PROP_NAME)
 }
 
+/**
+  * Position representation to open a text document relative to the active editor.
+  */
+object TextDocumentPosition {
+  val LEFT_ACTIVE_EDITOR = -3
+  val RIGHT_ACTIVE_EDITOR = -2
+  val REPLACE_ACTIVE_EDITOR = -1
+}
+
 case class LaunchConfigurationProperty(
                                         //The name of the property
                                         name: String,
@@ -150,7 +160,14 @@ case class LaunchConfigurationProperty(
                                       )
 
 
-case class OpenTextDocumentParams(uri: String)
+/** *
+  * Params for the openTextDocument message}
+  *
+  * @param uri
+  * @param position Where to locate in the UI the text document (see {@link TextDocumentPosition}) also accepts
+  *                 a fixed column number.
+  */
+case class OpenTextDocumentParams(uri: String, position: Int = TextDocumentPosition.REPLACE_ACTIVE_EDITOR)
 
 
 case class WeaveInputBoxParams(
