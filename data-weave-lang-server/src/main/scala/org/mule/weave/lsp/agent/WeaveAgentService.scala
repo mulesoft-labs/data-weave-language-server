@@ -19,6 +19,7 @@ import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.v2.completion.DataFormatDescriptor
 import org.mule.weave.v2.completion.DataFormatProperty
+import org.mule.weave.v2.debugger.client.ConnectionRetriesListener
 import org.mule.weave.v2.debugger.client.DefaultWeaveAgentClientListener
 import org.mule.weave.v2.debugger.client.WeaveAgentClient
 import org.mule.weave.v2.debugger.client.tcp.TcpClientProtocol
@@ -90,10 +91,25 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
           forwardStream(agentProcess.getErrorStream, ERROR_STREAM)
           val clientProtocol = new TcpClientProtocol("localhost", port)
           weaveAgentClient = new WeaveAgentClient(clientProtocol, new DefaultWeaveAgentClientListener())
-          weaveAgentClient.connect()
-          clientLogger.logInfo(s"[debugger-agent] Weave Agent Started at port :${port}.")
+          weaveAgentClient.connect(20, 500, new ConnectionRetriesListener {
+            override def startConnecting(): Unit = {}
+
+            override def connectedSuccessfully(): Unit = {
+              clientLogger.logInfo(s"[weave-agent] Weave Agent connected at: ${port}")
+            }
+
+            override def failToConnect(reason: String): Unit = {
+              clientLogger.logError(s"[weave-agent] Fail to connect to agent: ${reason}")
+            }
+
+            override def onRetry(count: Int, total: Int): Boolean = {
+              clientLogger.logError(s"[weave-agent] Retrying to connect: ${count}/${total}.")
+              true
+            }
+          })
+          clientLogger.logInfo(s"[weave-agent] Weave Agent Started at port :${port}.")
           if (!weaveAgentClient.isConnected()) {
-            clientLogger.logError(s"[debugger-agent] Unable to connect to Weave Agent")
+            clientLogger.logError(s"[weave-agent] Unable to connect to Weave Agent")
           }
         }
       } finally {
@@ -111,15 +127,15 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
           val line = reader.readLine()
           if (line != null) {
             if (kind == ERROR_STREAM) {
-              clientLogger.logError(s"[debugger-agent] ${line}")
+              clientLogger.logError(s"[weave-agent] ${line}")
             } else {
-              clientLogger.logInfo(s"[debugger-agent] ${line}")
+              clientLogger.logInfo(s"[weave-agent] ${line}")
             }
           }
         }
       } catch {
         case io: IOException => {
-          clientLogger.logError("[debugger-agent] Error on Agent", io)
+          clientLogger.logError("[weave-agent] Error on Agent", io)
         }
       }
     })
