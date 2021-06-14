@@ -41,7 +41,7 @@ class BatProjectHelperSpec extends FlatSpec with Matchers with BatSupport {
     val bool = downloadAndInstall()
     bool shouldBe true
 
-    wait()
+    wait(1000L)
     run(batHome.getAbsolutePath, Some("--version"))
   }
   override val clientLogger: ClientLogger = new ClientLogger(null)
