@@ -37,13 +37,23 @@ trait BatSupport {
       val msg = out.replaceAll(ansiCharacters, "")
       clientLogger.logInfo(s"$msg[BAT]")
     })
-    val stream: Stream[String] =
-      if (testPath.isDefined)
-        Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream(logger)
-      else {
-        Process(executableName, workspaceFile).lineStream(logger)
+    try {
+      val stream: Stream[String] =
+        if (testPath.isDefined)
+          Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream(logger)
+        else {
+          Process(executableName, workspaceFile).lineStream(logger)
+        }
+      val result = stream.mkString
+      clientLogger.logInfo("[BAT] Process result:")
+      clientLogger.logInfo(result)
+      result
+    } catch {
+      case e: RuntimeException => {
+        clientLogger.logError("[BAT] Error while running process", e)
+        ""
       }
-    stream.mkString
+    }
   }
 
   def setupBat(): Unit = {

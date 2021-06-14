@@ -28,7 +28,6 @@ import java.io.File.separator
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
-import java.util.logging.Logger
 
 class BatProjectHelperSpec extends FlatSpec with Matchers with BatSupport {
 
@@ -66,8 +65,6 @@ class BatProjectHelperSpec extends FlatSpec with Matchers with BatSupport {
 }
 
 class LoggerLanguageClient() extends WeaveLanguageClient {
-
-  private val logger: Logger = Logger.getLogger("BatTestClient")
 
   /**
     * Opens an input box to ask the user for input.
@@ -137,16 +134,17 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
 
   override def publishDiagnostics(publishDiagnosticsParams: PublishDiagnosticsParams): Unit = ???
 
-  override def showMessage(messageParams: MessageParams): Unit = ???
+  override def showMessage(messageParams: MessageParams): Unit = logMessage(messageParams)
 
   override def showMessageRequest(showMessageRequestParams: ShowMessageRequestParams): CompletableFuture[MessageActionItem] = ???
 
   override def logMessage(messageParams: MessageParams): Unit = {
-    messageParams.getType match {
+    val value = messageParams.getType match {
       case MessageType.Error => Level.SEVERE
       case MessageType.Warning => Level.WARNING
-      case _ => Level.INFO
+      case MessageType.Info => Level.INFO
+      case MessageType.Log => Level.FINE
     }
-    logger.log(Level.INFO, messageParams.getMessage)
+    println("[" + value + "]" + messageParams.getMessage)
   }
 }
