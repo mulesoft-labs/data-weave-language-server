@@ -2,6 +2,7 @@
 build/
 .metals/
 out/
+bin/
 *.iml
 *.ipr
 .gradle
