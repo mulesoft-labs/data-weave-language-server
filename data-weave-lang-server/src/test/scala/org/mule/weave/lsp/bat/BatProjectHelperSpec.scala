@@ -40,12 +40,6 @@ class BatProjectHelperSpec extends FlatSpec with Matchers with BatSupport {
     FileUtils.deleteDirectory(batHome)
     val bool = downloadAndInstall()
     bool shouldBe true
-
-    try Thread.sleep(1000)
-    catch {
-      case ex: InterruptedException =>
-        Thread.currentThread.interrupt()
-    }
     run(batHome.getAbsolutePath, Some("--version"))
   }
   override val clientLogger: ClientLogger = new ClientLogger(null)

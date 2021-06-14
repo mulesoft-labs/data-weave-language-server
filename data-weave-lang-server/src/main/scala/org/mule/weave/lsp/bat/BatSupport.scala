@@ -112,8 +112,12 @@ trait BatSupport {
         val outputStream = new FileOutputStream(newFile)
         val buffer = new Array[Byte](1024)
         Stream.continually(zis.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+        outputStream.close()
       }
     }
+    zis.closeEntry()
+    zis.close()
+    fileInputStream.close()
   }
 
   private def verifyBinContents(files: Array[File]): Future[Boolean] = {
