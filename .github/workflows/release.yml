@@ -16,6 +16,9 @@ jobs:
         with:
           java-version: 1.8
 
+      - name: Run Tests
+        run: ./gradlew test
+
       - name: Build Server
         run: ./gradlew data-weave-lang-server:assembleShadowDist
 
