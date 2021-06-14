@@ -32,16 +32,17 @@ trait BatSupport {
     } else {
       s"$wrapperFolder${separator}bin${separator}bat"
     }
-    val stream: Stream[String] =
-      if (testPath.isDefined)
-        Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream
-      else
-        Process(executableName, workspaceFile).lineStream
-    stream.foreach(out => {
+    val logger = ProcessLogger(out => {
       val ansiCharacters = "\u001B\\[[;\\d]*m"
       val msg = out.replaceAll(ansiCharacters, "")
       clientLogger.logInfo(s"$msg[BAT]")
     })
+    val stream: Stream[String] =
+      if (testPath.isDefined)
+        Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream(logger)
+      else {
+        Process(executableName, workspaceFile).lineStream(logger)
+      }
     stream.mkString
   }
 
