@@ -14,6 +14,7 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.InitializeParams
+import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.LocationLink
 import org.eclipse.lsp4j.MessageActionItem
@@ -368,14 +369,14 @@ class DWProject(val workspaceRoot: Path) {
         *
         * @param job The job information that has started
         */
-      override def notifyJobStarted(job: JobStartedParams): Unit = ???
+      override def notifyJobStarted(job: JobStartedParams): Unit = {}
 
       /**
         * This notification is sent from the server to the client to inform the user that a background job has finish.
         *
         * @param job The job information that has ended
         */
-      override def notifyJobEnded(job: JobEndedParams): Unit = ???
+      override def notifyJobEnded(job: JobEndedParams): Unit = {}
     })
   }
 
@@ -384,7 +385,8 @@ class DWProject(val workspaceRoot: Path) {
     lspValue.connect(client)
     val initializeParams = new InitializeParams()
     initializeParams.setRootUri(workspaceRoot.toUri.toString)
-    lspValue.initialize(initializeParams)
+    lspValue.initialize(initializeParams).get()
+    lspValue.initialized(new InitializedParams())
     lspValue
   }
 
