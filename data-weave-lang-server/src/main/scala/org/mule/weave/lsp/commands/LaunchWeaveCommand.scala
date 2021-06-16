@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.ConfigurationParams
 import org.eclipse.lsp4j.ExecuteCommandParams
+import org.eclipse.lsp4j.WorkspaceFolder
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.LaunchConfiguration._
 import org.mule.weave.lsp.extension.client.LaunchConfigurationProperty
@@ -27,9 +28,9 @@ class LaunchWeaveCommand(languageClient: WeaveLanguageClient) extends WeaveComma
     val configType: String = Commands.argAsString(params.getArguments(), 1)
 
     val item = new ConfigurationItem()
-    val workspaceFolders = languageClient.workspaceFolders().get()
+    val workspaceFolders: util.List[WorkspaceFolder] = languageClient.workspaceFolders().get()
 
-    if (!workspaceFolders.isEmpty) {
+    if (workspaceFolders != null && !workspaceFolders.isEmpty) {
       item.setScopeUri(workspaceFolders.get(0).getUri)
       item.setSection(LAUNCH_REQUEST_TYPE)
       val configurations: util.List[AnyRef] = languageClient.configuration(new ConfigurationParams(util.Arrays.asList(item))).get()

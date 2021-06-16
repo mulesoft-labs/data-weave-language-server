@@ -11,15 +11,15 @@ import scala.util.Try
   */
 object URLUtils {
 
-  def isSupportedDocumentScheme(uri: String) = {
+  def isSupportedDocumentScheme(uri: String): Boolean = {
     toURI(uri)
       .exists((uri) => {
         val scheme: String = uri.getScheme
-        scheme == "file" || scheme == "untitled" || scheme == "preview" || scheme == "jar"
+        scheme == "file" || scheme == "untitled" || scheme == "preview"
       })
   }
 
-  def isSupportedEditableScheme(uri: String) = {
+  def isSupportedEditableScheme(uri: String): Boolean = {
     toURI(uri)
       .exists((uri) => {
         val scheme: String = uri.getScheme

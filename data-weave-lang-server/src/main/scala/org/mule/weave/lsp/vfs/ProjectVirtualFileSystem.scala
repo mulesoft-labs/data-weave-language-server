@@ -75,7 +75,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
   def update(uri: String, content: String): Option[VirtualFile] = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"Update: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -100,7 +100,14 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
 
-
+  /**
+    * Returns true if this VFS supports this kind of files
+    * @param uri The Uri of the file
+    * @return True if this URL is supported by this VFS
+    */
+  def supports(uri: String): Boolean = {
+    URLUtils.isSupportedDocumentScheme(uri)
+  }
 
   /**
     * Mark the specified Uri as closed. All memory representation should be cleaned
@@ -108,7 +115,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The Uri of the file
     */
   def closed(uri: String): Option[VirtualFile] = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"closed: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -124,7 +131,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be marked as saved
     */
   def saved(uri: String): Option[VirtualFile] = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"saved: Ignoring ${uri} as it is not supported. Most probably is a read only")
       None
@@ -140,7 +147,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be marked as changed
     */
   private def changed(uri: String): Unit = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"changed: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -158,7 +165,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
     * @param uri The uri to be deleted
     */
   private def deleted(uri: String): Unit = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"deleted: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -173,7 +180,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
   private def created(uri: String): Unit = {
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"created: Ignoring ${uri} as it is not supported. Most probably is a read only")
     } else {
@@ -207,7 +214,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
 
   override def file(uri: String): VirtualFile = {
     logger.log(Level.INFO, s"file ${uri}")
-    val supportedScheme = URLUtils.isSupportedDocumentScheme(uri)
+    val supportedScheme = supports(uri)
     if (!supportedScheme) {
       logger.log(Level.INFO, s"Ignoring ${uri} as it is not supported. Most probably is a read only")
       null
@@ -249,7 +256,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
   }
 
   override def asResourceResolver: WeaveResourceResolver = {
-    val resolvers = projectStructure.modules.flatMap((module) => {
+    val resolvers: Array[FolderWeaveResourceResolver] = projectStructure.modules.flatMap((module) => {
       module.roots.flatMap((root) => {
         root.sources.map((root) => {
           new FolderWeaveResourceResolver(root, this)

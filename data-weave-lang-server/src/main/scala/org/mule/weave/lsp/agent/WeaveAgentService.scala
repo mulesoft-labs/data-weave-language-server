@@ -12,6 +12,8 @@ import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.project.components.WeaveTypeBind
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnDependencyArtifactResolved
+import org.mule.weave.lsp.project.events.OnProjectStarted
+import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.ToolingService
@@ -44,6 +46,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 /**
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
@@ -64,19 +67,25 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
         restart()
       }
     })
+
+    eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
+      override def onProjectStarted(project: Project): Unit = {
+        startAgent()
+      }
+    })
   }
 
   private def restart(): Unit = {
-    stop()
-    start()
+    stopAgent()
+    startAgent()
   }
 
   private val ERROR_STREAM = "Error"
 
-  override def start(): Unit = {
+  def startAgent() = {
     if (lock.tryLock()) {
       try {
-        if (agentProcess == null) {
+        if (!isProcessAlive) {
           val port: Int = NetUtils.freePort()
           val commandArgs: util.ArrayList[String] = JavaWeaveLauncher.buildJavaProcessBaseArgs(projectKind)
           val builder = new ProcessBuilder()
@@ -87,11 +96,12 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
           args.add(port.toString)
           builder.command(args)
           agentProcess = builder.start()
+          clientLogger.logInfo(s"[weave-agent] Starting Agent: ${args.asScala.mkString(" ")}")
           forwardStream(agentProcess.getInputStream, "Info")
           forwardStream(agentProcess.getErrorStream, ERROR_STREAM)
           val clientProtocol = new TcpClientProtocol("localhost", port)
           weaveAgentClient = new WeaveAgentClient(clientProtocol, new DefaultWeaveAgentClientListener())
-          weaveAgentClient.connect(20, 500, new ConnectionRetriesListener {
+          weaveAgentClient.connect(50, 500, new ConnectionRetriesListener {
             override def startConnecting(): Unit = {}
 
             override def connectedSuccessfully(): Unit = {
@@ -103,8 +113,13 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             }
 
             override def onRetry(count: Int, total: Int): Boolean = {
-              clientLogger.logError(s"[weave-agent] Retrying to connect: ${count}/${total}.")
-              true
+              if (!isProcessAlive) {
+                clientLogger.logError(s"[weave-agent] Will not retry as process is no longer alive and exit code was: `${agentExitCode}`.")
+                false
+              } else {
+                clientLogger.logError(s"[weave-agent] Retrying to connect: ${count}/${total}.")
+                true
+              }
             }
           })
           clientLogger.logInfo(s"[weave-agent] Weave Agent Started at port :${port}.")
@@ -117,6 +132,16 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
       }
     }
   }
+
+  private def agentExitCode = {
+    if (agentProcess == null) -1 else agentProcess.exitValue()
+  }
+
+  private def isProcessAlive = {
+    agentProcess != null && agentProcess.isAlive
+  }
+
+  override def start(): Unit = {}
 
   private def forwardStream(is: InputStream, kind: String): Unit = {
     executor.execute(() => {
@@ -153,7 +178,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             result.set(InputMetadata(binds))
           }
         })
-        result.get()
+        result.get().getOrElse(InputMetadata(Array.empty))
       } else {
         InputMetadata(Array.empty)
       }
@@ -162,13 +187,14 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
 
   def checkConnected(): Boolean = {
     if (isDisconnected) {
+      clientLogger.logInfo("[weave-agent] Restarting Agent as is not initialized.")
       restart()
     }
     weaveAgentClient != null && weaveAgentClient.isConnected()
   }
 
   private def isDisconnected = {
-    weaveAgentClient == null || !weaveAgentClient.isConnected()
+    weaveAgentClient == null || !weaveAgentClient.isConnected() || !isProcessAlive
   }
 
   def inferOutputMetadataForScenario(scenario: Scenario): CompletableFuture[Option[WeaveType]] = {
@@ -182,7 +208,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
               result.set(validationService.loadType(event.typeString))
             }
           })
-          result.get()
+          result.get().flatten
         } else {
           None
         }
@@ -223,6 +249,9 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
           }
         })
         runResult.get()
+          .getOrElse({
+            PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+          })
       } else {
         PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
       }
@@ -243,7 +272,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             result.set(descriptor)
           }
         })
-        result.get()
+        result.get().getOrElse(Array.empty)
       } else {
         Array.empty
       }
@@ -257,11 +286,16 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
   }
 
   override def stop(): Unit = {
+    stopAgent()
+  }
+
+  private def stopAgent(): Unit = {
     if (weaveAgentClient != null) {
       weaveAgentClient.disconnect()
     }
     if (agentProcess != null) {
       agentProcess.destroyForcibly()
+      agentProcess = null
     }
   }
 }
@@ -271,11 +305,11 @@ class FutureValue[T] {
   var value: T = _
   val countDownLatch = new CountDownLatch(1)
 
-  def get(): T = {
+  def get(): Option[T] = {
     if (value == null) {
       countDownLatch.await()
     }
-    value
+    Option(value)
   }
 
   def set(v: T): Unit = {

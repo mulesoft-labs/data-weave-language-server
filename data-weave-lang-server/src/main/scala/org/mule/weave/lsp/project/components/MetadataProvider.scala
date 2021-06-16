@@ -10,6 +10,7 @@ import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.ts.WeaveType
 
 import java.io.File
+import java.util.concurrent.CompletableFuture
 import scala.collection.mutable
 
 /**
@@ -65,8 +66,8 @@ class SampleBaseMetadataProvider(sampleDataManager: SampleDataManager, weaveAgen
       if (cache.contains(scenarioPath)) {
         cache(scenarioPath)
       } else {
-        val value = weaveAgentService.inferInputMetadataForScenario(scenario)
-        val metadata = value.get()
+        val value: CompletableFuture[InputMetadata] = weaveAgentService.inferInputMetadataForScenario(scenario)
+        val metadata: InputMetadata = value.get()
         cache.put(scenarioPath, metadata)
         metadata
       }

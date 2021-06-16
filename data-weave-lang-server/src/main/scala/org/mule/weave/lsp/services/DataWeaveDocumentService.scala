@@ -40,9 +40,9 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.actions.CodeActions
-import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
+import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentClosedEvent
@@ -103,19 +103,36 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     val textDocument: TextDocumentItem = openParam.getTextDocument
     val uri: String = textDocument.getUri
     this.logger.log(Level.INFO, "DidOpen: " + uri)
-    val maybeVirtualFile: Option[VirtualFile] = projectFS.update(uri, openParam.getTextDocument.getText)
+    val maybeVirtualFile: Option[VirtualFile] =
+      if (projectFS.supports(uri)) {
+        projectFS.update(uri, openParam.getTextDocument.getText)
+      } else {
+        None
+      }
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentOpenedEvent(value))
       }
-      case None =>
+      case None => {
+        //Is not a project VF
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          this.eventBus.fire(new DocumentOpenedEvent(virtualFile))
+        }
+      }
     }
   }
 
   override def didChange(params: DidChangeTextDocumentParams): Unit = {
     val textDocument = params.getTextDocument
-    logger.log(Level.INFO, s"${System.nanoTime()} DidChange: " + textDocument.getUri)
-    val maybeVirtualFile = projectFS.update(textDocument.getUri, params.getContentChanges.get(0).getText)
+    val uri = textDocument.getUri
+    logger.log(Level.INFO, s"${System.nanoTime()} DidChange: " + uri)
+    val maybeVirtualFile: Option[VirtualFile] =
+      if (projectFS.supports(uri)) {
+        projectFS.update(uri, params.getContentChanges.get(0).getText)
+      } else {
+        None
+      }
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentChangedEvent(value))
@@ -128,25 +145,44 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     val uri = params.getTextDocument.getUri
     logger.log(Level.INFO, "DidClose: " + uri)
     toolingServices.closeDocument(uri)
-    val maybeVirtualFile = projectFS.closed(uri)
+    val maybeVirtualFile: Option[VirtualFile] =
+      if (projectFS.supports(uri)) {
+        projectFS.closed(uri)
+      } else {
+        None
+      }
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentClosedEvent(value))
       }
-      case None =>
+      case None => {
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          this.eventBus.fire(new DocumentClosedEvent(virtualFile))
+        }
+      }
     }
-
   }
 
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     val uri = params.getTextDocument.getUri
     logger.log(Level.INFO, "DidSave: " + uri)
-    val maybeVirtualFile = projectFS.saved(params.getTextDocument.getUri)
+    val maybeVirtualFile: Option[VirtualFile] =
+      if (projectFS.supports(uri)) {
+        projectFS.saved(params.getTextDocument.getUri)
+      } else {
+        None
+      }
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentSavedEvent(value))
       }
-      case None =>
+      case None => {
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          this.eventBus.fire(new DocumentSavedEvent(virtualFile))
+        }
+      }
     }
   }
 

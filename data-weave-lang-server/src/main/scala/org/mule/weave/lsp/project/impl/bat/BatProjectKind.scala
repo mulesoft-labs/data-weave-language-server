@@ -18,10 +18,8 @@ import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.project.impl.simple.SimpleDependencyManager
-import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.v2.deps.Artifact
 
 import java.io.File
 
@@ -37,7 +35,7 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
   override def structure(): ProjectStructure = {
     val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
     val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot), Array()))
-    components.ProjectStructure(modules, project.home())
+    components.ProjectStructure(modules)
   }
 
   override def dependencyManager(): ProjectDependencyManager = {
@@ -62,41 +60,20 @@ class BatProjectKindDetector(eventBus: EventBus, logger: ClientLogger) extends P
 
 class BatDependencyManager(project: Project, logger: ClientLogger, eventBus: EventBus) extends SimpleDependencyManager(project, logger, eventBus) {
 
-  var batArtifacts: Seq[DependencyArtifact] = Seq.empty
-
   eventBus.register(SettingsChangedEvent.SETTINGS_CHANGED, new OnSettingsChanged {
     override def onSettingsChanged(modifiedSettingsName: Array[String]): Unit = {
       if (modifiedSettingsName.contains(Settings.BAT_VERSION_PROP_NAME)) {
-        loadBatVersion()
+        reloadDependencies()
       }
     }
   })
 
-  override def start(): Unit = {
-    super.start()
-    loadBatVersion()
-  }
-
-
-  private def loadBatVersion(): Unit = {
-    MavenDependencyManagerUtils.MAVEN.retrieve(
-      createBATArtifactId(project.settings.batVersion.value()),
-      MavenDependencyManagerUtils.callback(eventBus,
-        (id: String, artifacts: Seq[Artifact]) => {
-          batArtifacts = artifacts.map((artifact) => {
-            DependencyArtifact(id, artifact.file)
-          })
-        }
-      ),
-      messageCollector)
+  override protected def loadNewArtifacts(): Array[DependencyArtifact] = {
+    super.loadNewArtifacts() ++ resolveDependency(createBATArtifactId(project.settings.batVersion.value()))
   }
 
   private def createBATArtifactId(version: String): String = {
     "com.mulesoft.bat:bdd-core:" + version
   }
 
-  override def dependencies(): Array[DependencyArtifact] = {
-    val artifacts: Array[DependencyArtifact] = batArtifacts.toArray
-    super.dependencies() ++ artifacts
-  }
 }

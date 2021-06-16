@@ -38,7 +38,7 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
   private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
   private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
   private val projectStructure: ProjectStructure = createProjectStructure()
-  private val dataManager = new WTFSampleDataManager(structure())
+  private val dataManager = new WTFSampleDataManager(structure(), project)
   private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(dataManager, weaveAgentService, eventBus)
 
   override def name(): String = "DW `Maven`"
@@ -53,7 +53,7 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     val targetDir: File = new File(projectHome, "target")
     val rootStructures: Array[RootStructure] = Array(mainRoot(projectHome), testRoot(projectHome))
     val targets: Array[TargetFolder] = Array(TargetFolder(TargetKind.CLASS, Array(new File(targetDir, "classes"))))
-    ProjectStructure(Array(ModuleStructure(projectHome.getName, rootStructures, targets)), projectHome)
+    ProjectStructure(Array(ModuleStructure(projectHome.getName, rootStructures, targets)))
   }
 
   private def mainRoot(projectHome: File): RootStructure = {
