@@ -3,6 +3,7 @@ package org.mule.weave.lsp.project.impl.maven
 import org.eclipse.lsp4j.FileChangeType
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenFormatStage
+import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
 import org.jboss.shrinkwrap.resolver.api.maven.MavenWorkingSession
 import org.jboss.shrinkwrap.resolver.api.maven.ScopeType
 import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependency
@@ -21,6 +22,7 @@ import org.mule.weave.lsp.utils.URLUtils
 
 import java.io.File
 import java.util
+import scala.collection.immutable
 
 class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: EventBus, loggerService: ClientLogger) extends ProjectDependencyManager {
 
@@ -56,7 +58,7 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
         val resolution: util.List[MavenDependency] = mavenWorkingSession.getDependenciesForResolution
         if (resolution != null && !resolution.isEmpty) {
           val mavenFormatStage: MavenFormatStage = stage.withTransitivity()
-          val dependencies =
+          val dependencies: immutable.Iterable[MavenResolvedArtifact] =
             mavenFormatStage
               .asResolvedArtifact()
               .groupBy(_.getCoordinate.toCanonicalForm)

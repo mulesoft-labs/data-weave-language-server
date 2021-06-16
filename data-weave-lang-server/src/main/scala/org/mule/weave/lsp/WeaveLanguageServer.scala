@@ -48,7 +48,6 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
 
 import java.io.File
-import java.net.URI
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -69,7 +68,7 @@ class WeaveLanguageServer extends LanguageServer {
   private val textDocumentService: TextDocumentServiceDelegate = new TextDocumentServiceDelegate()
 
   private var client: WeaveLanguageClient = _
-  private var workspaceUri: URI = _
+
 
   private var clientLogger: ClientLogger = _
   private var indexService: LSPWeaveIndexService = _
@@ -104,13 +103,9 @@ class WeaveLanguageServer extends LanguageServer {
 
   override def initialize(params: InitializeParams): CompletableFuture[InitializeResult] = {
     CompletableFuture.supplyAsync(() => {
-      logger.log(Level.INFO, s"initialize(${params})")
-      workspaceUri = new URI(params.getRootUri)
+      logger.log(Level.INFO, s"Initialize(${params})")
       clientLogger = new ClientLogger(client)
-      clientLogger.logInfo("[DataWeave] Root URI: " + workspaceUri)
-      clientLogger.logInfo("[DataWeave] Initialization Option: " + params.getInitializationOptions)
       projectValue = Project.create(params, eventbus)
-
       //Create FileSystem
       val librariesVFS: LibrariesVirtualFileSystem = new LibrariesVirtualFileSystem(clientLogger)
       val projectVFS: ProjectVirtualFileSystem = new ProjectVirtualFileSystem()
@@ -118,6 +113,8 @@ class WeaveLanguageServer extends LanguageServer {
 
       //Create Services
       val dataWeaveToolingService = new DataWeaveToolingService(projectValue, client, globalFVS, createWeaveToolingService, executorService)
+      //TODO should this be enabled for all project kinds??
+      //Or we should make the project kind enable it
       val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue)
       val previewService = new PreviewService(weaveAgentService, client, projectValue)
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
@@ -134,7 +131,6 @@ class WeaveLanguageServer extends LanguageServer {
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
-
 
       services.++=(Seq(
         dependencyManagerImpl,
@@ -236,7 +232,7 @@ class WeaveLanguageServer extends LanguageServer {
   @JsonNotification("weave/project/create")
   def createProject(): Unit = {
     CompletableFuture.supplyAsync(() => {
-      val projectProvider = new ProjectProvider(client, workspaceUri)
+      val projectProvider = new ProjectProvider(client, project())
       projectProvider.newProject()
     })
 

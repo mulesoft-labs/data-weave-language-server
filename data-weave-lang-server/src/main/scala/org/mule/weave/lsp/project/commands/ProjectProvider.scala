@@ -3,6 +3,7 @@ package org.mule.weave.lsp.project.commands
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveQuickPickItem
+import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.ui.wizard.DefaultWizardBuilder
 import org.mule.weave.lsp.ui.wizard.DefaultWizardStepBuilder
 import org.mule.weave.lsp.ui.wizard.InputWidgetBuilder
@@ -10,6 +11,7 @@ import org.mule.weave.lsp.ui.wizard.QuickPickWidgetBuilder
 import org.mule.weave.lsp.ui.wizard.WidgetResult
 import org.mule.weave.lsp.utils.Icons
 import org.mule.weave.lsp.utils.Messages.NewDwProject
+import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 
 import java.io.File
 import java.net.URI
@@ -21,7 +23,7 @@ import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
+class ProjectProvider(client: WeaveLanguageClient, project: Project) {
   val icons = Icons.vscode
 
   def newProject(): Unit = {
@@ -52,6 +54,9 @@ class ProjectProvider(client: WeaveLanguageClient, workspaceLocation: URI) {
         projectInfo
       }))
 
+    val workspaceLocation: URI = project.url
+      .map((url) => new URI(url))
+      .getOrElse(WeaveDirectoryUtils.getUserHome().toURI)
     val pathStep = new DefaultWizardStepBuilder[ProjectCreationInfo] //
       .widgetBuilder(createFSChooser(Some(new File(workspaceLocation).toPath)).title(createProjectTitle))
 

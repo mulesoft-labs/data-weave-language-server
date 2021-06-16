@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.vfs
 
+import org.apache.commons.io.FilenameUtils
 import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -65,13 +66,14 @@ class ProjectVirtualFile(fs: ProjectVirtualFileSystem, url: String, file: Option
   }
 
   override def getNameIdentifier: NameIdentifier = {
-    val maybeFile = fs.routeOf(url)
+    val maybeFile: Option[File] = fs.routeOf(url)
     if (maybeFile.isDefined) {
       val relativePath = maybeFile.get.toPath.relativize(URLUtils.toPath(url).get)
       NameIdentifierHelper.fromWeaveFilePath(relativePath.toString)
     } else {
-      //TODO is this the correct thing to do?
-      NameIdentifierHelper.fromWeaveFilePath(url)
+      URLUtils.toFile(url)
+        .map((f) => NameIdentifier(FilenameUtils.getBaseName(f.getName)))
+        .getOrElse(NameIdentifierHelper.fromWeaveFilePath(url)) //This or
     }
   }
 

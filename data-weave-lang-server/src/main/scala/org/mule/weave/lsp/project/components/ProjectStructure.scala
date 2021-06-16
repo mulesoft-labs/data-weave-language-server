@@ -5,7 +5,7 @@ import org.mule.weave.v2.editor.VirtualFile
 
 import java.io.File
 
-case class ProjectStructure(modules: Array[ModuleStructure], projectHome: File) {}
+case class ProjectStructure(modules: Array[ModuleStructure]) {}
 
 case class ModuleStructure(name: String, roots: Array[RootStructure], target: Array[TargetFolder] = Array()) {}
 

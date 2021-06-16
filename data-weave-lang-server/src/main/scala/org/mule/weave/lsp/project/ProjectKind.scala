@@ -10,6 +10,7 @@ import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.impl.bat.BatProjectKindDetector
 import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
+import org.mule.weave.lsp.project.impl.simple.SimpleProjectKind
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
@@ -46,11 +47,14 @@ object ProjectKindDetector {
       val detectors = Seq(
         new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService),
         new BatProjectKindDetector(eventBus, clientLogger),
-        new SimpleProjectKindDetector(eventBus, clientLogger)
+        new SimpleProjectKindDetector(eventBus, clientLogger, weaveAgentService)
       )
-      detectors.find(_.supports(project)).map(_.createKind(project)).getOrElse(NoProjectKind)
+      detectors
+        .find(_.supports(project))
+        .map(_.createKind(project))
+        .getOrElse(new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService))
     } else {
-      NoProjectKind
+      new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService)
     }
   }
 }
@@ -116,7 +120,7 @@ trait ProjectKind {
 object NoProjectKind extends ProjectKind {
   override def name(): String = "NoProject"
 
-  override def structure(): ProjectStructure = ProjectStructure(Array.empty, new File(""))
+  override def structure(): ProjectStructure = ProjectStructure(Array.empty)
 
   override def dependencyManager(): ProjectDependencyManager = NoDependencyManager
 

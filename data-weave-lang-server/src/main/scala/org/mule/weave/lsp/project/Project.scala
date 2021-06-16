@@ -8,7 +8,6 @@ import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
 
 import java.io.File
-import java.util
 import scala.collection.mutable.ArrayBuffer
 
 case class Project(url: Option[String], settings: ProjectSettings) {
@@ -45,10 +44,10 @@ case class ProjectSettings(eventBus: EventBus,
                           ) {
 
   def load(settings: AnyRef): Array[String] = {
-    val allSettings: util.Map[String, AnyRef] = settings.asInstanceOf[util.Map[String, AnyRef]]
+    val allSettings: JsonObject = settings.asInstanceOf[JsonObject]
     val modifiedProps = new ArrayBuffer[String]()
     if (allSettings != null) {
-      val weaveSettings = allSettings.get("data-weave").asInstanceOf[JsonObject]
+      val weaveSettings = allSettings.getAsJsonObject("data-weave")
 
       if (weaveSettings != null) {
         if (wlangVersion.updateValue(weaveSettings)) {
@@ -81,7 +80,7 @@ case class ProjectSettings(eventBus: EventBus,
 
 
 object Settings {
-  val DEFAULT_VERSION: String = "2.3.1-SNAPSHOT"
+  val DEFAULT_VERSION: String = "2.4.0-SNAPSHOT"
   val DEFAULT_BAT_VERSION = "1.0.88"
   val DEFAULT_BAT_WRAPPER_VERSION = "1.0.58"
   val PREVIEW_TIMEOUT_VALUE = 50000.toString
@@ -131,8 +130,8 @@ case class Setting[T <: Any](settingName: String, initialValue: T) {
 
 object Project {
   def create(initParams: InitializeParams, eventBus: EventBus): Project = {
-    val rootPath = Option(initParams.getRootUri).orElse(Option(initParams.getRootPath))
-    val settings = ProjectSettings(eventBus)
+    val rootPath: Option[String] = Option(initParams.getRootUri).orElse(Option(initParams.getRootPath))
+    val settings: ProjectSettings = ProjectSettings(eventBus)
     settings.load(initParams.getInitializationOptions)
     Project(rootPath, settings)
   }

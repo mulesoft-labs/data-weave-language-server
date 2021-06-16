@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.project.components
 
+import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
@@ -46,7 +47,7 @@ trait SampleDataManager {
 }
 
 
-class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDataManager {
+class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project) extends SampleDataManager {
 
   override def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario] = {
     searchSampleDataFolderFor(nameIdentifier)
@@ -91,10 +92,53 @@ class WTFSampleDataManager(projectStructure: ProjectStructure) extends SampleDat
   }
 
   override def createSampleDataFolderFor(nameIdentifier: NameIdentifier): File = {
-    val dwitFolder = new File(new File(new File(projectStructure.projectHome, "src"), "test"), WeaveDirectoryUtils.DWIT_FOLDER)
+    val dwitFolder = new File(new File(new File(project.home(), "src"), "test"), WeaveDirectoryUtils.DWIT_FOLDER)
     val sampleFolder = new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
     sampleFolder.mkdir()
     sampleFolder
+  }
+}
+
+
+class DefaultSampleDataManager(weaveHome: File) extends SampleDataManager {
+
+  override def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario] = {
+    searchSampleDataFolderFor(nameIdentifier)
+      .map((f) => {
+        f.listFiles().map((f) => {
+          Scenario(f, f.getName)
+        })
+      })
+      .getOrElse(Array.empty)
+  }
+
+  def searchSampleDataFolderFor(nameIdentifier: NameIdentifier): Option[File] = {
+    val samplesForThisFile: File = getSampleFolderFor(nameIdentifier)
+    if (samplesForThisFile.exists()) {
+      Some(samplesForThisFile)
+    } else {
+      None
+    }
+
+  }
+
+  private def getSampleFolderFor(nameIdentifier: NameIdentifier) = {
+    val sampleFolder = new File(weaveHome, "samples")
+    val samplesForThisFile = new File(sampleFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
+    samplesForThisFile
+  }
+
+  override def searchScenarioByName(nameIdentifier: NameIdentifier, scenarioName: String): Option[Scenario] = {
+    listScenarios(nameIdentifier)
+      .find((s) => {
+        s.file.getName.equals(scenarioName)
+      })
+  }
+
+  override def createSampleDataFolderFor(nameIdentifier: NameIdentifier): File = {
+    val samplesForThisFile: File = getSampleFolderFor(nameIdentifier)
+    samplesForThisFile.mkdir()
+    samplesForThisFile
   }
 }
 

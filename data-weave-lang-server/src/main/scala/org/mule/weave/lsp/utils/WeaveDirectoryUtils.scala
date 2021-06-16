@@ -22,7 +22,7 @@ object WeaveDirectoryUtils {
     * @return The home directory
     */
   def getDWHome(): File = {
-    val homeUser = new File(System.getProperty("user.home"))
+    val homeUser = getUserHome
     val weavehome = System.getenv("DW_HOME")
     if (weavehome != null) {
       val home = new File(weavehome)
@@ -38,6 +38,10 @@ object WeaveDirectoryUtils {
       defaultDWHomeDir
 
     }
+  }
+
+  def getUserHome(): File = {
+    new File(System.getProperty("user.home"))
   }
 
   /**
