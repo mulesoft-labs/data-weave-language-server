@@ -9,9 +9,11 @@ import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
+import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.FileChangedEvent._
 import org.mule.weave.lsp.services.events.OnDocumentChanged
+import org.mule.weave.lsp.services.events.OnDocumentFocused
 import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
@@ -48,6 +50,14 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
       }
     })
 
+    eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
+      override def onDocumentFocused(vf: VirtualFile): Unit = {
+        if (enableValue) {
+          runPreview(vf)
+        }
+      }
+    })
+
     eventBus.register(FILE_CHANGED_EVENT, new OnFileChanged {
       override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
         currentVfPreview.map(currentVFPreview => {
@@ -61,7 +71,6 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
         })
       }
     })
-
 
     eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
       override def onProjectStarted(project: Project): Unit = {
