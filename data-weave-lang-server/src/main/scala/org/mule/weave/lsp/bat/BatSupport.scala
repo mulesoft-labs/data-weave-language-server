@@ -32,17 +32,28 @@ trait BatSupport {
     } else {
       s"$wrapperFolder${separator}bin${separator}bat"
     }
-    val stream: Stream[String] =
-      if (testPath.isDefined)
-        Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream
-      else
-        Process(executableName, workspaceFile).lineStream
-    stream.foreach(out => {
+    val logger = ProcessLogger(out => {
       val ansiCharacters = "\u001B\\[[;\\d]*m"
       val msg = out.replaceAll(ansiCharacters, "")
       clientLogger.logInfo(s"$msg[BAT]")
     })
-    stream.mkString
+    try {
+      val stream: Stream[String] =
+        if (testPath.isDefined)
+          Process(Seq(executableName, testPath.map(_.replaceAll("\"", "")).get), workspaceFile).lineStream(logger)
+        else {
+          Process(executableName, workspaceFile).lineStream(logger)
+        }
+      val result = stream.mkString
+      clientLogger.logInfo("[BAT] Process result:")
+      clientLogger.logInfo(result)
+      result
+    } catch {
+      case e: RuntimeException => {
+        clientLogger.logError("[BAT] Error while running process", e)
+        ""
+      }
+    }
   }
 
   def setupBat(): Unit = {
@@ -112,8 +123,12 @@ trait BatSupport {
         val outputStream = new FileOutputStream(newFile)
         val buffer = new Array[Byte](1024)
         Stream.continually(zis.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+        outputStream.close()
       }
     }
+    zis.closeEntry()
+    zis.close()
+    fileInputStream.close()
   }
 
   private def verifyBinContents(files: Array[File]): Future[Boolean] = {
