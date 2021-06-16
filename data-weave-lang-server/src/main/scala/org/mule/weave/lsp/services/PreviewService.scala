@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.services
 
+import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -10,11 +11,14 @@ import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
+import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnDocumentChanged
 import org.mule.weave.lsp.services.events.OnDocumentFocused
 import org.mule.weave.lsp.services.events.OnDocumentOpened
+import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
+import org.mule.weave.lsp.utils.URLUtils.isChildOf
 import org.mule.weave.v2.editor.VirtualFile
 
 import java.util.Collections
@@ -26,6 +30,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   @volatile
   private var enableValue: Boolean = false
   private var pendingProjectStart: Option[VirtualFile] = None
+  private var currentVfPreview: Option[VirtualFile] = None
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.eventBus = eventBus
@@ -47,7 +52,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
     eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
       override def onDocumentFocused(vf: VirtualFile): Unit = {
-        if (enableValue) {
+        if (enableValue && (currentVfPreview.isEmpty || !currentVfPreview.get.url().equals(vf.url()))) {
           runPreview(vf)
         }
       }
@@ -59,6 +64,20 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
           runPreview(pendingProjectStart.get)
           pendingProjectStart = None
         }
+      }
+    })
+
+    eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
+      override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
+        currentVfPreview.map(currentVFPreview => {
+          projectKind.sampleDataManager().map(sampleDataManager => {
+            sampleDataManager.searchSampleDataFolderFor(currentVFPreview.getNameIdentifier).map(scenarioFolder => {
+              if (isChildOf(uri, scenarioFolder)) {
+                runPreview(currentVFPreview)
+              }
+            })
+          })
+        })
       }
     })
   }
@@ -84,6 +103,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
           null
         })
     }
+    currentVfPreview = Some(vf)
   }
 
   def enable(): Unit = {
@@ -92,5 +112,6 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
   def disable(): Unit = {
     this.enableValue = false
+    this.currentVfPreview = None
   }
 }
