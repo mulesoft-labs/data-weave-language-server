@@ -11,12 +11,12 @@ import org.eclipse.lsp4j.TextDocumentSyncKind
 import org.eclipse.lsp4j.jsonrpc.services.JsonDelegate
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
 import org.eclipse.lsp4j.services.LanguageServer
-import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.services.DependencyManagerService
+import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.indexer.LSPWeaveIndexService
 import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.Project
@@ -208,7 +208,8 @@ class WeaveLanguageServer extends LanguageServer {
     System.exit(0)
   }
 
-  override def getTextDocumentService: TextDocumentService = {
+  @JsonDelegate
+  override def getTextDocumentService: WeaveTextDocumentService = {
     logger.log(Level.INFO, "getTextDocumentService")
     textDocumentService
   }

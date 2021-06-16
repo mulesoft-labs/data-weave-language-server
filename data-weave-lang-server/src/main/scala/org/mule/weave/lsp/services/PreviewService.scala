@@ -8,8 +8,10 @@ import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
+import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.OnDocumentChanged
+import org.mule.weave.lsp.services.events.OnDocumentFocused
 import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
@@ -37,6 +39,14 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
     eventBus.register(DocumentOpenedEvent.DOCUMENT_OPENED, new OnDocumentOpened {
       override def onDocumentOpened(vf: VirtualFile): Unit = {
+        if (enableValue) {
+          runPreview(vf)
+        }
+      }
+    })
+
+    eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
+      override def onDocumentFocused(vf: VirtualFile): Unit = {
         if (enableValue) {
           runPreview(vf)
         }

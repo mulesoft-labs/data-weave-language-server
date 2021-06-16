@@ -38,14 +38,16 @@ import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
-import org.eclipse.lsp4j.services.TextDocumentService
 import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.services.DidFocusChangeParams
+import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentClosedEvent
+import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.DocumentSavedEvent
 import org.mule.weave.lsp.utils.EventBus
@@ -85,7 +87,7 @@ import scala.collection.JavaConverters
 class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
-                               vfs: VirtualFileSystem) extends TextDocumentService with ToolingService {
+                               vfs: VirtualFileSystem) extends WeaveTextDocumentService with ToolingService {
 
 
   private val codeActions = new CodeActions(toolingServices)
@@ -186,6 +188,28 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     }
   }
 
+  override def didFocusChange(params: DidFocusChangeParams): Unit = {
+    val uri: String = params.textDocumentIdentifier.getUri
+    this.logger.log(Level.INFO, "DidFocusChange: " + uri)
+    val maybeVirtualFile: Option[VirtualFile] =
+      if (projectFS.supports(uri)) {
+        Some(projectFS.file(uri))
+      } else {
+        None
+      }
+    maybeVirtualFile match {
+      case Some(value) => {
+        this.eventBus.fire(new DocumentFocusChangedEvent(value))
+      }
+      case None => {
+        //Is not a project VF
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          this.eventBus.fire(new DocumentFocusChangedEvent(virtualFile))
+        }
+      }
+    }
+  }
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
     CompletableFuture.supplyAsync(() => {
@@ -498,6 +522,5 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
       case _ => CompletionItemKind.Property
     }
   }
-
 
 }

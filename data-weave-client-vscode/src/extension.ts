@@ -10,7 +10,7 @@ import * as net from 'net'
 import * as child_process from 'child_process'
 
 import { workspace, ExtensionContext, commands, window, Uri, ProgressLocation } from 'vscode'
-import { LanguageClient, LanguageClientOptions, StreamInfo } from 'vscode-languageclient'
+import { LanguageClient, LanguageClientOptions, StreamInfo, TextDocumentIdentifier } from 'vscode-languageclient'
 import { BatRunner } from './batRunner'
 import { PassThrough } from 'stream'
 import * as vscode from 'vscode';
@@ -21,6 +21,7 @@ import { handleCustomMessages } from './weaveLanguageClient'
 import { ProjectCreation } from './interfaces/project'
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands'
 import PreviewSystemProvider from './previewFileSystemProvider'
+import { TextDocument } from './interfaces/textDocument'
 
 export function activate(context: ExtensionContext) {
   //Run Mapping
@@ -143,6 +144,14 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
     vscode.window.showTextDocument(resource);
   }));
+
+  context.subscriptions.push(window.onDidChangeActiveTextEditor((editor) => {
+    if (editor && editor.document.languageId == "data-weave") {
+      client.sendNotification(
+        TextDocument.type,
+        { textDocumentIdentifier: { uri: editor.document.uri.toString() } });
+    }
+  }))
 
 }
 

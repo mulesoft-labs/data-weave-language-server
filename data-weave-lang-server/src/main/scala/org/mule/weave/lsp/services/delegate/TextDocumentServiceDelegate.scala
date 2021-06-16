@@ -58,14 +58,15 @@ import org.eclipse.lsp4j.TypeHierarchyParams
 import org.eclipse.lsp4j.WillSaveTextDocumentParams
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
-import org.eclipse.lsp4j.services.TextDocumentService
+import org.mule.weave.lsp.extension.services.DidFocusChangeParams
+import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 
 import java.util
 import java.util.concurrent.CompletableFuture
 
-class TextDocumentServiceDelegate extends TextDocumentService {
+class TextDocumentServiceDelegate extends WeaveTextDocumentService {
 
-  var delegate: TextDocumentService = _
+  var delegate: WeaveTextDocumentService = _
 
   override def didOpen(params: DidOpenTextDocumentParams): Unit = {
     if (delegate != null) {
@@ -88,6 +89,12 @@ class TextDocumentServiceDelegate extends TextDocumentService {
   override def didSave(params: DidSaveTextDocumentParams): Unit = {
     if (delegate != null) {
       delegate.didSave(params)
+    }
+  }
+
+  override def didFocusChange(params: DidFocusChangeParams): Unit = {
+    if (delegate != null) {
+      delegate.didFocusChange(params)
     }
   }
 
@@ -154,4 +161,5 @@ class TextDocumentServiceDelegate extends TextDocumentService {
   override def callHierarchyOutgoingCalls(params: CallHierarchyOutgoingCallsParams): CompletableFuture[util.List[CallHierarchyOutgoingCall]] = delegate.callHierarchyOutgoingCalls(params)
 
   override def selectionRange(params: SelectionRangeParams): CompletableFuture[util.List[SelectionRange]] = delegate.selectionRange(params)
+
 }
