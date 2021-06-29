@@ -37,7 +37,6 @@ export function activate(context: ExtensionContext) {
   const previewFS = new PreviewSystemProvider()
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('preview', previewFS, { isReadonly: true, isCaseSensitive: true }));
 
-
   function createServer(): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
       const server = net.createServer(socket => {
@@ -144,6 +143,13 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
     vscode.window.showTextDocument(resource);
   }));
+
+  vscode.languages.getLanguages().then(languages => {
+    languages.forEach(language => {
+      context.subscriptions.push(vscode.languages.registerCodeLensProvider(language, previewFS))
+    })
+  })
+
 
   context.subscriptions.push(window.onDidChangeActiveTextEditor((editor) => {
     if (editor && editor.document.languageId == "data-weave") {

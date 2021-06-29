@@ -50,7 +50,7 @@ class SampleBaseMetadataProvider(sampleDataManager: SampleDataManager, weaveAgen
     override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
       val keySet = cache.keySet
       keySet.foreach((scenario) => {
-        if(isChildOf(uri, new File(scenario))){
+        if (isChildOf(uri, new File(scenario))) {
           cache.remove(scenario)
         }
       })
@@ -58,8 +58,7 @@ class SampleBaseMetadataProvider(sampleDataManager: SampleDataManager, weaveAgen
   })
 
   override def inputMetadataFor(vf: VirtualFile): InputMetadata = {
-    val scenarios = sampleDataManager.listScenarios(vf.getNameIdentifier)
-    val headOption = scenarios.headOption
+    val headOption = sampleDataManager.activeScenario(vf.getNameIdentifier)
     if (headOption.isDefined) {
       val scenario = headOption.get
       val scenarioPath = scenario.file.getAbsolutePath

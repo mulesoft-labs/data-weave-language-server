@@ -13,6 +13,8 @@ import { WeaveDependenciesProvider } from './dependencyTree';
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
 import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
+import { WeaveScenarioProvider } from './scenariosTree';
+import { ShowScenarios } from './interfaces/scenarioViewer';
 
 
 export function handleCustomMessages(client: LanguageClient, context: ExtensionContext, previewContent: PreviewSystemProvider) {
@@ -80,8 +82,8 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
-    }));  
-    
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.SHOW_LOG, () => {
         client.outputChannel.show(true)
     }));
@@ -94,8 +96,18 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         treeDataProvider: pendenciesProvider
     });
 
+    let scenariosProvider = new WeaveScenarioProvider()
+
+    vscode.window.createTreeView('weaveScenarios', {
+        treeDataProvider: scenariosProvider
+    });
+
     client.onNotification(PublishDependenciesNotification.type, (dependenciesParam) => {
         pendenciesProvider.dependencies = dependenciesParam.dependencies
+    })
+
+    client.onNotification(ShowScenarios.type, async (weaveScenarios) => {
+        scenariosProvider.scenarios = weaveScenarios
     })
 
     client.onNotification(ShowPreviewResult.type, async (result) => {
@@ -111,9 +123,11 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
             previewEditor = await vscode.workspace.openTextDocument(PreviewSystemProvider.OUTPUT_FILE_URI)
                 .then((document) => {
                     vscode.languages.setTextDocumentLanguage(document, "json");
-                    return vscode.window.showTextDocument(document, vscode.ViewColumn.Beside, true)
+                    var options = { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }
+                    return vscode.window.showTextDocument(document, options)
                 })
         }
+        
 
         const document = previewEditor.document;
         let languageId = "plaintext"
@@ -129,11 +143,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
             vscode.languages.setTextDocumentLanguage(document, languageId);
         }
 
-        if (result.success) {
-            previewContent.previewContent = result.content
-        } else {
-            previewContent.previewContent = result.errorMessage
-        }
+        previewContent.previewContent = result
 
         //Show logs in debugg console
         //Clear old logs

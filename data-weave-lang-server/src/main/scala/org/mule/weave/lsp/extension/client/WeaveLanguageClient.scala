@@ -32,6 +32,7 @@ trait WeaveLanguageClient extends LanguageClient {
 
   /**
     * Opens a folder in a new window
+    *
     * @param params
     */
   @JsonNotification("weave/folder/open")
@@ -67,6 +68,14 @@ trait WeaveLanguageClient extends LanguageClient {
     */
   @JsonNotification("weave/workspace/publishDependencies")
   def publishDependencies(resolvedDependency: DependenciesParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to publish current transformation scenarios.
+    *
+    * @param scenariosParam Scenarios Parameter
+    */
+  @JsonNotification("weave/workspace/publishScenarios")
+  def showScenarios(scenariosParam: ShowScenariosParams): Unit
 
   /**
     * This notification is sent from the server to the client to inform the user that a background job has started.
@@ -109,6 +118,7 @@ case class PreviewResult(
                           content: String = null,
                           mimeType: String = null,
                           errorMessage: String = null,
+                          scenarioUri: String = null,
                           timeTaken: Long = 0
                         )
 
@@ -250,3 +260,8 @@ case class IconUri(uri: String, override val iconType: String = "URI-ICON") exte
 
 //Icon provided by the client side matched by id.
 case class ThemeIcon(id: String, override val iconType: String = "THEME-ICON") extends ThemeIconPath
+
+case class ShowScenariosParams(transformationUri: String,
+                               @Nullable scenarios: java.util.List[WeaveScenario] = null)
+
+case class WeaveScenario(active: java.lang.Boolean = false, name: String, uri: String, @Nullable inputsUri: java.util.List[String] = null, @Nullable outputsUri: java.util.List[String] = null)

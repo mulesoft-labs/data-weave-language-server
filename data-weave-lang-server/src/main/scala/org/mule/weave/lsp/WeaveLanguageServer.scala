@@ -115,12 +115,12 @@ class WeaveLanguageServer extends LanguageServer {
       val dataWeaveToolingService = new DataWeaveToolingService(projectValue, client, globalFVS, createWeaveToolingService, executorService)
       //TODO should this be enabled for all project kinds??
       //Or we should make the project kind enable it
-      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue)
+      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, client)
       val previewService = new PreviewService(weaveAgentService, client, projectValue)
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 
       //Create the project
-      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService)
+      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)

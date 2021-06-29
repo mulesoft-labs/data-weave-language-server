@@ -1,6 +1,7 @@
 package org.mule.weave.lsp.agent
 
 import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.DependencyArtifact
@@ -19,6 +20,7 @@ import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.ToolingService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.NetUtils
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.completion.DataFormatDescriptor
 import org.mule.weave.v2.completion.DataFormatProperty
 import org.mule.weave.v2.debugger.client.ConnectionRetriesListener
@@ -52,7 +54,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
   *
   */
-class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project) extends ToolingService {
+class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project, client: WeaveLanguageClient) extends ToolingService {
 
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
@@ -219,19 +221,23 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
   }
 
   def run(nameIdentifier: NameIdentifier, content: String, url: String): CompletableFuture[PreviewResult] = {
+    val maybeScenario: Option[Scenario] = projectKind.sampleDataManager().flatMap((sampleManager) => {
+      //TODO we should have a ay to pick what scenario and store it somewhere. Maybe Configuration Objects
+      sampleManager.activeScenario(nameIdentifier)
+    })
+    run(nameIdentifier, content, url, maybeScenario)
+  }
+
+  def run(nameIdentifier: NameIdentifier, content: String, url: String, previewScenario: Option[Scenario]): CompletableFuture[PreviewResult] = {
     CompletableFuture.supplyAsync(() => {
+      val scenarioUri = previewScenario.map(scenario => URLUtils.toLSPUrl(scenario.file)).orNull
       if (checkConnected()) {
         val runResult = new FutureValue[PreviewResult]()
         val libs: Array[String] = projectKind.dependencyManager().dependencies().map(_.artifact.getAbsolutePath) //
         val sources: Array[String] = mainSourceFolders(projectKind.structure()).map(_.getAbsolutePath)
         val targets: Array[String] = mainTargetFolders(projectKind.structure()).map(_.getAbsolutePath)
-
         val inputsPath: String =
-          projectKind.sampleDataManager().flatMap((sampleManager) => {
-            //TODO we should have a way to pick what scenario and store it somewhere. Maybe Configuration Objects
-            sampleManager.listScenarios(nameIdentifier).headOption
-              .map(_.inputs().getAbsolutePath)
-          }).getOrElse("")
+          previewScenario.map(_.inputs().getAbsolutePath).getOrElse("")
         val startTime = System.currentTimeMillis()
         weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets, new DefaultWeaveAgentClientListener {
           override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
@@ -239,21 +245,21 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             result match {
               case PreviewExecutedFailedEvent(message, messages) => {
                 val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+                runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime, scenarioUri = scenarioUri))
               }
               case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages) => {
                 val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+                runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime, scenarioUri = scenarioUri))
               }
             }
           }
         })
         runResult.get()
           .getOrElse({
-            PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+            PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url, scenarioUri = scenarioUri)
           })
       } else {
-        PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+        PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url, scenarioUri = scenarioUri)
       }
     }, executor)
   }

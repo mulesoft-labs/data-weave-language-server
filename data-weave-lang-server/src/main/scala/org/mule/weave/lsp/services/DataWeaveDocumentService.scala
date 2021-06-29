@@ -200,6 +200,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentFocusChangedEvent(value))
+
       }
       case None => {
         //Is not a project VF

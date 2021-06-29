@@ -4,6 +4,7 @@ import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenFormatStage
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
 import org.mule.weave.lsp.agent.WeaveAgentService
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
@@ -34,9 +35,9 @@ import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 import java.io.File
 import scala.collection.immutable
 
-class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService) extends ProjectKind {
+class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKind {
   private val simpleDependencyManager = new SimpleDependencyManager(project, logger, eventBus)
-  private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome())
+  private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome(), weaveLanguageClient)
 
   override def name(): String = "DW `Simple`"
 
@@ -68,13 +69,13 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
   }
 }
 
-class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKindDetector {
+class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKindDetector {
   override def supports(project: Project): Boolean = {
     new File(project.home(), "src").exists()
   }
 
   override def createKind(project: Project): ProjectKind = {
-    new SimpleProjectKind(project, logger, eventBus, weaveAgentService)
+    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient)
   }
 }
 

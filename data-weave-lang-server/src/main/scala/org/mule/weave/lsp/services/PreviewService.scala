@@ -2,10 +2,14 @@ package org.mule.weave.lsp.services
 
 import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.agent.WeaveAgentService
+import org.mule.weave.lsp.extension.client
 import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveScenario
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
@@ -20,7 +24,9 @@ import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.editor.VirtualFile
 
+import java.util
 import java.util.Collections
+import scala.collection.JavaConverters.seqAsJavaListConverter
 
 
 class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project) extends ToolingService {
@@ -51,9 +57,30 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
     })
 
     eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
+
+      def mapScenarios(maybeActiveScenario: Option[Scenario], allScenarios: Array[Scenario]): util.List[client.WeaveScenario] = {
+        var resultScenarios = allScenarios
+        val maybeScenario: Option[WeaveScenario] = maybeActiveScenario.map(activeScenario => {
+          resultScenarios = allScenarios.filter(scenario => !scenario.name.equals(activeScenario.name))
+          WeaveScenario(true, activeScenario.name, URLUtils.toLSPUrl(activeScenario.file), activeScenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava, activeScenario.expected().map(_.listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava).orNull)
+        })
+        var scenarios: Array[WeaveScenario] = resultScenarios.map(scenario => {
+          WeaveScenario(true, scenario.name, URLUtils.toLSPUrl(scenario.file), scenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava, scenario.expected().map(_.listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava).orNull)
+        })
+        maybeScenario.map(s => scenarios = (scenarios :+ s))
+        scenarios.toList asJava
+      }
+
       override def onDocumentFocused(vf: VirtualFile): Unit = {
         if (enableValue) {
           runPreview(vf)
+          //TODO move this from here
+          projectKind.sampleDataManager().map(sampleManager => {
+            val maybeActiveScenario = sampleManager.activeScenario(vf.getNameIdentifier)
+            val allScenarios = sampleManager.listScenarios(vf.getNameIdentifier)
+            val url = vf.url()
+            URLUtils.toFile(url).map(file => weaveLanguageClient.showScenarios(scenariosParam = ShowScenariosParams(transformationUri = URLUtils.toLSPUrl(file), scenarios = mapScenarios(maybeActiveScenario, allScenarios))))
+          })
         }
       }
     })

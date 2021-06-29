@@ -13,6 +13,7 @@ import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -147,4 +148,11 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
     }
     println("[" + value + "]" + messageParams.getMessage)
   }
+
+  /**
+    * This notification is sent from the server to the client to publish current transformation scenarios.
+    *
+    * @param scenariosParam Scenarios Parameter
+    */
+  override def showScenarios(scenariosParam: ShowScenariosParams): Unit = ???
 }
