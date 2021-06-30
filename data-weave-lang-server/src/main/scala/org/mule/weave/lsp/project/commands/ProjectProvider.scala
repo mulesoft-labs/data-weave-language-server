@@ -87,9 +87,12 @@ class ProjectProvider(client: WeaveLanguageClient, project: Project) {
   private def createFSChooser(): QuickPickWidgetBuilder[ProjectCreationInfo] = {
 
     val widgetBuilder = new QuickPickWidgetBuilder[ProjectCreationInfo](client).result((projectInfo, result) => {
-      val chosenPath = result.asJava.get(0)
-      if (!chosenPath.equals("ok")) {
-        projectInfo.pathToCreate = projectInfo.pathToCreate.resolve(chosenPath)
+      val selectedIds = result.asJava
+      if (selectedIds != null && !selectedIds.isEmpty) {
+        val chosenPath = selectedIds.get(0)
+        if (!chosenPath.equals("ok")) {
+          projectInfo.pathToCreate = projectInfo.pathToCreate.resolve(chosenPath)
+        }
       }
       projectInfo
     })
