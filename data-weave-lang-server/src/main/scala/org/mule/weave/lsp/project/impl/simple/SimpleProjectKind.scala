@@ -110,7 +110,8 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     val id: String = project.settings.wlangVersion.value()
     val runtime: Array[DependencyArtifact] = resolveDependency(createRuntimeArtifactId(id))
     val core: Array[DependencyArtifact] = resolveDependency(createCoreModules(id))
-    val allArtifacts = runtime ++ core
+    val yaml: Array[DependencyArtifact] = resolveDependency(createYamlModule(id))
+    val allArtifacts = runtime ++ core ++ yaml
     allArtifacts
   }
 
@@ -141,6 +142,10 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
 
   private def createCoreModules(version: String) = {
     createWeaveArtifactId("core-modules", version)
+  }
+
+  private def createYamlModule(version: String) = {
+    createWeaveArtifactId("yaml-module", version)
   }
 
   private def createWeaveArtifactId(module: String, version: String) = {
