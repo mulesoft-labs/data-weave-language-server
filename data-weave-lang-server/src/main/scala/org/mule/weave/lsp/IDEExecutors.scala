@@ -8,7 +8,6 @@ import java.util.concurrent.Executors
 object IDEExecutors {
 
 
-
   private val defaultService = Executors.newCachedThreadPool(
     new ThreadFactoryBuilder()
       .setNameFormat("dw-lang-server-language-%d\"")
@@ -23,6 +22,12 @@ object IDEExecutors {
       .build()
   )
 
+  private val previewService = Executors.newFixedThreadPool(1,
+    new ThreadFactoryBuilder()
+      .setNameFormat("indexing-%d\"")
+      .setDaemon(true)
+      .build()
+  )
 
   private val indexingService = Executors.newFixedThreadPool(8,
     new ThreadFactoryBuilder()
@@ -42,7 +47,7 @@ object IDEExecutors {
       .build()
   )
 
-  def debuggingExecutor():ExecutorService = {
+  def debuggingExecutor(): ExecutorService = {
     debuggerService
   }
 
@@ -56,6 +61,10 @@ object IDEExecutors {
 
   def indexingExecutor(): ExecutorService = {
     indexingService
+  }
+
+  def previewExecutor(): ExecutorService = {
+    previewService
   }
 
 }
