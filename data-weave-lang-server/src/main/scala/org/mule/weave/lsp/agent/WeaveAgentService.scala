@@ -44,6 +44,7 @@ import java.util
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -58,7 +59,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
   private var weaveAgentClient: WeaveAgentClient = _
   private var projectKind: ProjectKind = _
 
-  val lock: Lock = new ReentrantLock()
+  private val startAgentLock: Lock = new ReentrantLock()
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
@@ -82,8 +83,8 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
 
   private val ERROR_STREAM = "Error"
 
-  def startAgent() = {
-    if (lock.tryLock()) {
+  def startAgent(): Unit = {
+    if (startAgentLock.tryLock()) {
       try {
         if (!isProcessAlive) {
           val port: Int = NetUtils.freePort()
@@ -128,7 +129,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
           }
         }
       } finally {
-        lock.unlock()
+        startAgentLock.unlock()
       }
     }
   }
@@ -218,22 +219,22 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
     }, executor)
   }
 
-  def run(nameIdentifier: NameIdentifier, content: String, url: String): CompletableFuture[PreviewResult] = {
-    CompletableFuture.supplyAsync(() => {
-      if (checkConnected()) {
-        val runResult = new FutureValue[PreviewResult]()
-        val libs: Array[String] = projectKind.dependencyManager().dependencies().map(_.artifact.getAbsolutePath) //
-        val sources: Array[String] = mainSourceFolders(projectKind.structure()).map(_.getAbsolutePath)
-        val targets: Array[String] = mainTargetFolders(projectKind.structure()).map(_.getAbsolutePath)
+  def run(nameIdentifier: NameIdentifier, content: String, url: String): PreviewResult = {
+    if (checkConnected()) {
+      val runResult = new FutureValue[PreviewResult]()
+      val libs: Array[String] = projectKind.dependencyManager().dependencies().map(_.artifact.getAbsolutePath) //
+      val sources: Array[String] = mainSourceFolders(projectKind.structure()).map(_.getAbsolutePath)
+      val targets: Array[String] = mainTargetFolders(projectKind.structure()).map(_.getAbsolutePath)
 
-        val inputsPath: String =
-          projectKind.sampleDataManager().flatMap((sampleManager) => {
-            //TODO we should have a way to pick what scenario and store it somewhere. Maybe Configuration Objects
-            sampleManager.listScenarios(nameIdentifier).headOption
-              .map(_.inputs().getAbsolutePath)
-          }).getOrElse("")
-        val startTime = System.currentTimeMillis()
-        weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets, new DefaultWeaveAgentClientListener {
+      val inputsPath: String =
+        projectKind.sampleDataManager().flatMap((sampleManager) => {
+          //TODO we should have a way to pick what scenario and store it somewhere. Maybe Configuration Objects
+          sampleManager.listScenarios(nameIdentifier).headOption
+            .map(_.inputs().getAbsolutePath)
+        }).getOrElse("")
+      val startTime = System.currentTimeMillis()
+      weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets,
+        new DefaultWeaveAgentClientListener {
           override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
             val endTime = System.currentTimeMillis()
             result match {
@@ -248,14 +249,14 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             }
           }
         })
-        runResult.get()
-          .getOrElse({
-            PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
-          })
-      } else {
-        PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
-      }
-    }, executor)
+      runResult.get()
+        .getOrElse({
+          PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+        })
+    } else {
+      PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
+    }
+
   }
 
   def definedDataFormats(): CompletableFuture[Array[DataFormatDescriptor]] = {
@@ -307,7 +308,7 @@ class FutureValue[T] {
 
   def get(): Option[T] = {
     if (value == null) {
-      countDownLatch.await()
+      countDownLatch.await(30, TimeUnit.SECONDS)
     }
     Option(value)
   }
