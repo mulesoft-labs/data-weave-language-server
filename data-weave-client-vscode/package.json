@@ -9,9 +9,10 @@
   "publisher": "dataweave",
   "readme": "README.md",
   "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
+  "enableProposedApi": true,
   "icon": "assets/icon.png",
   "engines": {
-    "vscode": "^1.43.0"
+    "vscode": "^1.51.0"
   },
   "categories": [
     "Programming Languages"
@@ -364,7 +365,8 @@
     "@types/node": "^11.13.6",
     "@types/vscode": "1.43.0",
     "typescript": "^4.2.2",
-    "vsce": "1.88.0"
+    "vsce": "1.88.0",
+    "vscode-dts": "^0.3.1"
   },
   "scripts": {
     "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
@@ -372,6 +374,9 @@
     "compile": "tsc -b -w",
     "watch": "tsc -watch -p ./",
     "package": "npm run prepare; vsce package",
-    "publish": "vsce publish ${EXTENSION_VERSION}"
+    "publish": "vsce publish ${EXTENSION_VERSION}",
+    "download-api": "vscode-dts dev",
+    "postdownload-api": "vscode-dts main",
+    "postinstall": "npm run download-api"
   }
 }

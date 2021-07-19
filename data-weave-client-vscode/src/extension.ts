@@ -37,6 +37,8 @@ export function activate(context: ExtensionContext) {
   const previewFS = new PreviewSystemProvider()
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('preview', previewFS, { isReadonly: true, isCaseSensitive: true }));
 
+
+
   function createServer(): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
       const server = net.createServer(socket => {
