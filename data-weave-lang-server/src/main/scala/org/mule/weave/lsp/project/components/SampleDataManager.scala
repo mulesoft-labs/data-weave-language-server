@@ -133,9 +133,13 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project,
           activeScenarios.put(nameIdentifier, firstScenario)
           Some(firstScenario)
         } else {
-          val quickPickBuilder = new QuickPickWidgetBuilder[Scenario](weaveLanguageClient).title("Choose your preview scenario")
-          scenarios.map(scenario => WeaveQuickPickItem(id = URLUtils.toLSPUrl(scenario.file), label = scenario.name)) //
-            .foreach(item => quickPickBuilder.item(item, (scenario) => WidgetResult(false, scenario, "")))
+          val quickPickBuilder: QuickPickWidgetBuilder[Scenario] = new QuickPickWidgetBuilder[Scenario](weaveLanguageClient).title("Choose your preview scenario")
+
+          val items: Array[(WeaveQuickPickItem, Scenario => WidgetResult[Scenario])] = scenarios
+            .map(scenario => WeaveQuickPickItem(id = URLUtils.toLSPUrl(scenario.file), label = scenario.name)) //
+            .map(item => (item, (scenario: Scenario) => WidgetResult(cancelled = false, scenario, "")))
+
+          quickPickBuilder.itemProvider((_) => items)
           quickPickBuilder.result((_, selectedItems) => scenarios.find(possibleScenario => URLUtils.toLSPUrl(possibleScenario.file).equals(selectedItems.head)).getOrElse(firstScenario))
           val widgetResult: WidgetResult[Scenario] = quickPickBuilder.create().show(firstScenario)
           if (!widgetResult.cancelled) {
@@ -206,9 +210,13 @@ class DefaultSampleDataManager(weaveHome: File, weaveClient: WeaveLanguageClient
           activeScenarios.put(nameIdentifier, firstScenario)
           Some(firstScenario)
         } else {
-          val quickPickBuilder = new QuickPickWidgetBuilder[Scenario](weaveClient).title("Choose your preview scenario")
-          scenarios.map(scenario => WeaveQuickPickItem(id = URLUtils.toLSPUrl(scenario.file), label = scenario.name)) //
-            .foreach(item => quickPickBuilder.item(item, (scenario) => WidgetResult(false, scenario, "")))
+          val quickPickBuilder: QuickPickWidgetBuilder[Scenario] = new QuickPickWidgetBuilder[Scenario](weaveClient).title("Choose your preview scenario")
+
+          val items: Array[(WeaveQuickPickItem, Scenario => WidgetResult[Scenario])] = scenarios
+            .map(scenario => WeaveQuickPickItem(id = URLUtils.toLSPUrl(scenario.file), label = scenario.name)) //
+            .map(item => (item, (scenario: Scenario) => WidgetResult(false, scenario, "")))
+
+          quickPickBuilder.itemProvider((_) => items)
           quickPickBuilder.result((_, selectedItems) => scenarios.find(possibleScenario => URLUtils.toLSPUrl(possibleScenario.file).equals(selectedItems.head)).getOrElse(firstScenario))
           val widgetResult: WidgetResult[Scenario] = quickPickBuilder.create().show(firstScenario)
           if (!widgetResult.cancelled) {

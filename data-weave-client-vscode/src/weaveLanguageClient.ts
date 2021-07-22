@@ -67,7 +67,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         if (vscode.window.activeTextEditor) {
             vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
-                title: "I am long running!",
+                title: "Enable Preview",
                 cancellable: true
             }, (progress, token) => {
                 progress.report({ increment: 0 });
@@ -79,6 +79,23 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
         }
     }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.RUN_PREVIEW, () => {
+            if (vscode.window.activeTextEditor) {
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: "Running Preview",
+                    cancellable: true
+                }, (progress, token) => {
+                    progress.report({ increment: 0 });
+                    const uri = vscode.window.activeTextEditor.document.uri.toString();
+                    progress.report({ increment: 10 });
+                    const command = vscode.commands.executeCommand(ServerWeaveCommands.RUN_PREVIEW, uri);
+                    return command;
+                });
+
+            }
+        }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);

@@ -9,6 +9,8 @@ import org.mule.weave.lsp.ui.utils.Buttons.Button
 import scala.collection.JavaConverters.seqAsJavaListConverter
 
 class InputWidgetBuilder[A](client: WeaveLanguageClient) extends WidgetBuilder[String, A] {
+  var selectionProvider: A => Option[String] = (_) => Option.empty
+
   var default: String = _
 
   var prompt: String = _
@@ -57,8 +59,13 @@ class InputWidgetBuilder[A](client: WeaveLanguageClient) extends WidgetBuilder[S
 
   override def create(): Widget[A] = new InputWidget(client, this)
 
-  override def result(function: (A, String) => A): WidgetBuilder[String, A] = {
+  override def result(function: (A, String) => A): InputWidgetBuilder[A] = {
     resultMapping = function
+    this
+  }
+
+  override def selectionProvider(function: (A => Option[String])): InputWidgetBuilder[A] = {
+    this.selectionProvider = function
     this
   }
 }
@@ -73,7 +80,8 @@ class InputWidget[A](languageClient: WeaveLanguageClient, inputWidgetBuilder: In
       this.inputWidgetButtons = this.inputWidgetButtons updated(button.id, action)
       WeaveButton(id = button.id, iconPath = button.icon)
     })
-    val inputBoxParams = WeaveInputBoxParams(title = inputWidgetBuilder.title, prompt = inputWidgetBuilder.prompt, value = inputWidgetBuilder.default, step = inputWidgetBuilder.stepNumber, totalSteps = inputWidgetBuilder.totalSteps, buttons = weaveButtons.toList.asJava)
+    val default = inputWidgetBuilder.selectionProvider.apply(resultToFill).orElse(Option(inputWidgetBuilder.default)).getOrElse("")
+    val inputBoxParams = WeaveInputBoxParams(title = inputWidgetBuilder.title, prompt = inputWidgetBuilder.prompt, value = default, step = inputWidgetBuilder.stepNumber, totalSteps = inputWidgetBuilder.totalSteps, buttons = weaveButtons.toList.asJava)
 
     val resultValue: WeaveInputBoxResult = languageClient.weaveInputBox(inputBoxParams).get()
 

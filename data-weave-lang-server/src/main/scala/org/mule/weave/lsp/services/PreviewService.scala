@@ -23,13 +23,22 @@ import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.editor.VirtualFile
+import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.util
 import java.util.Collections
 import scala.collection.JavaConverters.seqAsJavaListConverter
 
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import java.util.logging.Logger
+import scala.concurrent.duration.TimeUnit
+
+
 
 class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project) extends ToolingService {
+  private val logger = Logger.getLogger(getClass.getName)
+
 
   private var eventBus: EventBus = _
 
@@ -37,6 +46,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   private var enableValue: Boolean = false
   private var pendingProjectStart: Option[VirtualFile] = None
   private var currentVfPreview: Option[VirtualFile] = None
+  private val previewDebouncer = new Debouncer[NameIdentifier]
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.eventBus = eventBus
@@ -111,24 +121,28 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
   def runPreview(vf: VirtualFile): Unit = {
     //If is the Preview scheme then we should ignore it
-    if (!URLUtils.isSupportedEditableScheme(vf.url())) {
+    val fileUrl: String = vf.url()
+    if (!URLUtils.isSupportedEditableScheme(fileUrl)) {
       return
     }
     if (!project.isStarted()) {
       pendingProjectStart = Some(vf)
       weaveLanguageClient.showPreviewResult(
         PreviewResult(
-          uri = vf.url(),
+          uri = fileUrl,
           success = false,
           logs = Collections.emptyList(),
           errorMessage = "Project is not yet initialized. Preview is going to be executed once project initializes.")
       )
     } else {
-      agentService.run(vf.getNameIdentifier, vf.read(), vf.url())
-        .thenApply((previewResult) => {
-          weaveLanguageClient.showPreviewResult(previewResult)
-          null
-        })
+      val identifier: NameIdentifier = vf.getNameIdentifier
+      val content: String = vf.read()
+      //Debounce the changes for 300ms
+      previewDebouncer.debounce(identifier, () => {
+        logger.info(s"Trigger run preview for `${identifier}`.")
+        val previewResult: PreviewResult = agentService.run(identifier, content, fileUrl)
+        weaveLanguageClient.showPreviewResult(previewResult)
+      }, 300, TimeUnit.MILLISECONDS);
     }
     currentVfPreview = Some(vf)
   }
@@ -140,5 +154,35 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   def disable(): Unit = {
     this.enableValue = false
     this.currentVfPreview = None
+  }
+}
+
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+
+class Debouncer[T] {
+  final private val scheduler = Executors.newSingleThreadScheduledExecutor
+  final private val delayedMap = new ConcurrentHashMap[T, Future[_]]
+  private val logger = Logger.getLogger(getClass.getName)
+
+  def debounce(key: T, runnable: Runnable, delay: Long, unit: TimeUnit): Unit = {
+    val prev: Future[_] = delayedMap.put(key, scheduler.schedule(new Runnable() {
+      override def run(): Unit = {
+        try {
+          runnable.run()
+        }
+        finally {
+          delayedMap.remove(key)
+        }
+      }
+    }, delay, unit))
+    if (prev != null) {
+      logger.info("Canceling previous execution.")
+      prev.cancel(true)
+    }
+  }
+
+  def shutdown(): Unit = {
+    scheduler.shutdownNow
   }
 }

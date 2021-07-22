@@ -11,6 +11,7 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
 
 class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetBuilder[List[String], A] {
 
+  var itemProvider: A => Seq[(WeaveQuickPickItem, A => WidgetResult[A])] = _
 
   var totalSteps: Int = _
 
@@ -20,9 +21,9 @@ class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetB
 
   var buttons: Seq[(Button, (A => WidgetResult[A]))] = Seq()
 
-  var items: Seq[(WeaveQuickPickItem, (A => WidgetResult[A]))] = Seq()
+  var resultMapping: (A, List[String]) => A = _
 
-  var resultMapping: (A,List[String]) => A = _
+  var selectionProvider: A => Option[List[String]] = (_) => Option.empty
 
   override def title(title: String): QuickPickWidgetBuilder[A] = {
     this.title = title
@@ -44,8 +45,8 @@ class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetB
     this
   }
 
-  def item(item: WeaveQuickPickItem, function: A => WidgetResult[A]): QuickPickWidgetBuilder[A] = {
-    this.items = items :+ (item,function)
+  def itemProvider(itemProvider: A => Seq[(WeaveQuickPickItem, A => WidgetResult[A])]): QuickPickWidgetBuilder[A] = {
+    this.itemProvider = itemProvider
     this
   }
 
@@ -53,10 +54,17 @@ class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetB
     new QuickPickWidget(client, this)
   }
 
-  override def result(function: (A,List[String]) => A): QuickPickWidgetBuilder[A] = {
+  override def result(function: (A, List[String]) => A): QuickPickWidgetBuilder[A] = {
     resultMapping = function
     this
   }
+
+  override def selectionProvider(function: (A) => Option[List[String]]): QuickPickWidgetBuilder[A] = {
+    selectionProvider = function
+    this
+  }
+
+
 }
 
 class QuickPickWidget[T](languageClient: WeaveLanguageClient, quickInputWidgetBuilder: QuickPickWidgetBuilder[T]) extends Widget[T] {
@@ -65,19 +73,23 @@ class QuickPickWidget[T](languageClient: WeaveLanguageClient, quickInputWidgetBu
   var items: Map[String, (T => WidgetResult[T])] = Map()
 
   override def show(resultToFill: T): WidgetResult[T] = {
+    val selectedItems = quickInputWidgetBuilder.selectionProvider.apply(resultToFill).getOrElse(List())
     val buttons = quickInputWidgetBuilder.buttons map (buttonAndAction => {
       val (button, action) = buttonAndAction
       this.buttons = this.buttons updated(button.id, action)
       WeaveButton(id = button.id, iconPath = button.icon)
     })
-    val items = quickInputWidgetBuilder.items map (itemAndAction => {
-      val (item, action) = itemAndAction
+    val items = quickInputWidgetBuilder.itemProvider.apply(resultToFill) map (itemAndAction => {
+      var (item, action) = itemAndAction
+      if (selectedItems.contains(item.id)) {
+        item = WeaveQuickPickItem(item.id, item.label, item.description, item.detail, item.alwaysShow, true)
+      }
       this.items = this.items updated(item.id, action)
       item
     })
     val inputBoxParams = WeaveQuickPickParams(title = quickInputWidgetBuilder.title, step = quickInputWidgetBuilder.stepNumber, totalSteps = quickInputWidgetBuilder.totalSteps, buttons = buttons.toList.asJava, items = items.toList.asJava)
     val value = languageClient.weaveQuickPick(inputBoxParams).get()
-    val mappedResult = quickInputWidgetBuilder.resultMapping.apply(resultToFill,(value.itemsId asScala).toList)
+    val mappedResult = quickInputWidgetBuilder.resultMapping.apply(resultToFill, (value.itemsId asScala).toList)
     var widgetResult = this.buttons.getOrElse(value.buttonPressedId, (result: T) => new WidgetResult[T](value.cancelled, mappedResult, value.buttonPressedId)).apply(mappedResult)
     if (value.itemsId != null && !value.itemsId.isEmpty) {
       widgetResult = this.items.getOrElse(value.itemsId.get(0), (result: T) => new WidgetResult[T](value.cancelled, widgetResult.result, value.buttonPressedId)).apply(widgetResult.result)

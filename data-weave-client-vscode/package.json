@@ -200,13 +200,18 @@
         "title": "DataWeave: Create new test"
       },
       {
+        "command": "dw.preview.run",
+        "title": "DataWeave: Run Preview",
+        "icon": "$(debug-continue)"
+      },
+      {
         "command": "dw.preview.enable",
-        "title": "DataWeave: Enable Preview",
+        "title": "DataWeave: Enable AutoPreview",
         "icon": "$(debug-continue)"
       },
       {
         "command": "dw.preview.disable",
-        "title": "DataWeave: Disable Preview",
+        "title": "DataWeave: Disable AutoPreview",
         "icon": "$(debug-pause)"
       }
     ],
@@ -214,7 +219,7 @@
       "editor/title": [
         {
           "when": "editorLangId == data-weave",
-          "command": "dw.preview.enable",
+          "command": "dw.preview.run",
           "group": "navigation"
         }
       ],
