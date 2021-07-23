@@ -261,7 +261,21 @@ case class IconUri(uri: String, override val iconType: String = "URI-ICON") exte
 //Icon provided by the client side matched by id.
 case class ThemeIcon(id: String, override val iconType: String = "THEME-ICON") extends ThemeIconPath
 
-case class ShowScenariosParams(transformationUri: String,
-                               @Nullable scenarios: java.util.List[WeaveScenario] = null)
+case class ShowScenariosParams(
+                                //The name identifier of the Document
+                                nameIdentifier: String,
+                                //Al the scenarios that this document has
+                                @Nullable scenarios: java.util.List[WeaveScenario] = null)
 
-case class WeaveScenario(active: java.lang.Boolean = false, name: String, uri: String, @Nullable inputsUri: java.util.List[String] = null, @Nullable outputsUri: java.util.List[String] = null)
+case class WeaveScenario(
+                          active: java.lang.Boolean = false,
+                          name: String,
+                          uri: String,
+                          //All the uri of all the input files
+                          @Nullable inputsUri: java.util.List[String] = null,
+                          //TODO this should be a single url as just one output is accepted
+                          @Nullable outputsUri: String = null
+                        )
+
+//TODO use something like this for inputs
+case class WeaveInput(uri: String, name: String)

@@ -7,6 +7,7 @@ import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.PreviewService
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
 
@@ -18,13 +19,19 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
                       projectKind: ProjectKind,
                       jobManagerService: JobManagerService,
                       validationService: DataWeaveToolingService,
+                      scenariosManager: WeaveScenarioManagerService,
                       previewService: PreviewService
                      ) {
 
   val commands = Seq(
     new RunBatTestCommand(clientLogger),
     new RunBatFolderTestCommand(clientLogger),
-    new CreateSampleDataCommand(projectKind, languageClient),
+    new CreateScenarioCommand(languageClient, scenariosManager),
+    new DeleteScenarioCommand(scenariosManager),
+    new SetActiveScenarioCommand(scenariosManager),
+    new DeleteInputSampleCommand(scenariosManager),
+    new CreateInputSampleCommand(languageClient, scenariosManager),
+    new SetActiveScenarioCommand(scenariosManager),
     new CreateTestCommand(projectKind, languageClient),
     new EnablePreviewModeCommand(previewService, virtualFileSystem),
     new RunPreviewCommand(previewService, virtualFileSystem),

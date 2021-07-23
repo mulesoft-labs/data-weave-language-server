@@ -18,15 +18,16 @@ import org.mule.weave.lsp.project.components.TargetFolder
 import org.mule.weave.lsp.project.components.TargetKind
 import org.mule.weave.lsp.project.components.WTFSampleDataManager
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 
 import java.io.File
 
 
-class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKindDetector {
+class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKindDetector {
 
   override def createKind(project: Project): ProjectKind = {
-    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger, weaveAgentService, weaveLanguageClient)
+    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
   }
 
   override def supports(project: Project): Boolean = {
@@ -34,13 +35,13 @@ class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, w
   }
 }
 
-class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKind {
+class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKind {
 
   private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
   private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
   private val projectStructure: ProjectStructure = createProjectStructure()
   private val dataManager = new WTFSampleDataManager(structure(), project, weaveLanguageClient)
-  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(dataManager, weaveAgentService, eventBus)
+  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(weaveAgentService, eventBus, weaveScenarioManagerService)
 
   override def name(): String = "DW `Maven`"
 
@@ -83,8 +84,8 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     mavenBuildManager
   }
 
-  override def sampleDataManager(): Option[SampleDataManager] = {
-    Some(dataManager)
+  override def sampleDataManager(): SampleDataManager = {
+    dataManager
   }
 
   override def metadataProvider(): Option[MetadataProvider] = {

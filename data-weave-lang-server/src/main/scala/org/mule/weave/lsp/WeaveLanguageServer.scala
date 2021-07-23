@@ -33,6 +33,7 @@ import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.PreviewService
 import org.mule.weave.lsp.services.ToolingService
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.services.delegate.DependencyManagerServiceDelegate
 import org.mule.weave.lsp.services.delegate.TextDocumentServiceDelegate
 import org.mule.weave.lsp.services.delegate.WorkspaceServiceDelegate
@@ -115,19 +116,21 @@ class WeaveLanguageServer extends LanguageServer {
       val dataWeaveToolingService = new DataWeaveToolingService(projectValue, client, globalFVS, createWeaveToolingService, executorService)
       //TODO should this be enabled for all project kinds??
       //Or we should make the project kind enable it
-      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, client)
+      val scenarioService = new WeaveScenarioManagerService(client, globalFVS)
+      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService)
       val previewService = new PreviewService(weaveAgentService, client, projectValue)
+
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 
       //Create the project
-      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client)
+      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client, scenarioService)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
       val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, previewService)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, scenarioService, previewService)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
@@ -140,6 +143,7 @@ class WeaveLanguageServer extends LanguageServer {
         jobManagerService,
         dataWeaveToolingService,
         previewService,
+        scenarioService,
         indexService,
         projectVFS,
         librariesVFS

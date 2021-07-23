@@ -2,6 +2,7 @@ package org.mule.weave.lsp.project.components
 
 import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.agent.WeaveAgentService
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
@@ -42,7 +43,7 @@ case class InputMetadata(metadata: Array[WeaveTypeBind])
 case class WeaveTypeBind(name: String, wtype: WeaveType)
 
 
-class SampleBaseMetadataProvider(sampleDataManager: SampleDataManager, weaveAgentService: WeaveAgentService, eventBus: EventBus) extends MetadataProvider {
+class SampleBaseMetadataProvider(weaveAgentService: WeaveAgentService, eventBus: EventBus, weaveScenarioManagerService: WeaveScenarioManagerService) extends MetadataProvider {
 
   val cache: mutable.HashMap[String, InputMetadata] = mutable.HashMap()
 
@@ -58,7 +59,7 @@ class SampleBaseMetadataProvider(sampleDataManager: SampleDataManager, weaveAgen
   })
 
   override def inputMetadataFor(vf: VirtualFile): InputMetadata = {
-    val headOption = sampleDataManager.activeScenario(vf.getNameIdentifier)
+    val headOption = weaveScenarioManagerService.activeScenario(vf.getNameIdentifier)
     if (headOption.isDefined) {
       val scenario = headOption.get
       val scenarioPath = scenario.file.getAbsolutePath

@@ -35,7 +35,7 @@ class CreateSampleCommandTest extends FreeSpec {
       override def weaveQuickPick(params: WeaveQuickPickParams): WeaveQuickPickResult = ???
     })
 
-    project.runCommand(Commands.DW_DEFINE_SAMPLE_DATA, MAPPING_NAME)
+    project.runCommand(Commands.DW_CREATE_SCENARIO, MAPPING_NAME)
     val workspaceRoot = project.workspaceRoot.toFile
 
     val scenario = new File(workspaceRoot, s"src${separator}test${separator}dwit${separator}$MAPPING_NAME${separator}$SCENARIO_NAME")
@@ -62,7 +62,7 @@ class CreateSampleCommandTest extends FreeSpec {
       override def weaveQuickPick(params: WeaveQuickPickParams): WeaveQuickPickResult = ???
     })
 
-    project.runCommand(Commands.DW_DEFINE_SAMPLE_DATA, MAPPING_NAME)
+    project.runCommand(Commands.DW_CREATE_SCENARIO, MAPPING_NAME)
     val workspaceRoot = project.workspaceRoot.toFile
 
     val scenario = new File(workspaceRoot, s"src${separator}test${separator}dwit${separator}$MAPPING_NAME${separator}$SCENARIO_NAME")

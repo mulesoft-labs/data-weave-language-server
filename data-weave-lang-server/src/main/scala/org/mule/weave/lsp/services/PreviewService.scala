@@ -2,14 +2,10 @@ package org.mule.weave.lsp.services
 
 import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.agent.WeaveAgentService
-import org.mule.weave.lsp.extension.client
 import org.mule.weave.lsp.extension.client.PreviewResult
-import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
-import org.mule.weave.lsp.extension.client.WeaveScenario
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
-import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.project.events.OnProjectStarted
 import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
@@ -25,21 +21,15 @@ import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
-import java.util
 import java.util.Collections
-import scala.collection.JavaConverters.seqAsJavaListConverter
-
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 import scala.concurrent.duration.TimeUnit
 
 
-
 class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project) extends ToolingService {
   private val logger = Logger.getLogger(getClass.getName)
-
-
   private var eventBus: EventBus = _
 
   @volatile
@@ -67,30 +57,9 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
     })
 
     eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
-
-      def mapScenarios(maybeActiveScenario: Option[Scenario], allScenarios: Array[Scenario]): util.List[client.WeaveScenario] = {
-        var resultScenarios = allScenarios
-        val maybeScenario: Option[WeaveScenario] = maybeActiveScenario.map(activeScenario => {
-          resultScenarios = allScenarios.filter(scenario => !scenario.name.equals(activeScenario.name))
-          WeaveScenario(true, activeScenario.name, URLUtils.toLSPUrl(activeScenario.file), activeScenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava, activeScenario.expected().map(_.listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava).orNull)
-        })
-        var scenarios: Array[WeaveScenario] = resultScenarios.map(scenario => {
-          WeaveScenario(true, scenario.name, URLUtils.toLSPUrl(scenario.file), scenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava, scenario.expected().map(_.listFiles().map(file => URLUtils.toLSPUrl(file)).toList asJava).orNull)
-        })
-        maybeScenario.map(s => scenarios = (scenarios :+ s))
-        scenarios.toList asJava
-      }
-
       override def onDocumentFocused(vf: VirtualFile): Unit = {
         if (enableValue) {
           runPreview(vf)
-          //TODO move this from here
-          projectKind.sampleDataManager().map(sampleManager => {
-            val maybeActiveScenario = sampleManager.activeScenario(vf.getNameIdentifier)
-            val allScenarios = sampleManager.listScenarios(vf.getNameIdentifier)
-            val url = vf.url()
-            URLUtils.toFile(url).map(file => weaveLanguageClient.showScenarios(scenariosParam = ShowScenariosParams(transformationUri = URLUtils.toLSPUrl(file), scenarios = mapScenarios(maybeActiveScenario, allScenarios))))
-          })
         }
       }
     })
@@ -98,12 +67,10 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
     eventBus.register(FILE_CHANGED_EVENT, new OnFileChanged {
       override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
         currentVfPreview.map(currentVFPreview => {
-          projectKind.sampleDataManager().map(sampleDataManager => {
-            sampleDataManager.searchSampleDataFolderFor(currentVFPreview.getNameIdentifier).map(scenarioFolder => {
-              if (URLUtils.isChildOf(uri, scenarioFolder)) {
-                runPreview(currentVFPreview)
-              }
-            })
+          projectKind.sampleDataManager().searchSampleDataFolderFor(currentVFPreview.getNameIdentifier).map(scenarioFolder => {
+            if (URLUtils.isChildOf(uri, scenarioFolder)) {
+              runPreview(currentVFPreview)
+            }
           })
         })
       }

@@ -31,6 +31,7 @@ class DataWeaveWorkspaceService(
                                  languageClient: WeaveLanguageClient,
                                  dataWeaveToolingService: DataWeaveToolingService,
                                  jobManagerService: JobManagerService,
+                                 scenariosManager: WeaveScenarioManagerService,
                                  previewService: PreviewService
                                ) extends WorkspaceService with ToolingService {
 
@@ -50,6 +51,7 @@ class DataWeaveWorkspaceService(
       projectKind,
       jobManagerService,
       dataWeaveToolingService,
+      scenariosManager,
       previewService)
   }
 

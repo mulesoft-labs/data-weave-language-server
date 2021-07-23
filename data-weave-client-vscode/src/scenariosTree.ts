@@ -35,8 +35,17 @@ export class WeaveScenarioProvider implements TreeDataProvider<ScenarioViewerIte
     } else {
       const possibleScenario = this.scenarios;
       if (possibleScenario) {
+        const parts = possibleScenario.nameIdentifier.split("::");
+        const label = parts[parts.length - 1];
         return Promise.resolve(
-          [new TransformationItem(Utils.basename(URI.parse(possibleScenario.transformationUri)), URI.parse(this.scenarios.transformationUri), ThemeIcon.Folder, "vscode.open", TreeItemCollapsibleState.Expanded, this.scenarios.scenarios)]
+          [
+            new TransformationItem(label,
+              possibleScenario.nameIdentifier,
+              ThemeIcon.Folder,
+              TreeItemCollapsibleState.Expanded,
+              this.scenarios.scenarios
+            )
+          ]
         );
       } else {
         return Promise.resolve([])
@@ -50,9 +59,8 @@ export abstract class ScenarioViewerItem extends TreeItem {
 
   constructor(
     public readonly label: string,
-    public readonly uri: Uri,
+    public readonly uri: Uri | null,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState
   ) {
     super(label, collapsibleState);
@@ -60,7 +68,7 @@ export abstract class ScenarioViewerItem extends TreeItem {
     this.resourceUri = uri;
   }
 
-  command = this.commandId != null ? { command: this.commandId, title: "Open", arguments: [this.uri] } : null;
+  command = this.uri != null ? { command: "vscode.open", title: "Open", arguments: [this.uri] } : null;
   iconPath = this.icon;
 
   abstract getChildren(): Thenable<ScenarioViewerItem[]>
@@ -69,22 +77,27 @@ export abstract class ScenarioViewerItem extends TreeItem {
 export class TransformationItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
-    public readonly uri: Uri,
+    public nameIdentifier: string,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState,
     readonly model: ShowScenarios.Scenario[]) {
-    super(label, uri, icon, commandId, collapsibleState)
-    this.resourceUri = uri;
+    super(label, null, icon, collapsibleState)
+
   }
 
-  command = this.commandId != null ? { command: this.commandId, title: "Open", arguments: [this.uri] } : null;
   iconPath = this.icon;
   contextValue = "transformationItem"
 
   getChildren(): Thenable<ScenarioViewerItem[]> {
     return Promise.resolve(this.model.map(scenario => {
-      return new ScenariosNode(scenario.name, URI.parse(scenario.uri), ThemeIcon.Folder, "", TreeItemCollapsibleState.Expanded, scenario.active, scenario)
+      return new ScenariosNode(scenario.name,
+        this.nameIdentifier,
+        scenario.name,        
+        URI.parse(scenario.uri),
+        ThemeIcon.Folder,
+        TreeItemCollapsibleState.Expanded,
+        scenario.active,
+        scenario)
     })
     )
   }
@@ -93,14 +106,16 @@ export class TransformationItem extends ScenarioViewerItem {
 export class ScenariosNode extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
+    public readonly nameIdentifier: string,
+    public readonly scenarioName: string,
     public readonly uri: Uri,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState,
     readonly active: boolean,
     readonly model: ShowScenarios.Scenario
   ) {
-    super(label, uri, icon, commandId, collapsibleState)
+    super(label, uri, icon, collapsibleState)
+
     if (active) {
       this.contextValue = "activeScenario"
       this.iconPath = new ThemeIcon("check")
@@ -114,8 +129,24 @@ export class ScenariosNode extends ScenarioViewerItem {
 
   getChildren(): Thenable<ScenarioViewerItem[]> {
     return Promise.resolve(
-      [new InputsItem("Inputs", null, ThemeIcon.Folder, "", TreeItemCollapsibleState.Expanded, this.model.inputsUri),
-      new OutputsItem("Outputs", null, ThemeIcon.Folder, "", TreeItemCollapsibleState.Expanded, this.model.outputsUri)]
+      [
+        new InputsItem(
+          "Inputs",
+          this.nameIdentifier,
+          this.scenarioName,
+          ThemeIcon.Folder,
+          TreeItemCollapsibleState.Expanded,
+          this.model.inputsUri),
+
+        new OutputsItem(
+          "Outputs",
+          this.nameIdentifier,
+          this.scenarioName,
+          ThemeIcon.Folder,
+          TreeItemCollapsibleState.Expanded,
+          this.model.outputsUri
+        )
+      ]
     )
   }
 
@@ -125,37 +156,36 @@ export class ScenariosNode extends ScenarioViewerItem {
 export class InputsItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
-    public readonly uri: Uri,
+    public readonly nameIdentifier: string,
+    public readonly scenarioName: string,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState,
     readonly inputsUri: Array<string>) {
-    super(label, uri, icon, commandId, collapsibleState)
-    this.resourceUri = uri;
+    super(label, null, icon, collapsibleState)
   }
 
   contextValue = "inputs"
+  iconPath = this.icon;
 
   getChildren(): Thenable<ScenarioViewerItem[]> {
-    const newLocal = this.inputsUri;
-    if (newLocal) {
-      return Promise.resolve(newLocal.map(uri => new InputItem(Utils.basename(URI.parse(uri)), URI.parse(uri), ThemeIcon.File, "vscode.open", TreeItemCollapsibleState.Expanded)))
+    if (this.inputsUri) {
+      return Promise.resolve(this.inputsUri.map(uri =>
+        new InputItem(Utils.basename(URI.parse(uri)), URI.parse(uri), ThemeIcon.File, TreeItemCollapsibleState.None))
+      )
     } else {
       return Promise.resolve([])
     }
-
   }
-
 }
 
 export class InputItem extends ScenarioViewerItem {
 
-  constructor(public readonly label: string,
+  constructor(
+    public readonly label: string,
     public readonly uri: Uri,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState) {
-    super(label, uri, icon, commandId, collapsibleState)
+    super(label, uri, icon, collapsibleState)
     this.resourceUri = uri;
   }
 
@@ -170,10 +200,9 @@ export class OutputItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
     public readonly uri: Uri,
-    readonly icon: ThemeIcon,
-    readonly commandId: string | null,
+    readonly icon: ThemeIcon,    
     public readonly collapsibleState: TreeItemCollapsibleState) {
-    super(label, uri, icon, commandId, collapsibleState)
+    super(label, uri, icon, collapsibleState)
     this.resourceUri = uri;
   }
 
@@ -188,13 +217,12 @@ export class OutputItem extends ScenarioViewerItem {
 export class OutputsItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
-    public readonly uri: Uri,
+    public readonly nameIdentifier: string,
+    public readonly scenarioName: string,
     readonly icon: ThemeIcon,
-    readonly commandId: string | null,
     public readonly collapsibleState: TreeItemCollapsibleState,
-    readonly outputUris: Array<string>) {
-    super(label, uri, icon, commandId, collapsibleState)
-    this.resourceUri = uri;
+    readonly outputUris: string|null) {
+    super(label, null, icon, collapsibleState)
   }
 
   contextValue = "outputs"
@@ -202,7 +230,9 @@ export class OutputsItem extends ScenarioViewerItem {
   getChildren(): Thenable<ScenarioViewerItem[]> {
     const newLocal = this.outputUris;
     if (newLocal) {
-      return Promise.resolve(this.outputUris.map(uri => new InputItem(Utils.basename(URI.parse(uri)), URI.parse(uri), ThemeIcon.File, "vscode.open", TreeItemCollapsibleState.Expanded)))
+      return Promise.resolve(
+         [new OutputItem(Utils.basename(URI.parse(this.outputUris)), URI.parse(this.outputUris), ThemeIcon.File, TreeItemCollapsibleState.Expanded)]
+      )
     } else {
       return Promise.resolve([])
     }

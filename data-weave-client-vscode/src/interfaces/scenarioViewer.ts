@@ -7,7 +7,7 @@ export namespace ShowScenarios {
   >("weave/workspace/publishScenarios");
 
   export interface ShowScenariosParam {
-    transformationUri: string,
+    nameIdentifier: string,
     scenarios: Array<Scenario>
   }
 
@@ -16,6 +16,6 @@ export namespace ShowScenarios {
     name: string,
     uri: string,
     inputsUri: Array<string>,
-    outputsUri: Array<string>
+    outputsUri: string| null
   }
 }

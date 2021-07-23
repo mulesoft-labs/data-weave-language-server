@@ -18,7 +18,11 @@ object Commands {
   val DW_RUN_MAPPING = "dw.runCommand"
   val DW_QUICK_FIX = "dw.quickFix"
   val DW_GENERATE_WEAVE_DOC = "dw.generateWeaveDoc"
-  val DW_DEFINE_SAMPLE_DATA = "dw.defineSampleData"
+  val DW_CREATE_SCENARIO = "dw.createScenario"
+  val DW_CREATE_INPUT_SAMPLE = "dw.createInputSample"
+  val DW_DELETE_INPUT_SAMPLE = "dw.deleteInputSample"
+  val DW_ACTIVE_SCENARIO = "dw.activeScenario"
+  val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
   val DW_INSERT_RETURN_TYPE = "dw.insertReturnType"
 
@@ -31,7 +35,11 @@ object Commands {
     DW_ENABLE_PREVIEW,
     DW_LAUNCH_MAPPING,
     DW_QUICK_FIX,
-    DW_DEFINE_SAMPLE_DATA,
+    DW_CREATE_SCENARIO,
+    DW_DELETE_SCENARIO,
+    DW_ACTIVE_SCENARIO,
+    DW_CREATE_INPUT_SAMPLE,
+    DW_DELETE_INPUT_SAMPLE,
     DW_GENERATE_WEAVE_DOC,
     DW_CREATE_TEST,
     DW_INSERT_RETURN_TYPE

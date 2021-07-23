@@ -27,6 +27,7 @@ import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
@@ -35,9 +36,10 @@ import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 import java.io.File
 import scala.collection.immutable
 
-class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKind {
+class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKind {
   private val simpleDependencyManager = new SimpleDependencyManager(project, logger, eventBus)
   private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome(), weaveLanguageClient)
+  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(weaveAgentService, eventBus, weaveScenarioManagerService)
 
   override def name(): String = "DW `Simple`"
 
@@ -59,23 +61,22 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
     NoBuildManager
   }
 
-  override def sampleDataManager(): Option[SampleDataManager] = {
-
-    Some(defaultSampleDataManager)
+  override def sampleDataManager(): SampleDataManager = {
+    defaultSampleDataManager
   }
 
   override def metadataProvider(): Option[MetadataProvider] = {
-    Some(new SampleBaseMetadataProvider(defaultSampleDataManager, weaveAgentService, eventBus))
+    Some(sampleBaseMetadataProvider)
   }
 }
 
-class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient) extends ProjectKindDetector {
+class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKindDetector {
   override def supports(project: Project): Boolean = {
     new File(project.home(), "src").exists()
   }
 
   override def createKind(project: Project): ProjectKind = {
-    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient)
+    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient,weaveScenarioManagerService)
   }
 }
 

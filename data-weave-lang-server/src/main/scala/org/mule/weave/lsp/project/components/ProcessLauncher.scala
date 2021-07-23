@@ -164,32 +164,31 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
     if (nameIdentifier.isDefined) {
       val theNameIdentifier = NameIdentifier(nameIdentifier.get)
       var scenarioPath: Option[String] = None
-      val maybeSampleDataManager = projectKind.sampleDataManager()
-      if (maybeSampleDataManager.isDefined) {
-        val sampleManager: SampleDataManager = maybeSampleDataManager.get
-        config.scenario match {
-          case Some(scenario) if (scenario.nonEmpty) => {
-            val maybeScenario = sampleManager.searchScenarioByName(theNameIdentifier, scenario)
-            if (maybeScenario.isEmpty) {
-              scenarioPath = askToPickScenario(theNameIdentifier)
-            } else {
-              scenarioPath = maybeScenario.map(_.file.getAbsolutePath)
-            }
-          }
-          case _ => {
-            val scenarios = sampleManager.listScenarios(theNameIdentifier)
-            if (scenarios.length == 1) {
-              scenarioPath = Some(scenarios.head.file.getAbsolutePath)
-            } else {
-              scenarioPath = askToPickScenario(theNameIdentifier)
-            }
+
+      val sampleManager: SampleDataManager = projectKind.sampleDataManager()
+      config.scenario match {
+        case Some(scenario) if (scenario.nonEmpty) => {
+          val maybeScenario = sampleManager.searchScenarioByName(theNameIdentifier, scenario)
+          if (maybeScenario.isEmpty) {
+            scenarioPath = askToPickScenario(theNameIdentifier)
+          } else {
+            scenarioPath = maybeScenario.map(_.file.getAbsolutePath)
           }
         }
-        if (scenarioPath.isDefined) {
-          args.add("-scenario")
-          args.add(scenarioPath.get)
+        case _ => {
+          val scenarios = sampleManager.listScenarios(theNameIdentifier)
+          if (scenarios.length == 1) {
+            scenarioPath = Some(scenarios.head.file.getAbsolutePath)
+          } else {
+            scenarioPath = askToPickScenario(theNameIdentifier)
+          }
         }
       }
+      if (scenarioPath.isDefined) {
+        args.add("-scenario")
+        args.add(scenarioPath.get)
+      }
+
       args.add(nameIdentifier.get)
       builder.command(args)
       clientLogger.logInfo(s"Executing: ${args.asScala.mkString(" ")}")
@@ -200,7 +199,7 @@ class DefaultWeaveLauncher(projectKind: ProjectKind,
   }
 
   private def askToPickScenario(theNameIdentifier: NameIdentifier): Option[String] = {
-    val scenarios = projectKind.sampleDataManager().get.listScenarios(theNameIdentifier)
+    val scenarios: Array[Scenario] = projectKind.sampleDataManager().listScenarios(theNameIdentifier)
     if (scenarios.nonEmpty) {
       val items: Array[WeaveQuickPickItem] = scenarios.map((s) => {
         WeaveQuickPickItem(s.file.getAbsolutePath, s.name)

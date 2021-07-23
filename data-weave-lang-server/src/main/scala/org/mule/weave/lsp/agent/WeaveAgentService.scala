@@ -18,9 +18,9 @@ import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.ToolingService
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.NetUtils
-import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.v2.completion.DataFormatDescriptor
 import org.mule.weave.v2.completion.DataFormatProperty
 import org.mule.weave.v2.debugger.client.ConnectionRetriesListener
@@ -55,7 +55,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
   *
   */
-class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project, client: WeaveLanguageClient) extends ToolingService {
+class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project, scenarioManagerService: WeaveScenarioManagerService) extends ToolingService {
 
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
@@ -223,10 +223,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
 
 
   def run(nameIdentifier: NameIdentifier, content: String, url: String): PreviewResult = {
-    val maybeScenario: Option[Scenario] = projectKind.sampleDataManager().flatMap((sampleManager) => {
-      //TODO we should have a ay to pick what scenario and store it somewhere. Maybe Configuration Objects
-      sampleManager.activeScenario(nameIdentifier)
-    })
+    val maybeScenario: Option[Scenario] = scenarioManagerService.activeScenario(nameIdentifier)
     run(nameIdentifier, content, url, maybeScenario)
   }
 

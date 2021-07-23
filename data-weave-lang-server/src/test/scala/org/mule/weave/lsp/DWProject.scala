@@ -384,7 +384,7 @@ class DWProject(val workspaceRoot: Path) {
         *
         * @param scenariosParam Scenarios Parameter
         */
-      override def showScenarios(scenariosParam: ShowScenariosParams): Unit = ???
+      override def showScenarios(scenariosParam: ShowScenariosParams): Unit = {}
     })
   }
 

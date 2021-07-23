@@ -1,12 +1,14 @@
 package org.mule.weave.lsp.project.impl.bat
 
 import org.mule.weave.lsp.bat.BatProjectHelper
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
 import org.mule.weave.lsp.project.Settings
 import org.mule.weave.lsp.project.components
 import org.mule.weave.lsp.project.components.BuildManager
+import org.mule.weave.lsp.project.components.DefaultSampleDataManager
 import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.components.ModuleStructure
 import org.mule.weave.lsp.project.components.NoBuildManager
@@ -20,10 +22,14 @@ import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.project.impl.simple.SimpleDependencyManager
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 
 import java.io.File
 
-class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus) extends ProjectKind {
+class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveLanguageClient: WeaveLanguageClient) extends ProjectKind {
+
+  private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome(), weaveLanguageClient)
+
   override def name(): String = "BAT"
 
 
@@ -44,16 +50,16 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus)
 
   override def buildManager(): BuildManager = NoBuildManager
 
-  override def sampleDataManager(): Option[SampleDataManager] = None
+  override def sampleDataManager(): SampleDataManager = defaultSampleDataManager
 }
 
-class BatProjectKindDetector(eventBus: EventBus, logger: ClientLogger) extends ProjectKindDetector {
+class BatProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveLanguageClient: WeaveLanguageClient) extends ProjectKindDetector {
   override def supports(project: Project): Boolean = {
     new File(project.home(), "exchange.json").exists()
   }
 
   override def createKind(project: Project): ProjectKind = {
-    new BatProjectKind(project, logger, eventBus)
+    new BatProjectKind(project, logger, eventBus, weaveLanguageClient)
   }
 }
 

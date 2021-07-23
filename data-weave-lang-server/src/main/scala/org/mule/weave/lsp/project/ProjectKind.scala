@@ -4,8 +4,6 @@ import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.components.BuildManager
 import org.mule.weave.lsp.project.components.MetadataProvider
-import org.mule.weave.lsp.project.components.NoBuildManager
-import org.mule.weave.lsp.project.components.NoDependencyManager
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.SampleDataManager
@@ -14,6 +12,7 @@ import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKind
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 
 /**
@@ -41,19 +40,19 @@ trait ProjectKindDetector {
 }
 
 object ProjectKindDetector {
-  def detectProjectKind(project: Project, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient): ProjectKind = {
+  def detectProjectKind(project: Project, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService): ProjectKind = {
     if (project.hasHome()) {
       val detectors = Seq(
-        new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient),
-        new BatProjectKindDetector(eventBus, clientLogger),
-        new SimpleProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient)
+        new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService),
+        new BatProjectKindDetector(eventBus, clientLogger, weaveLanguageClient),
+        new SimpleProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
       )
       detectors
         .find(_.supports(project))
         .map(_.createKind(project))
-        .getOrElse(new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService, weaveLanguageClient))
+        .getOrElse(new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService))
     } else {
-      new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService, weaveLanguageClient)
+      new SimpleProjectKind(project, clientLogger, eventBus, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
     }
   }
 }
@@ -105,7 +104,7 @@ trait ProjectKind {
     *
     * @return The Scenarios For sample data
     */
-  def sampleDataManager(): Option[SampleDataManager]
+  def sampleDataManager(): SampleDataManager
 
   /**
     * Handles the metadata for the files.
@@ -114,16 +113,4 @@ trait ProjectKind {
     */
   def metadataProvider(): Option[MetadataProvider] = None
 
-}
-
-object NoProjectKind extends ProjectKind {
-  override def name(): String = "NoProject"
-
-  override def structure(): ProjectStructure = ProjectStructure(Array.empty)
-
-  override def dependencyManager(): ProjectDependencyManager = NoDependencyManager
-
-  override def buildManager(): BuildManager = NoBuildManager
-
-  override def sampleDataManager(): Option[SampleDataManager] = None
 }

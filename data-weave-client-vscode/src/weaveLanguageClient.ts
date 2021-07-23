@@ -13,7 +13,7 @@ import { WeaveDependenciesProvider } from './dependencyTree';
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
 import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
-import { WeaveScenarioProvider } from './scenariosTree';
+import { InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
 import { ShowScenarios } from './interfaces/scenarioViewer';
 
 
@@ -81,21 +81,43 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.RUN_PREVIEW, () => {
-            if (vscode.window.activeTextEditor) {
-                vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Notification,
-                    title: "Running Preview",
-                    cancellable: true
-                }, (progress, token) => {
-                    progress.report({ increment: 0 });
-                    const uri = vscode.window.activeTextEditor.document.uri.toString();
-                    progress.report({ increment: 10 });
-                    const command = vscode.commands.executeCommand(ServerWeaveCommands.RUN_PREVIEW, uri);
-                    return command;
-                });
+        if (vscode.window.activeTextEditor) {
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Running Preview",
+                cancellable: true
+            }, (progress, token) => {
+                progress.report({ increment: 0 });
+                const uri = vscode.window.activeTextEditor.document.uri.toString();
+                progress.report({ increment: 10 });
+                const command = vscode.commands.executeCommand(ServerWeaveCommands.RUN_PREVIEW, uri);
+                return command;
+            });
 
-            }
-        }));
+        }
+    }));
+
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ADD_SCENARIO_COMMAND, (transform: TransformationItem) => {
+        vscode.commands.executeCommand(ServerWeaveCommands.CREATE_SCENARIO, transform.nameIdentifier);
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_SCENARIO_COMMAND, (scenario: ScenariosNode) => {
+        vscode.commands.executeCommand(ServerWeaveCommands.DELETE_SCENARIO, scenario.nameIdentifier, scenario.scenarioName);
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DEFAULT_SCENARIO_COMMAND, (scenario: ScenariosNode) => {
+        vscode.commands.executeCommand(ServerWeaveCommands.DELETE_SCENARIO, scenario.nameIdentifier, scenario.scenarioName);
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ADD_INPUT_COMMAND, (inputs: InputsItem) => {
+        vscode.commands.executeCommand(ServerWeaveCommands.CREATE_INPUT_SAMPLE, inputs.nameIdentifier, inputs.scenarioName);   
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_INPUT_COMMAND, () => {
+
+    }));
+
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
@@ -144,7 +166,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
                     return vscode.window.showTextDocument(document, options)
                 })
         }
-        
+
 
         const document = previewEditor.document;
         let languageId = "plaintext"

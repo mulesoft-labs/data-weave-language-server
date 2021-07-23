@@ -252,13 +252,10 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       maybeString match {
         case Some(MAPPING) => {
-          val maybeSampleDataManager = projectKind.sampleDataManager()
-          if (maybeSampleDataManager.isDefined) {
-            val maybeFile: Option[File] = maybeSampleDataManager.get.searchSampleDataFolderFor(nameIdentifier)
-            if (maybeFile.isEmpty) {
-              val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-              result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_DEFINE_SAMPLE_DATA, util.Arrays.asList(nameIdentifier.name)), null))
-            }
+          val maybeFile: Option[File] = projectKind.sampleDataManager().searchSampleDataFolderFor(nameIdentifier)
+          if (maybeFile.isEmpty) {
+            val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
+            result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_CREATE_SCENARIO, util.Arrays.asList(nameIdentifier.name)), null))
           }
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
