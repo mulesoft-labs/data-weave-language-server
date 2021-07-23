@@ -5657,7 +5657,7 @@ declare module 'vscode' {
 		/**
 		 * The tooltip text when you hover over this entry.
 		 */
-		tooltip: string | undefined;
+		tooltip: string | MarkdownString | undefined;
 
 		/**
 		 * The foreground color for this entry.
@@ -5667,9 +5667,11 @@ declare module 'vscode' {
 		/**
 		 * The background color for this entry.
 		 *
-		 * *Note*: only `new ThemeColor('statusBarItem.errorBackground')` is
-		 * supported for now. More background colors may be supported in the
-		 * future.
+		 * *Note*: only the following colors are supported:
+		 * * `new ThemeColor('statusBarItem.errorBackground')`
+		 * * `new ThemeColor('statusBarItem.warningBackground')`
+		 *
+		 * More background colors may be supported in the future.
 		 *
 		 * *Note*: when a background color is set, the statusbar may override
 		 * the `color` choice to ensure the entry is readable in all themes.
@@ -11550,6 +11552,33 @@ declare module 'vscode' {
 	}
 
 	/**
+	 * Represents a notebook editor that is attached to a {@link NotebookDocument notebook}.
+	 * Additional properties of the NotebookEditor are available in the proposed
+	 * API, which will be finalized later.
+	 */
+	export interface NotebookEditor {
+
+	}
+
+	/**
+	 * Renderer messaging is used to communicate with a single renderer. It's returned from {@link notebooks.createRendererMessaging}.
+	 */
+	export interface NotebookRendererMessaging {
+		/**
+		 * Events that fires when a message is received from a renderer.
+		 */
+		readonly onDidReceiveMessage: Event<{ editor: NotebookEditor, message: any }>;
+
+		/**
+		 * Sends a message to the renderer.
+		 * @param editor Editor to target with the message
+		 * @param message Message to send
+		 * @returns a boolean indicating whether the message was successfully delivered
+		 */
+		postMessage(editor: NotebookEditor, message: any): Thenable<boolean>;
+	}
+
+	/**
 	 * Represents a notebook which itself is a sequence of {@link NotebookCell code or markup cells}. Notebook documents are
 	 * created from {@link NotebookData notebook data}.
 	 */
@@ -12283,6 +12312,15 @@ declare module 'vscode' {
 		 * @return A {@link Disposable} that unregisters this provider when being disposed.
 		 */
 		export function registerNotebookCellStatusBarItemProvider(notebookType: string, provider: NotebookCellStatusBarItemProvider): Disposable;
+
+		/**
+		 * Creates a new messaging instance used to communicate with a specific renderer defined in this extension's package.json. The renderer only
+		 * has access to messaging if `requiresMessaging` is set to `always` or `optional` in its `notebookRenderer ` contribution.
+		 *
+		 * @param rendererId The renderer ID to communicate with
+		 * @returns A new notebook renderer messaging object.
+		*/
+		export function createRendererMessaging(rendererId: string): NotebookRendererMessaging;
 	}
 
 	/**
@@ -12328,7 +12366,7 @@ declare module 'vscode' {
 		 * The icon path for a specific
 		 * {@link SourceControlResourceState source control resource state}.
 		 */
-		readonly iconPath?: string | Uri;
+		readonly iconPath?: string | Uri | ThemeIcon;
 	}
 
 	/**
@@ -13012,6 +13050,13 @@ declare module 'vscode' {
 		 * "parent" debug session.
 		 */
 		parentSession?: DebugSession;
+
+		/**
+		 * Controls whether lifecycle requests like 'restart' are sent to the newly created session or its parent session.
+		 * By default (if the property is false or missing), lifecycle requests are sent to the new session.
+		 * This property is ignored if the session has no parent session.
+		 */
+		lifecycleManagedByParent?: boolean;
 
 		/**
 		 * Controls whether this session should have a separate debug console or share it

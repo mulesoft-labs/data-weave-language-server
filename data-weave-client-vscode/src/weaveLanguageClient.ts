@@ -20,7 +20,7 @@ import { clearDecorations, openTextDocument, setDecorations } from "./document";
 
 
 export function handleCustomMessages(client: LanguageClient, context: ExtensionContext, previewContent: PreviewSystemProvider) {
-
+    
     let jobs: { [key: string]: { label: string, description: string } } = {}
 
     let statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1)

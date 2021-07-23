@@ -36,7 +36,7 @@ export function activate(context: ExtensionContext) {
 
   const previewFS = new PreviewSystemProvider()
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('preview', previewFS, { isReadonly: true, isCaseSensitive: true }));
-
+  vscode.tests.
 
 
   function createServer(): Promise<StreamInfo> {
