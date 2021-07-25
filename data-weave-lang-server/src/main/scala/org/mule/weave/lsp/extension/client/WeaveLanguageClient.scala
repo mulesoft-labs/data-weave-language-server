@@ -272,10 +272,10 @@ case class WeaveScenario(
                           name: String,
                           uri: String,
                           //All the uri of all the input files
-                          @Nullable inputsUri: java.util.List[String] = null,
+                          @Nullable inputsUri: Array[SampleInput] = null,
                           //TODO this should be a single url as just one output is accepted
                           @Nullable outputsUri: String = null
                         )
 
 //TODO use something like this for inputs
-case class WeaveInput(uri: String, name: String)
+case class SampleInput(uri: String, name: String)

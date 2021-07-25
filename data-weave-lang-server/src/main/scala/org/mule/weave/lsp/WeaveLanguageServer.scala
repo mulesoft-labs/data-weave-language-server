@@ -118,7 +118,7 @@ class WeaveLanguageServer extends LanguageServer {
       //Or we should make the project kind enable it
       val scenarioService = new WeaveScenarioManagerService(client, globalFVS)
       val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService)
-      val previewService = new PreviewService(weaveAgentService, client, projectValue)
+      val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService)
 
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 

@@ -13,7 +13,7 @@ import { WeaveDependenciesProvider } from './dependencyTree';
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
 import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
-import { InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
+import { InputItem, InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
 import { ShowScenarios } from './interfaces/scenarioViewer';
 
 
@@ -111,13 +111,13 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ADD_INPUT_COMMAND, (inputs: InputsItem) => {
-        vscode.commands.executeCommand(ServerWeaveCommands.CREATE_INPUT_SAMPLE, inputs.nameIdentifier, inputs.scenarioName);   
+        vscode.commands.executeCommand(ServerWeaveCommands.CREATE_INPUT_SAMPLE, inputs.nameIdentifier, inputs.scenarioName);
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_INPUT_COMMAND, () => {
-
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_INPUT_COMMAND, (input: InputItem) => {
+        const inputUri = input.uri.toString();
+        vscode.commands.executeCommand(ServerWeaveCommands.DELETE_INPUT_SAMPLE, input.nameIdentifier, input.scenarioName, inputUri);
     }));
-
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);

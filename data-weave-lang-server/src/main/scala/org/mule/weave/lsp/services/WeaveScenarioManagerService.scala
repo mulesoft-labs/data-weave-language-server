@@ -10,6 +10,7 @@ import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.mule.weave.lsp.extension.client
 import org.mule.weave.lsp.extension.client.ShowScenariosParams
+import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveScenario
 import org.mule.weave.lsp.project.ProjectKind
@@ -20,6 +21,7 @@ import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.OnDocumentFocused
 import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.utils.LSPConverters
 import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.v2.editor.VirtualFile
@@ -28,6 +30,7 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
 import java.util
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
 import scala.collection.mutable
 
@@ -39,22 +42,18 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   var activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
   def mapScenarios(maybeActiveScenario: Option[Scenario], allScenarios: Array[Scenario]): util.List[client.WeaveScenario] = {
-    var resultScenarios = allScenarios
-    val maybeScenario: Option[WeaveScenario] = maybeActiveScenario.map(activeScenario => {
-      resultScenarios = allScenarios.filter(scenario => !scenario.name.equals(activeScenario.name))
-      //TODO this is wrong we need to scan for the folders as they can be wrappers like inputs/vars/test.json this should be shown to the user
-      // as vars.test
-      val inputsList: util.List[String] = activeScenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList.asJava
-      val expectedOrNull: String = activeScenario.expected().map((file) => URLUtils.toLSPUrl(file)).orNull
-      WeaveScenario(true, activeScenario.name, URLUtils.toLSPUrl(activeScenario.file), inputsList, expectedOrNull)
-    })
-    var scenarios: Array[WeaveScenario] = resultScenarios.map(scenario => {
-      //TODO this is wrong we need to scan for the folders as they can be wrappers
-      val inputs: util.List[String] = scenario.inputs().listFiles().map(file => URLUtils.toLSPUrl(file)).toList.asJava
+    val defaultScenarioName = maybeActiveScenario.map(_.name).getOrElse("")
+    val scenarios: Array[WeaveScenario] = allScenarios.map(scenario => {
+      val files = FileUtils.listFiles(scenario.inputs(), null, true)
+      val inputsList: Array[SampleInput] = files.iterator().asScala
+        .map(file => {
+          val relativePath = scenario.inputs().toPath.relativize(file.toPath)
+          val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
+          SampleInput(URLUtils.toLSPUrl(file), inputName)
+        }).toArray
       val expectedOrNull: String = scenario.expected().map((file) => URLUtils.toLSPUrl(file)).orNull
-      WeaveScenario(false, scenario.name, URLUtils.toLSPUrl(scenario.file), inputs, expectedOrNull)
+      WeaveScenario(scenario.name.equals(defaultScenarioName), scenario.name, URLUtils.toLSPUrl(scenario.file), inputsList, expectedOrNull)
     })
-    maybeScenario.foreach(s => scenarios = (scenarios :+ s))
     scenarios.toList.asJava
   }
 
@@ -82,24 +81,6 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
           val maybeFirstScenario: Option[Scenario] = scenarios.headOption
           maybeFirstScenario.foreach((scenario) => activeScenarios.put(nameIdentifier, scenario))
           maybeFirstScenario
-          //          } else if (interactive) {
-          //            //TODO not sure if we should ask here. This looks like something the requester of this service should do
-          //            val quickPickBuilder: QuickPickWidgetBuilder[Scenario] = new QuickPickWidgetBuilder[Scenario](weaveLanguageClient).title("Choose your preview scenario")
-          //            val items: Array[(WeaveQuickPickItem, Scenario => WidgetResult[Scenario])] = scenarios
-          //              .map(scenario => WeaveQuickPickItem(id = URLUtils.toLSPUrl(scenario.file), label = scenario.name)) //
-          //              .map(item => (item, (scenario: Scenario) => WidgetResult(false, scenario, "")))
-          //            quickPickBuilder.itemProvider((_) => items)
-          //            quickPickBuilder.result((_, selectedItems) => scenarios.find(possibleScenario => URLUtils.toLSPUrl(possibleScenario.file).equals(selectedItems.head)).getOrElse(firstScenario))
-          //            val widgetResult: WidgetResult[Scenario] = quickPickBuilder.create().show(firstScenario)
-          //            if (!widgetResult.cancelled) {
-          //              activeScenarios.put(nameIdentifier, widgetResult.result)
-          //              Some(widgetResult.result)
-          //            } else {
-          //              Some(firstScenario)
-          //            }
-          //          } else {
-          //            scenarios.headOption
-          //          }
         } else {
           None
         }
@@ -134,11 +115,11 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
 
   }
 
-  def deleteInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Unit = {
+  def deleteInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputUrl: String): Unit = {
     projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
-      .foreach((scenario) => {
-        val inputFile: File = inputOf(scenario.file, inputName)
-        inputFile.delete()
+      .foreach((_) => {
+        URLUtils.toFile(inputUrl)
+          .foreach((f) => f.delete())
       })
 
     notifyAllScenarios(nameIdentifier)

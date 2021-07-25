@@ -15,7 +15,12 @@ export namespace ShowScenarios {
     active: boolean,
     name: string,
     uri: string,
-    inputsUri: Array<string>,
+    inputsUri: Array<SampleInput>,
     outputsUri: string| null
+  }
+
+  export interface SampleInput {
+    uri: string, 
+    name: string
   }
 }

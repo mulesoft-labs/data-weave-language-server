@@ -92,7 +92,7 @@ export class TransformationItem extends ScenarioViewerItem {
     return Promise.resolve(this.model.map(scenario => {
       return new ScenariosNode(scenario.name,
         this.nameIdentifier,
-        scenario.name,        
+        scenario.name,
         URI.parse(scenario.uri),
         ThemeIcon.Folder,
         TreeItemCollapsibleState.Expanded,
@@ -160,7 +160,7 @@ export class InputsItem extends ScenarioViewerItem {
     public readonly scenarioName: string,
     readonly icon: ThemeIcon,
     public readonly collapsibleState: TreeItemCollapsibleState,
-    readonly inputsUri: Array<string>) {
+    readonly sampleInputs: Array<ShowScenarios.SampleInput>) {
     super(label, null, icon, collapsibleState)
   }
 
@@ -168,9 +168,15 @@ export class InputsItem extends ScenarioViewerItem {
   iconPath = this.icon;
 
   getChildren(): Thenable<ScenarioViewerItem[]> {
-    if (this.inputsUri) {
-      return Promise.resolve(this.inputsUri.map(uri =>
-        new InputItem(Utils.basename(URI.parse(uri)), URI.parse(uri), ThemeIcon.File, TreeItemCollapsibleState.None))
+    if (this.sampleInputs) {
+      return Promise.resolve(this.sampleInputs.map(sampleInput =>
+        new InputItem(sampleInput.name,
+          this.nameIdentifier,
+          this.scenarioName,
+          sampleInput.name,
+          URI.parse(sampleInput.uri),
+          ThemeIcon.File,
+          TreeItemCollapsibleState.None))
       )
     } else {
       return Promise.resolve([])
@@ -182,6 +188,9 @@ export class InputItem extends ScenarioViewerItem {
 
   constructor(
     public readonly label: string,
+    public readonly nameIdentifier: string,
+    public readonly scenarioName: string,
+    public readonly inputName: String,
     public readonly uri: Uri,
     readonly icon: ThemeIcon,
     public readonly collapsibleState: TreeItemCollapsibleState) {
@@ -200,7 +209,7 @@ export class OutputItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
     public readonly uri: Uri,
-    readonly icon: ThemeIcon,    
+    readonly icon: ThemeIcon,
     public readonly collapsibleState: TreeItemCollapsibleState) {
     super(label, uri, icon, collapsibleState)
     this.resourceUri = uri;
@@ -221,7 +230,7 @@ export class OutputsItem extends ScenarioViewerItem {
     public readonly scenarioName: string,
     readonly icon: ThemeIcon,
     public readonly collapsibleState: TreeItemCollapsibleState,
-    readonly outputUris: string|null) {
+    readonly outputUris: string | null) {
     super(label, null, icon, collapsibleState)
   }
 
@@ -231,7 +240,7 @@ export class OutputsItem extends ScenarioViewerItem {
     const newLocal = this.outputUris;
     if (newLocal) {
       return Promise.resolve(
-         [new OutputItem(Utils.basename(URI.parse(this.outputUris)), URI.parse(this.outputUris), ThemeIcon.File, TreeItemCollapsibleState.Expanded)]
+        [new OutputItem(Utils.basename(URI.parse(this.outputUris)), URI.parse(this.outputUris), ThemeIcon.File, TreeItemCollapsibleState.Expanded)]
       )
     } else {
       return Promise.resolve([])

@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.commands
 
+import com.google.gson.JsonNull
 import com.google.gson.JsonPrimitive
 
 import java.util
@@ -47,15 +48,29 @@ object Commands {
 
 
   def argAsString(arguments: util.List[AnyRef], index: Int) = {
-    arguments.get(index).asInstanceOf[JsonPrimitive].getAsString
+    val value = arguments.get(index)
+    value match {
+      case _: JsonNull => null
+      case jp: JsonPrimitive => jp.getAsString
+      case d => throw new RuntimeException(s"Expecting `String` but got ${d.getClass.getName}")
+    }
+
   }
 
-  def argAsInt(arguments: util.List[AnyRef], index: Int) = {
-    arguments.get(index).asInstanceOf[JsonPrimitive].getAsInt
+  def argAsInt(arguments: util.List[AnyRef], index: Int): Int = {
+    val value = arguments.get(index)
+    value match {
+      case jp: JsonPrimitive => jp.getAsInt
+      case d => throw new RuntimeException(s"Expecting `Int` but got ${d.getClass.getName}")
+    }
   }
 
-  def argAsBoolean(arguments: util.List[AnyRef], index: Int) = {
-    arguments.get(index).asInstanceOf[JsonPrimitive].getAsBoolean
+  def argAsBoolean(arguments: util.List[AnyRef], index: Int): Boolean = {
+    val value = arguments.get(index)
+    value match {
+      case jp: JsonPrimitive => jp.getAsBoolean
+      case d => throw new RuntimeException(s"Expecting `Boolean` but got ${d.getClass.getName}")
+    }
   }
 
 }
