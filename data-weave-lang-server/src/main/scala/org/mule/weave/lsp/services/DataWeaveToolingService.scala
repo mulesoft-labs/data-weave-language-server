@@ -18,6 +18,7 @@ import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnostic
 import org.mule.weave.lsp.utils.LSPConverters.toDiagnosticKind
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.URLUtils.isDWFile
 import org.mule.weave.v2.editor.ChangeListener
 import org.mule.weave.v2.editor.ImplicitInput
@@ -52,21 +53,28 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
     vfs.changeListener(new ChangeListener {
+
       override def onDeleted(vf: VirtualFile): Unit = {
         if (isDWFile(vf.url())) {
           validateDependencies(vf, "onDeleted")
+        } else {
+          findCorrespondingDwFile(vf.url()).foreach(dwVirtualFile => validateFile(dwVirtualFile, "onScenarioChanged"))
         }
       }
 
       override def onChanged(vf: VirtualFile): Unit = {
         if (isDWFile(vf.url())) {
           validateFile(vf, "onChanged")
+        } else {
+          findCorrespondingDwFile(vf.url()).foreach(dwVirtualFile => validateFile(dwVirtualFile, "onScenarioChanged"))
         }
       }
 
       override def onCreated(vf: VirtualFile): Unit = {
         if (isDWFile(vf.url())) {
           validateFile(vf, "onCreated")
+        } else {
+          findCorrespondingDwFile(vf.url()).foreach(dwVirtualFile => validateFile(dwVirtualFile, "onScenarioChanged"))
         }
       }
     })
@@ -90,6 +98,14 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
       override def onProjectStarted(project: Project): Unit = {
         validateAllEditors("projectStarted")
       }
+    })
+  }
+
+  private def findCorrespondingDwFile(str: String): Option[VirtualFile] = {
+    projectKind.sampleDataManager().flatMap(sampleDataManager => {
+      documentService().openEditors().find((oe) => {
+        URLUtils.isChildOfAny(str, sampleDataManager.listScenarios(oe.file.getNameIdentifier).map(scenario => scenario.file))
+      }).map(weaveDocToolingService => weaveDocToolingService.file)
     })
   }
 
