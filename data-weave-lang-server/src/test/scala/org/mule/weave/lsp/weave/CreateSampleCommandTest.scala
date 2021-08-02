@@ -16,7 +16,7 @@ import java.io.File.separator
 class CreateSampleCommandTest extends FreeSpec {
 
   val MAPPING_NAME = "MyMapping"
-  val SCENARIO_NAME = "Basic_Scenario"
+  val SCENARIO_NAME = "Basic Scenario"
 
   "should create sample folder correctly for payload" in {
     val project: DWProject = getMavenProjectWithSamplesWorkspace()

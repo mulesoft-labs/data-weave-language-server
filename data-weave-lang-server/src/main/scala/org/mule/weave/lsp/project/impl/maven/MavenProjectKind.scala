@@ -39,16 +39,14 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
 
   private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
   private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
-  private val projectStructure: ProjectStructure = createProjectStructure()
-  private val dataManager = new WTFSampleDataManager(structure(), project, weaveLanguageClient)
+  private val dataManager = new WTFSampleDataManager(this, project, weaveLanguageClient)
   private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(weaveAgentService, eventBus, weaveScenarioManagerService)
 
   override def name(): String = "DW `Maven`"
 
   override def structure(): ProjectStructure = {
-    projectStructure
+    createProjectStructure()
   }
-
 
   private def createProjectStructure() = {
     val projectHome: File = project.home()

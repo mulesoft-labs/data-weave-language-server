@@ -48,6 +48,9 @@ object Commands {
 
 
   def argAsString(arguments: util.List[AnyRef], index: Int) = {
+    if (arguments.size() <= index) {
+      throw new RuntimeException(s"Missing argument ${index}.")
+    }
     val value = arguments.get(index)
     value match {
       case _: JsonNull => null

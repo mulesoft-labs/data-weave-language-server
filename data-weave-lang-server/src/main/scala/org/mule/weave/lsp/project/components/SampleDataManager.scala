@@ -2,6 +2,7 @@ package org.mule.weave.lsp.project.components
 
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
@@ -50,8 +51,7 @@ trait SampleDataManager {
 }
 
 
-class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project, weaveLanguageClient: WeaveLanguageClient) extends SampleDataManager {
-
+class WTFSampleDataManager(projectKind: ProjectKind, project: Project, weaveLanguageClient: WeaveLanguageClient) extends SampleDataManager {
 
   val activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
@@ -68,7 +68,9 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project,
   def searchSampleDataFolderFor(nameIdentifier: NameIdentifier): Option[File] = {
     val options: Array[File] = wtfFolders()
     val result = options
-      .map((dwitFolder) => new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier)))
+      .map((dwitFolder) => {
+        new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
+      })
       .find((scenario) => {
         scenario.exists()
       })
@@ -76,7 +78,7 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project,
   }
 
   private def wtfFolders(): Array[File] = {
-    projectStructure.modules
+    projectKind.structure().modules
       .flatMap((m) => {
         m.roots.flatMap((root) => {
           if (root.kind == RootKind.TEST) {
