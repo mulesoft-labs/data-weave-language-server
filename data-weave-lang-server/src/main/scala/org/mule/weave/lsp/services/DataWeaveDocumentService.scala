@@ -42,9 +42,11 @@ import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.services.DidFocusChangeParams
 import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentClosedEvent
 import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
@@ -69,12 +71,13 @@ import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.AstNodeHelper
 import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
+import org.mule.weave.v2.parser.ast.header.directives.InputDirective
+import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
-import java.io.File
 import java.util
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
@@ -87,6 +90,7 @@ import scala.collection.JavaConverters
 class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
+                               scenariosService: WeaveScenarioManagerService,
                                vfs: VirtualFileSystem) extends WeaveTextDocumentService with ToolingService {
 
 
@@ -252,10 +256,29 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       maybeString match {
         case Some(MAPPING) => {
-          val maybeFile: Option[File] = projectKind.sampleDataManager().searchSampleDataFolderFor(nameIdentifier)
-          if (maybeFile.isEmpty) {
+          val maybeScenario: Option[Scenario] = scenariosService.activeScenario(nameIdentifier)
+          val inputDirectives = maybeAstNode
+            .collect({
+              case documentNode: DocumentNode => documentNode
+            })
+            .map((ast) => AstNodeHelper.getInputs(ast)).getOrElse(Seq())
+          if (maybeScenario.isEmpty) {
             val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-            result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_CREATE_SCENARIO, util.Arrays.asList(nameIdentifier.name)), null))
+            if (inputDirectives.isEmpty) {
+              result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_SCENARIO, util.Arrays.asList(nameIdentifier.name)), null))
+            }
+            inputDirectives.foreach((id) => {
+              val range = new lsp4j.Range(new Position(id.location().startPosition.line - 1, 0), new Position(id.location().startPosition.line - 1, 0))
+              result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_INPUT_SAMPLE, util.Arrays.asList(nameIdentifier.name, "default", inputFileName(id))), null))
+            })
+          } else {
+            val inputs: Map[String, Array[SampleInput]] = maybeScenario.get.inputs().groupBy(_.name)
+            inputDirectives.foreach((id) => {
+              if (!inputs.contains(id.variable.name)) {
+                val range = new lsp4j.Range(new Position(id.location().startPosition.line - 1, 0), new Position(id.location().startPosition.line - 1, 0))
+                result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_INPUT_SAMPLE, util.Arrays.asList(nameIdentifier.name, maybeScenario.get.name, inputFileName(id))), null))
+              }
+            })
           }
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
@@ -278,6 +301,22 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       result
     })
+  }
+
+  private def inputFileName(id: InputDirective) = {
+    val extension = id.mime.map((mime) => {
+      mime.mime match {
+        case "application/json" => ".json"
+        case "application/java" => ".json"
+        case "application/xml" => ".xml"
+        case "application/csv" | "text/csv" => ".csv"
+        case "text/plain" => ".txt"
+        case _ => ".json"
+      }
+    }).orElse(id.dataFormat.map((id) => {
+      "." + id.id
+    })).getOrElse(".json")
+    id.variable.name + extension
   }
 
   private def addDocumentationLenses(ast: AstNode, uri: String) = {

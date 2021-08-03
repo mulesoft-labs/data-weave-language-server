@@ -46,6 +46,19 @@ object Commands {
     DW_INSERT_RETURN_TYPE
   )
 
+  def optionalArgAsString(arguments: util.List[AnyRef], index: Int): Option[String] = {
+    if (arguments.size() <= index) {
+      None
+    } else {
+      val value = arguments.get(index)
+      value match {
+        case _: JsonNull => None
+        case jp: JsonPrimitive => Some(jp.getAsString)
+        case d => throw new RuntimeException(s"Expecting `String` but got ${d.getClass.getName}")
+      }
+    }
+  }
+
 
   def argAsString(arguments: util.List[AnyRef], index: Int) = {
     if (arguments.size() <= index) {

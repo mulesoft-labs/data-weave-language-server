@@ -76,7 +76,7 @@ class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveA
   }
 
   override def createKind(project: Project): ProjectKind = {
-    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient,weaveScenarioManagerService)
+    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
   }
 }
 
@@ -84,7 +84,7 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
 
   var dependenciesArray: Array[DependencyArtifact] = Array.empty
 
-  val messageCollector = new DependencyManagerMessageCollector() {
+  val messageCollector: DependencyManagerMessageCollector = new DependencyManagerMessageCollector() {
     override def onError(id: String, message: String): Unit = {
       logger.logError(s"Unable to resolve ${id}: reason : ${message}")
     }
@@ -152,6 +152,10 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
 
   private def createWeaveArtifactId(module: String, version: String) = {
     s"org.mule.weave:${module}:${version}"
+  }
+
+  override def languageLevel(): String = {
+    project.settings.wlangVersion.value()
   }
 
   override def dependencies(): Array[DependencyArtifact] = {

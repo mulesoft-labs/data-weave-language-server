@@ -9,19 +9,17 @@ import org.eclipse.lsp4j.TextDocumentEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.mule.weave.lsp.extension.client
-import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.SampleInput
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveScenario
 import org.mule.weave.lsp.project.ProjectKind
-import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.OnDocumentFocused
 import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.utils.EventBus
-import org.mule.weave.lsp.utils.LSPConverters
 import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.v2.editor.VirtualFile
@@ -30,7 +28,6 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
 import java.util
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
 import scala.collection.mutable
 
@@ -44,13 +41,7 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   def mapScenarios(maybeActiveScenario: Option[Scenario], allScenarios: Array[Scenario]): util.List[client.WeaveScenario] = {
     val defaultScenarioName = maybeActiveScenario.map(_.name).getOrElse("")
     val scenarios: Array[WeaveScenario] = allScenarios.map(scenario => {
-      val files = FileUtils.listFiles(scenario.inputs(), null, true)
-      val inputsList: Array[SampleInput] = files.iterator().asScala
-        .map(file => {
-          val relativePath = scenario.inputs().toPath.relativize(file.toPath)
-          val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
-          SampleInput(URLUtils.toLSPUrl(file), inputName)
-        }).toArray
+      val inputsList: Array[SampleInput] = scenario.inputs()
       val expectedOrNull: String = scenario.expected().map((file) => URLUtils.toLSPUrl(file)).orNull
       WeaveScenario(scenario.name.equals(defaultScenarioName), scenario.name, URLUtils.toLSPUrl(scenario.file), inputsList, expectedOrNull)
     })
@@ -107,12 +98,10 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   }
 
   def createInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Option[File] = {
-    val maybeFile = projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
-      .flatMap((scenario) => {
-        doCreateInput(nameIdentifier, inputName, scenario.file)
-      })
-    maybeFile
-
+    val scenario = projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
+      .map(_.file)
+      .getOrElse(createScenario(nameIdentifier, nameOfTheScenario))
+    doCreateInput(nameIdentifier, inputName, scenario)
   }
 
   def deleteInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputUrl: String): Unit = {
@@ -126,10 +115,14 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   }
 
   def createScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Option[File] = {
-    val sampleDataManager: SampleDataManager = projectKind.sampleDataManager()
-    val sampleContainer: File = sampleDataManager.createSampleDataFolderFor(nameIdentifier)
-    val scenario: File = new File(sampleContainer, nameOfTheScenario)
+    val scenario: File = createScenario(nameIdentifier, nameOfTheScenario)
     doCreateInput(nameIdentifier, inputName, scenario)
+  }
+
+  def createScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String) = {
+    val sampleContainer: File = projectKind.sampleDataManager().createSampleDataFolderFor(nameIdentifier)
+    val scenario: File = new File(sampleContainer, nameOfTheScenario)
+    scenario
   }
 
   private def doCreateInput(nameIdentifier: NameIdentifier, inputName: String, scenario: File) = {

@@ -6,6 +6,13 @@ import java.io.File
   * Handles the artifact resolution and download of all the project dependencies.
   */
 trait ProjectDependencyManager {
+
+  /**
+    *
+    * @return
+    */
+  def languageLevel(): String
+
   /**
     * Starts the dependency manager
     */
@@ -18,12 +25,6 @@ trait ProjectDependencyManager {
     */
   def dependencies(): Array[DependencyArtifact]
 
-}
-
-object NoDependencyManager extends ProjectDependencyManager {
-  override def start(): Unit = {}
-
-  override def dependencies(): Array[DependencyArtifact] = Array.empty
 }
 
 case class DependencyArtifact(artifactId: String, artifact: File)

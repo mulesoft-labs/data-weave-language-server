@@ -173,7 +173,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
     CompletableFuture.supplyAsync(() => {
       if (checkConnected()) {
         val result = new FutureValue[InputMetadata]()
-        weaveAgentClient.inferInputsWeaveType(scenario.inputs().getAbsolutePath, new DefaultWeaveAgentClientListener {
+        weaveAgentClient.inferInputsWeaveType(scenario.inputsDirectory().getAbsolutePath, new DefaultWeaveAgentClientListener {
           override def onImplicitWeaveTypesCalculated(event: ImplicitInputTypesEvent): Unit = {
             val binds: Array[WeaveTypeBind] = event.types.flatMap((m) => {
               validationService.loadType(m.wtypeString).map((wt) => WeaveTypeBind(m.name, wt))
@@ -234,7 +234,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
       val sources: Array[String] = mainSourceFolders(projectKind.structure()).map(_.getAbsolutePath)
       val targets: Array[String] = mainTargetFolders(projectKind.structure()).map(_.getAbsolutePath)
       val inputsPath: String =
-        previewScenario.map(_.inputs().getAbsolutePath).getOrElse("")
+        previewScenario.map(_.inputsDirectory().getAbsolutePath).getOrElse("")
       val startTime = System.currentTimeMillis()
       weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets,
         new DefaultWeaveAgentClientListener {

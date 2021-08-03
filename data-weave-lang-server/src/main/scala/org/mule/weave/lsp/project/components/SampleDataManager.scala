@@ -1,13 +1,18 @@
 package org.mule.weave.lsp.project.components
 
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
+import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
 import java.io.FilenameFilter
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.mutable
 
 /**
@@ -110,7 +115,6 @@ class WTFSampleDataManager(projectKind: ProjectKind, project: Project, weaveLang
 
 class DefaultSampleDataManager(weaveHome: File, weaveClient: WeaveLanguageClient) extends SampleDataManager {
 
-
   val activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
   override def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario] = {
@@ -156,8 +160,18 @@ class DefaultSampleDataManager(weaveHome: File, weaveClient: WeaveLanguageClient
 
 case class Scenario(file: File, name: String) {
 
-  def inputs(): File = {
+  def inputsDirectory(): File = {
     new File(file, "inputs")
+  }
+
+  def inputs(): Array[SampleInput] = {
+    val files = FileUtils.listFiles(inputsDirectory(), null, true)
+    files.iterator().asScala
+      .map(file => {
+        val relativePath = inputsDirectory().toPath.relativize(file.toPath)
+        val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
+        SampleInput(URLUtils.toLSPUrl(file), inputName)
+      }).toArray
   }
 
   def expected(): Option[File] = {

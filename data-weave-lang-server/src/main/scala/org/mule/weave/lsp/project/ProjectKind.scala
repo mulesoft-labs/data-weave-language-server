@@ -9,6 +9,7 @@ import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.impl.bat.BatProjectKindDetector
 import org.mule.weave.lsp.project.impl.maven.MavenProjectKindDetector
+import org.mule.weave.lsp.project.impl.sfdx.SFDXProjectKindDetector
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKind
 import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
 import org.mule.weave.lsp.services.ClientLogger
@@ -45,6 +46,7 @@ object ProjectKindDetector {
       val detectors = Seq(
         new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService),
         new BatProjectKindDetector(eventBus, clientLogger, weaveLanguageClient),
+        new SFDXProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService),
         new SimpleProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
       )
       detectors

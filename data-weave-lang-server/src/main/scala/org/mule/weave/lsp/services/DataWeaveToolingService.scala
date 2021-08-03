@@ -165,7 +165,7 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
     logger.log(Level.INFO, "TriggerValidation of: " + documentUri + " reason " + reason)
     CompletableFuture.runAsync(() => {
       val diagnostics = new util.ArrayList[Diagnostic]
-      withLanguageLevel(project.settings.languageLevelVersion.value())
+      withLanguageLevel(projectKind.dependencyManager().languageLevel())
 
       val messages: ValidationMessages = validate(documentUri)
       messages.errorMessage.foreach((message) => {
