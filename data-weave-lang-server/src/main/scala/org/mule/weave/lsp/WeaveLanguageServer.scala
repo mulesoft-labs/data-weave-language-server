@@ -30,6 +30,7 @@ import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDependencyManagerService
 import org.mule.weave.lsp.services.DataWeaveDocumentService
+import org.mule.weave.lsp.services.DataWeaveTestService
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.PreviewService
@@ -130,26 +131,28 @@ class WeaveLanguageServer extends LanguageServer {
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
-      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService, globalFVS)
+      val weaveTestManagerImpl = new DataWeaveTestService(client, projectVFS, dataWeaveToolingService)
+      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService,globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, scenarioService, previewService)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManagerImpl)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
 
-      services.++=(Seq(
-        dependencyManagerImpl,
-        workspaceServiceImpl,
-        documentServiceImpl,
-        weaveAgentService,
-        jobManagerService,
-        dataWeaveToolingService,
-        previewService,
-        scenarioService,
-        indexService,
-        projectVFS,
-        librariesVFS
-      ))
+      services
+        .++=(Seq(
+          dependencyManagerImpl,
+          workspaceServiceImpl,
+          documentServiceImpl,
+          weaveAgentService,
+          jobManagerService,
+          dataWeaveToolingService,
+          previewService,
+          indexService,
+          projectVFS,
+          librariesVFS,
+          weaveTestManagerImpl
+        ))
 
       //Init the Services
       services.foreach((service) => {

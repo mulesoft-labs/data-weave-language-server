@@ -14,7 +14,11 @@ import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
+
 import org.mule.weave.lsp.extension.client.ShowScenariosParams
+
+import org.mule.weave.lsp.extension.client.PublishTestItemsParams
+import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -160,4 +164,18 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
   def setEditorDecorations(params: EditorDecorationsParams): Unit = ???
 
   def clearEditorDecorations(): Unit = ???
+
+  /**
+    * This notification is sent from the server to the client to push all the possible tests to run on the project.
+    *
+    * @param job The job information that has ended
+    */
+  override def publishTestItems(job: PublishTestItemsParams): Unit = ???
+
+  /**
+    * This notification is sent from the server to the client to push tests results.
+    *
+    * @param job The job information that has ended
+    */
+  override def publishTestResults(testResults: PublishTestResultsParams): Unit = ???
 }

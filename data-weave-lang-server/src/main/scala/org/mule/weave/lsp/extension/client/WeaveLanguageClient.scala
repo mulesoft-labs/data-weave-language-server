@@ -99,7 +99,30 @@ trait WeaveLanguageClient extends LanguageClient {
     */
   @JsonNotification("weave/workspace/notifyJobEnded")
   def notifyJobEnded(job: JobEndedParams): Unit
+
+
+  /**
+    * This notification is sent from the server to the client to push all the possible tests to run on the project.
+    *
+    * @param job The job information that has ended
+    */
+  @JsonNotification("weave/tests/publishTestItems")
+  def publishTestItems(job: PublishTestItemsParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to push tests results.
+    *
+    * @param job The job information that has ended
+    */
+  @JsonNotification("weave/tests/publishTestResults")
+  def publishTestResults(testResults: PublishTestResultsParams): Unit
 }
+
+case class PublishTestResultsParams(event: String,message: String, name: String, duration: Int, locationHint: String, status: String)
+
+case class PublishTestItemsParams(rootTestItems: java.util.List[WeaveTestItem])
+
+case class WeaveTestItem(id: String = UUID.randomUUID().toString, label: String, uri: String, children: java.util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem](), range: org.eclipse.lsp4j.Range)
 
 case class JobStartedParams(id: String = UUID.randomUUID().toString, label: String, description: String)
 

@@ -5,6 +5,7 @@ import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.DataWeaveTestService
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.PreviewService
 import org.mule.weave.lsp.services.WeaveScenarioManagerService
@@ -20,7 +21,8 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
                       jobManagerService: JobManagerService,
                       weaveToolingService: DataWeaveToolingService,
                       scenariosManager: WeaveScenarioManagerService,
-                      previewService: PreviewService
+                      previewService: PreviewService,
+                      dataWeaveTestService: DataWeaveTestService
                      ) {
 
   val commands = Seq(
@@ -37,7 +39,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new EnablePreviewModeCommand(previewService, virtualFileSystem),
     new RunPreviewCommand(previewService, virtualFileSystem),
     new InstallBatCommand(clientLogger),
-    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient),
+    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient,dataWeaveTestService),
     new LaunchWeaveCommand(languageClient),
     new QuickFixCommand(weaveToolingService),
     new InsertDocumentationCommand(weaveToolingService),

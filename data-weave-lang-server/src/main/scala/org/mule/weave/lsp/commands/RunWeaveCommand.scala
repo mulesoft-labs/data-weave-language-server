@@ -10,6 +10,7 @@ import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.DataWeaveTestService
 import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.editor.VirtualFileSystem
@@ -26,7 +27,8 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
                       projectKind: ProjectKind,
                       clientLogger: ClientLogger,
                       jobManagerService: JobManagerService,
-                      languageClient: WeaveLanguageClient) extends WeaveCommand {
+                      languageClient: WeaveLanguageClient,
+                      dataWeaveTestService: DataWeaveTestService) extends WeaveCommand {
 
   override def commandId(): String = Commands.DW_RUN_MAPPING
 
@@ -44,7 +46,7 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
       val latch = new CountDownLatch(1)
       jobManagerService.schedule(() => {
         val launcher: ProcessLauncher = ProcessLauncher.createLauncherByType(config, projectKind, clientLogger, languageClient, projectVirtualFileSystem)
-        launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, jobManagerService, () => latch.countDown(), port)
+        launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, jobManagerService, dataWeaveTestService, () => latch.countDown(), port)
       }, "Starting Debugger Server", "Starting Debugger Server")
       latch.await()
       port

@@ -290,6 +290,8 @@ class WTFLauncher(projectKind: ProjectKind,
         }
       }
     }
+    args.add("-testlistener")
+    args.add("json")
     ///
     builder.command(args)
     Some(builder.start())
