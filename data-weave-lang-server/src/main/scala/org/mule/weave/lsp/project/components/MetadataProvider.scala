@@ -45,14 +45,16 @@ case class WeaveTypeBind(name: String, wtype: WeaveType)
 
 class SampleBaseMetadataProvider(weaveAgentService: WeaveAgentService, eventBus: EventBus, weaveScenarioManagerService: WeaveScenarioManagerService) extends MetadataProvider {
 
-  val cache: mutable.HashMap[String, InputMetadata] = mutable.HashMap()
+  private val inputMetadataCache: mutable.HashMap[String, InputMetadata] = mutable.HashMap()
+  private val outputMetadataCache: mutable.HashMap[String, WeaveType] = mutable.HashMap()
 
   eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
     override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
-      val keySet = cache.keySet
+      val keySet = inputMetadataCache.keySet
       keySet.foreach((scenario) => {
         if (isChildOf(uri, new File(scenario))) {
-          cache.remove(scenario)
+          inputMetadataCache.remove(scenario)
+          outputMetadataCache.remove(scenario)
         }
       })
     }
@@ -63,13 +65,17 @@ class SampleBaseMetadataProvider(weaveAgentService: WeaveAgentService, eventBus:
     if (headOption.isDefined) {
       val scenario = headOption.get
       val scenarioPath = scenario.file.getAbsolutePath
-      if (cache.contains(scenarioPath)) {
-        cache(scenarioPath)
+      if (inputMetadataCache.contains(scenarioPath)) {
+        inputMetadataCache(scenarioPath)
       } else {
-        val value: CompletableFuture[InputMetadata] = weaveAgentService.inferInputMetadataForScenario(scenario)
-        val metadata: InputMetadata = value.get()
-        cache.put(scenarioPath, metadata)
-        metadata
+        val value: CompletableFuture[Option[InputMetadata]] = weaveAgentService.inferInputMetadataForScenario(scenario)
+        val metadata: Option[InputMetadata] = value.get()
+        if (metadata.isDefined) {
+          inputMetadataCache.put(scenarioPath, metadata.get)
+          metadata.get
+        } else {
+          InputMetadata(Array.empty)
+        }
       }
     } else {
       InputMetadata(Array.empty)
@@ -77,7 +83,27 @@ class SampleBaseMetadataProvider(weaveAgentService: WeaveAgentService, eventBus:
   }
 
   override def outputMetadataFor(vf: VirtualFile): Option[WeaveType] = {
-    None
+    val headOption = weaveScenarioManagerService.activeScenario(vf.getNameIdentifier)
+    if (headOption.isDefined) {
+      val scenario = headOption.get
+      val scenarioPath = scenario.file.getAbsolutePath
+      if (outputMetadataCache.contains(scenarioPath)) {
+        outputMetadataCache.get(scenarioPath)
+      } else {
+        if (scenario.expected().isDefined) {
+          val outputMetadataFuture = weaveAgentService.inferOutputMetadataForScenario(scenario)
+          val expectedMetadata: Option[WeaveType] = outputMetadataFuture.get()
+          if (expectedMetadata.isDefined) {
+            outputMetadataCache.put(scenarioPath, expectedMetadata.get)
+          }
+          expectedMetadata
+        } else {
+          None
+        }
+      }
+    } else {
+      None
+    }
   }
 }
 

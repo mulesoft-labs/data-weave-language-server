@@ -218,7 +218,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService: WeaveDocumentToolingService = openDocument(position.getTextDocument)
+      val toolingService: WeaveDocumentToolingService = openDocument(position.getTextDocument, withExpectedOutput = true)
       val offset: Int = toolingService.offsetOf(position.getPosition.getLine, position.getPosition.getCharacter)
       val suggestionResult: SuggestionResult = toolingService.completion(offset)
       val result = new util.ArrayList[CompletionItem]()
@@ -444,14 +444,10 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     }, executor)
   }
 
-  private def openDocument(document: TextDocumentIdentifier): WeaveDocumentToolingService = {
-    val uri = document.getUri
-    openDocument(uri)
+  private def openDocument(document: TextDocumentIdentifier, withExpectedOutput: Boolean = true): WeaveDocumentToolingService = {
+    toolingServices.openDocument(document.getUri, withExpectedOutput)
   }
 
-  private def openDocument(uri: String): WeaveDocumentToolingService = {
-    toolingServices.openDocument(uri)
-  }
 
   override def definition(params: DefinitionParams): CompletableFuture[messages.Either[util.List[_ <: Location], util.List[_ <: LocationLink]]] = {
     CompletableFuture.supplyAsync(() => {
@@ -488,7 +484,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
   override def formatting(params: DocumentFormattingParams): CompletableFuture[java.util.List[_ <: TextEdit]] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService = openDocument(params.getTextDocument.getUri)
+      val toolingService = openDocument(params.getTextDocument)
       toolingService.formatting() match {
         case None => new util.ArrayList[TextEdit]()
         case Some(value) => {

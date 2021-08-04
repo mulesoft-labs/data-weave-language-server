@@ -48,7 +48,6 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
   @volatile
   private var indexed: Boolean = false
 
-
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
     vfs.changeListener(new ChangeListener {
@@ -125,7 +124,7 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
     _documentService
   }
 
-  def openDocument(uri: String): WeaveDocumentToolingService = {
+  def openDocument(uri: String, withExpectedOutput: Boolean = true): WeaveDocumentToolingService = {
     val maybeProvider: Option[MetadataProvider] = projectKind.metadataProvider()
     val input = maybeProvider match {
       case Some(value) => {
@@ -139,7 +138,20 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
       }
       case None => ImplicitInput()
     }
-    _documentService.open(uri, input, None)
+
+    val expected = if (withExpectedOutput) {
+      maybeProvider.flatMap((metadataProvider) => {
+        val virtualFile: VirtualFile = vfs.file(uri)
+        if (virtualFile != null) {
+          metadataProvider.outputMetadataFor(virtualFile)
+        } else {
+          None
+        }
+      })
+    } else {
+      None
+    }
+    _documentService.open(uri, input, expected)
   }
 
   def closeDocument(uri: String): Unit = {
@@ -211,11 +223,11 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
   def validate(documentUri: String): ValidationMessages = {
     val messages: ValidationMessages =
       if (indexed && Settings.isTypeLevel(project.settings)) {
-        openDocument(documentUri).typeCheck()
+        openDocument(documentUri, withExpectedOutput = false).typeCheck()
       } else if (indexed && Settings.isScopeLevel(project.settings)) {
-        openDocument(documentUri).scopeCheck()
+        openDocument(documentUri, withExpectedOutput = false).scopeCheck()
       } else {
-        openDocument(documentUri).parseCheck()
+        openDocument(documentUri, withExpectedOutput = false).parseCheck()
       }
     messages
   }

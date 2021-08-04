@@ -59,6 +59,7 @@ class LSPWeaveIndexService(clientLogger: ClientLogger,
     projectVirtualFileSystem.changeListener(new ChangeListener {
       override def onDeleted(vf: VirtualFile): Unit = {
         identifiersInProject.remove(vf.url())
+        namesInProject.remove(vf.url())
       }
 
       override def onChanged(vf: VirtualFile): Unit = {

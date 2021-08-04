@@ -169,7 +169,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
     })
   }
 
-  def inferInputMetadataForScenario(scenario: Scenario): CompletableFuture[InputMetadata] = {
+  def inferInputMetadataForScenario(scenario: Scenario): CompletableFuture[Option[InputMetadata]] = {
     CompletableFuture.supplyAsync(() => {
       if (checkConnected()) {
         val result = new FutureValue[InputMetadata]()
@@ -181,9 +181,9 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
             result.set(InputMetadata(binds))
           }
         })
-        result.get().getOrElse(InputMetadata(Array.empty))
+        result.get()
       } else {
-        InputMetadata(Array.empty)
+        None
       }
     }, executor)
   }
