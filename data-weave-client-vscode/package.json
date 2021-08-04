@@ -243,8 +243,8 @@
       "properties": {
         "data-weave.wlangVersion": {
           "type": "string",
-          "default": "2.4.0-SNAPSHOT",
-          "markdownDescription": "The version of the DataWeave standar library to use.\n\n**Change only if you know what you're doing**"
+          "default": "2.5.0-SNAPSHOT",
+          "markdownDescription": "The version of the DataWeave standard library to use.\n\n**Change only if you know what you're doing**"
         },
         "data-weave.languageLevel": {
           "type": "string",
