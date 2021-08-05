@@ -12,12 +12,14 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
+import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.WeaveUnitTestSuite
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.location.WeaveLocation
@@ -25,11 +27,10 @@ import org.mule.weave.v2.parser.location.WeaveLocation
 import java.io.File
 import java.util
 
-class CreateUnitTest(validationService: DataWeaveToolingService, projectKind: ProjectKind, clientLogger: ClientLogger) extends WeaveCommand {
+class CreateUnitTest(validationService: DataWeaveToolingService, weaveLanguageClient: WeaveLanguageClient, projectKind: ProjectKind, clientLogger: ClientLogger) extends WeaveCommand {
   override def commandId(): String = Commands.DW_CREATE_UNIT_TEST
 
   override def execute(params: ExecuteCommandParams): AnyRef = {
-    val weaveLanguageClient = validationService.languageClient()
 
     val args: util.List[AnyRef] = params.getArguments
 
@@ -37,7 +38,7 @@ class CreateUnitTest(validationService: DataWeaveToolingService, projectKind: Pr
     val startOffset: Int = Commands.argAsInt(args, 1)
     val endOffset: Int = Commands.argAsInt(args, 2)
 
-    val documentToolingService = validationService.openDocument(uri)
+    val documentToolingService: WeaveDocumentToolingService = validationService.openDocument(uri)
     val test: Option[WeaveUnitTestSuite] = documentToolingService.createUnitTestFromDefinition(startOffset, endOffset)
     if (test.isDefined) {
       val testPath = test.get.expectedPath
