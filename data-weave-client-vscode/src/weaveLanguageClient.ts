@@ -170,7 +170,16 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         vscode.workspace.openTextDocument(documentUri)
             .then(document => {
                 console.log("opening " + documentUri);
-                vscode.window.showTextDocument(document);
+                if (
+                    params.startLine == null
+                 || params.startCharacter == null
+                 || params.endLine == null
+                 || params.endCharacter == null) {
+                    vscode.window.showTextDocument(document);
+                } else {
+                    const range = new vscode.Range(params.startLine, params.startCharacter, params.endLine, params.endCharacter);
+                    vscode.window.showTextDocument(document, {selection: range}); 
+                }
             });
     })
 

@@ -7,6 +7,10 @@ export namespace OpenTextDocument {
     >("weave/workspace/openTextDocument");
 
     export interface OpenTextDocumentParams{
-        uri: string
+        uri: string;
+        startLine?: number;
+        startCharacter?: number;
+        endLine?: number;
+        endCharacter?: number;
     }
 }
