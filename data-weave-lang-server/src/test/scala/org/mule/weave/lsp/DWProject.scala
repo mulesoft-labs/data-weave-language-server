@@ -36,6 +36,7 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.JobEndedParams
 import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
@@ -385,6 +386,8 @@ class DWProject(val workspaceRoot: Path) {
         * @param scenariosParam Scenarios Parameter
         */
       override def showScenarios(scenariosParam: ShowScenariosParams): Unit = {}
+
+      override def setEditorDecorations(params: EditorDecorationsParams): Unit = {}
     })
   }
 

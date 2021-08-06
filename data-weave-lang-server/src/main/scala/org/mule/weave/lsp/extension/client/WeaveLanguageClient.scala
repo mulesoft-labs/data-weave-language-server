@@ -30,6 +30,10 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonRequest("weave/quickPick")
   def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult]
 
+
+//  @JsonRequest("weave/decorations/set")
+//  def setEditorDecorations(params: EditorDecorationsParams): Unit
+
   /**
     * Opens a folder in a new window
     *
@@ -162,6 +166,29 @@ case class LaunchConfigurationProperty(
 
 case class OpenTextDocumentParams(uri: String)
 
+/**
+  * @param line   0-based number
+  * @param column 0-based number
+  */
+case class EditorPosition(
+                           line: Int,
+                           column: Int
+                         )
+
+case class EditorRange(
+                        start: EditorPosition,
+                        end: EditorPosition
+                      )
+
+case class EditorDecoration(
+                             range: EditorRange,
+                             text: String
+                           )
+
+case class EditorDecorationsParams(
+                                    documentUri: String,
+                                    decorations: java.util.List[EditorDecoration]
+                                  )
 
 case class WeaveInputBoxParams(
                                 //Set title of the input box window.

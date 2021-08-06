@@ -7,6 +7,7 @@ import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.eclipse.lsp4j.ShowMessageRequestParams
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.JobEndedParams
 import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
@@ -155,4 +156,6 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
     * @param scenariosParam Scenarios Parameter
     */
   override def showScenarios(scenariosParam: ShowScenariosParams): Unit = ???
+
+  override def setEditorDecorations(params: EditorDecorationsParams): Unit = ???
 }
