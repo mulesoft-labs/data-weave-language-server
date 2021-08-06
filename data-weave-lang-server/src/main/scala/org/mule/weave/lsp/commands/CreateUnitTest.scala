@@ -20,7 +20,6 @@ import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
-import org.mule.weave.v2.editor.WeaveUnitTestSuite
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.location.WeaveLocation
 
@@ -39,32 +38,40 @@ class CreateUnitTest(validationService: DataWeaveToolingService, weaveLanguageCl
     val endOffset: Int = Commands.argAsInt(args, 2)
 
     val documentToolingService: WeaveDocumentToolingService = validationService.openDocument(uri)
-    val test: Option[WeaveUnitTestSuite] = documentToolingService.createUnitTestFromDefinition(startOffset, endOffset)
-    if (test.isDefined) {
-      val testPath = test.get.expectedPath
+    val maybeTestPath: Option[String] = documentToolingService.getTestPathFromDefinition(startOffset, endOffset)
+    val files = ProjectStructure.testsSourceFolders(projectKind.structure())
+    val maybeFile: Option[File] = files.find((f) => f.getName == WeaveDirectoryUtils.DWTest_FOLDER)
 
-      val files = ProjectStructure.testsSourceFolders(projectKind.structure())
-      val maybeFile: Option[File] = files.find((f) => f.getName == WeaveDirectoryUtils.DWTest_FOLDER)
-      maybeFile match {
-        case Some(weaveTestFolder) => {
-          val testFile = new File(weaveTestFolder, testPath)
-          val testFileURL = toLSPUrl(testFile)
-          if (testFile.exists()) {
-            weaveLanguageClient.openTextDocument(OpenTextDocumentParams(testFileURL))
-          } else {
-            val createFile = Either.forRight[TextDocumentEdit, ResourceOperation](new CreateFile(testFileURL))
-            val textEdit = new TextEdit(new org.eclipse.lsp4j.Range(new Position(0, 0), new Position(0, 0)), test.get.toString())
-            val textDocumentEdit = new TextDocumentEdit(new VersionedTextDocumentIdentifier(testFileURL, 0), util.Arrays.asList(textEdit))
-            val insertText = Either.forLeft[TextDocumentEdit, ResourceOperation](textDocumentEdit)
-            val edits = util.Arrays.asList(createFile, insertText)
-            val response = weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits))).get()
-            if (response.isApplied) {
-              weaveLanguageClient.openTextDocument(OpenTextDocumentParams(testFileURL))
-            }
-          }
+    for {
+      testPath <- maybeTestPath
+      weaveTestFolder <- maybeFile
+    } yield {
+      val testFile = new File(weaveTestFolder, testPath)
+      val testFileURL = toLSPUrl(testFile)
+      val edits: Option[util.List[Either[TextDocumentEdit, ResourceOperation]]] = if (testFile.exists()){
+        val testToolingService: WeaveDocumentToolingService = validationService.openDocument(testFileURL)
+        for {
+          ast <- testToolingService.ast()
+          testAddition <- documentToolingService.addUnitTestFromDefinition(startOffset, endOffset, ast)
+        } yield {
+          val line = testAddition.replacementLine - 1
+          val textEdit = new TextEdit(new org.eclipse.lsp4j.Range(new Position(line, 0), new Position(line, 0)), testAddition.test)
+          val textDocumentEdit = new TextDocumentEdit(new VersionedTextDocumentIdentifier(testFileURL, 0), util.Arrays.asList(textEdit))
+          val insertText = Either.forLeft[TextDocumentEdit, ResourceOperation](textDocumentEdit)
+          util.Arrays.asList(insertText)
         }
-        case None =>
+      } else {
+        val maybeTest: Option[String] = documentToolingService.createUnitTestFromDefinition(startOffset, endOffset)
+        maybeTest.map((test) => {
+          val createFile = Either.forRight[TextDocumentEdit, ResourceOperation](new CreateFile(testFileURL))
+          val textEdit = new TextEdit(new org.eclipse.lsp4j.Range(new Position(0, 0), new Position(0, 0)), test)
+          val textDocumentEdit = new TextDocumentEdit(new VersionedTextDocumentIdentifier(testFileURL, 0), util.Arrays.asList(textEdit))
+          val insertText = Either.forLeft[TextDocumentEdit, ResourceOperation](textDocumentEdit)
+          util.Arrays.asList(createFile, insertText)
+        })
       }
+      weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits.getOrElse(util.Arrays.asList())))).get()
+      weaveLanguageClient.openTextDocument(OpenTextDocumentParams(testFileURL))
     }
     null
   }
