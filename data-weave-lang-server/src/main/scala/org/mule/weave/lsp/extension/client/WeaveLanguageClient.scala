@@ -34,6 +34,9 @@ trait WeaveLanguageClient extends LanguageClient {
 //  @JsonRequest("weave/decorations/set")
 //  def setEditorDecorations(params: EditorDecorationsParams): Unit
 
+//  @JsonRequest("weave/decorations/clear")
+//  def clearEditorDecorations(): Unit
+
   /**
     * Opens a folder in a new window
     *

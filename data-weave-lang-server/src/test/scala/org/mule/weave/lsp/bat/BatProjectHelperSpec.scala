@@ -157,5 +157,7 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
     */
   override def showScenarios(scenariosParam: ShowScenariosParams): Unit = ???
 
-  override def setEditorDecorations(params: EditorDecorationsParams): Unit = ???
+  def setEditorDecorations(params: EditorDecorationsParams): Unit = ???
+
+  def clearEditorDecorations(): Unit = ???
 }

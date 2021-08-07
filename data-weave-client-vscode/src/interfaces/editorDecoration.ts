@@ -9,6 +9,14 @@ export namespace SetEditorDecorations {
   >("weave/decorations/set");
 }
 
+export namespace ClearEditorDecorations {
+  export const type = new RequestType<
+      void,
+      void,
+      void
+      >("weave/decorations/clear");
+}
+
 export interface EditorDecorationParams {
   documentUri: string;
   decorations: EditorDecoration[];

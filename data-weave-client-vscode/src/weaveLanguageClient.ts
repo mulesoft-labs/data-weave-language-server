@@ -15,7 +15,7 @@ import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
 import { InputItem, InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
 import { ShowScenarios } from './interfaces/scenarioViewer';
-import {SetEditorDecorations} from "./interfaces/editorDecoration";
+import {ClearEditorDecorations, SetEditorDecorations} from "./interfaces/editorDecoration";
 import {clearDecorations, openTextDocument, setDecorations} from "./document";
 
 
@@ -55,6 +55,10 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
     client.onRequest(SetEditorDecorations.type, (options) => {
         setDecorations(options);
+    });
+
+    client.onRequest(ClearEditorDecorations.type, () => {
+        clearDecorations();
     });
 
     client.onNotification(OpenFolder.type, (openWindowParams) => {
