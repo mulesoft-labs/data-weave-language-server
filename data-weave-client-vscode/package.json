@@ -363,9 +363,9 @@
   "devDependencies": {
     "@types/mocha": "^2.2.33",
     "@types/node": "^11.13.6",
+    "@types/vscode": "1.59.0",
     "typescript": "^4.2.2",
-    "vsce": "1.88.0",
-    "vscode-dts": "^0.3.1"
+    "vsce": "1.88.0"
   },
   "scripts": {
     "prepare": "rm -rf libs; mkdir libs; cp ../data-weave-lang-server/build/libs/data-weave-lang-server-all.jar libs/",
@@ -373,9 +373,6 @@
     "compile": "tsc -b -w",
     "watch": "tsc -watch -p ./",
     "package": "npm run prepare; vsce package",
-    "publish": "vsce publish ${EXTENSION_VERSION}",
-    "download-api": "vscode-dts dev",
-    "postdownload-api": "vscode-dts main",
-    "postinstall": "npm run download-api"
+    "publish": "vsce publish ${EXTENSION_VERSION}"
   }
 }
