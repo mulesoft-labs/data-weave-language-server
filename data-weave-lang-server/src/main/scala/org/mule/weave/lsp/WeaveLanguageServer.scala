@@ -7,6 +7,7 @@ import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.ServerCapabilities
+import org.eclipse.lsp4j.SignatureHelpOptions
 import org.eclipse.lsp4j.TextDocumentSyncKind
 import org.eclipse.lsp4j.jsonrpc.services.JsonDelegate
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -49,6 +50,7 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
 
 import java.io.File
+import java.util
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -117,7 +119,7 @@ class WeaveLanguageServer extends LanguageServer {
       //TODO should this be enabled for all project kinds??
       //Or we should make the project kind enable it
       val scenarioService = new WeaveScenarioManagerService(client, globalFVS)
-      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService)
+      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService, client)
       val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService)
 
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
@@ -166,6 +168,7 @@ class WeaveLanguageServer extends LanguageServer {
       capabilities.setCodeLensProvider(new CodeLensOptions(true))
       capabilities.setRenameProvider(true)
       capabilities.setReferencesProvider(true)
+      capabilities.setSignatureHelpProvider(new SignatureHelpOptions(util.Arrays.asList("("), util.Arrays.asList(",")))
       capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
       new InitializeResult(capabilities)
     })

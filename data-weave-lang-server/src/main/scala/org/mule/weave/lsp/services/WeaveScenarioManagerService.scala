@@ -53,13 +53,17 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
     eventBus.register(DocumentFocusChangedEvent.DOCUMENT_FOCUS_CHANGED, new OnDocumentFocused {
 
       override def onDocumentFocused(vf: VirtualFile): Unit = {
-        notifyAllScenarios(vf)
+        if (URLUtils.isSupportedEditableScheme(vf.url())) {
+          notifyAllScenarios(vf)
+        }
       }
     })
 
     eventBus.register(DocumentOpenedEvent.DOCUMENT_OPENED, new OnDocumentOpened {
       override def onDocumentOpened(vf: VirtualFile): Unit = {
-        notifyAllScenarios(vf)
+        if (URLUtils.isSupportedEditableScheme(vf.url())) {
+          notifyAllScenarios(vf)
+        }
       }
     })
   }

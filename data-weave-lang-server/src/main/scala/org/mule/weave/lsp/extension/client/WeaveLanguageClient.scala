@@ -31,11 +31,11 @@ trait WeaveLanguageClient extends LanguageClient {
   def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult]
 
 
-//  @JsonRequest("weave/decorations/set")
-//  def setEditorDecorations(params: EditorDecorationsParams): Unit
+  @JsonNotification("weave/decorations/set")
+  def setEditorDecorations(params: EditorDecorationsParams): Unit
 
-//  @JsonRequest("weave/decorations/clear")
-//  def clearEditorDecorations(): Unit
+  @JsonNotification("weave/decorations/clear")
+  def clearEditorDecorations(): Unit
 
   /**
     * Opens a folder in a new window
@@ -169,22 +169,9 @@ case class LaunchConfigurationProperty(
 
 case class OpenTextDocumentParams(uri: String)
 
-/**
-  * @param line   0-based number
-  * @param column 0-based number
-  */
-case class EditorPosition(
-                           line: Int,
-                           column: Int
-                         )
-
-case class EditorRange(
-                        start: EditorPosition,
-                        end: EditorPosition
-                      )
 
 case class EditorDecoration(
-                             range: EditorRange,
+                             range: org.eclipse.lsp4j.Range,
                              text: String
                            )
 

@@ -1,5 +1,9 @@
 package org.mule.weave.lsp.agent
 
+import org.eclipse.lsp4j
+import org.eclipse.lsp4j.Position
+import org.mule.weave.lsp.extension.client.EditorDecoration
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
@@ -23,10 +27,15 @@ import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.NetUtils
 import org.mule.weave.v2.completion.DataFormatDescriptor
 import org.mule.weave.v2.completion.DataFormatProperty
+import org.mule.weave.v2.debugger.DebuggerPosition
+import org.mule.weave.v2.debugger.DebuggerValue
 import org.mule.weave.v2.debugger.client.ConnectionRetriesListener
 import org.mule.weave.v2.debugger.client.DefaultWeaveAgentClientListener
 import org.mule.weave.v2.debugger.client.WeaveAgentClient
 import org.mule.weave.v2.debugger.client.tcp.TcpClientProtocol
+import org.mule.weave.v2.debugger.event.ContextException
+import org.mule.weave.v2.debugger.event.ContextResult
+import org.mule.weave.v2.debugger.event.ContextValue
 import org.mule.weave.v2.debugger.event.DataFormatsDefinitionsEvent
 import org.mule.weave.v2.debugger.event.ImplicitInputTypesEvent
 import org.mule.weave.v2.debugger.event.InferWeaveTypeEvent
@@ -55,7 +64,13 @@ import scala.collection.JavaConverters.asScalaBufferConverter
   * This service manages the WeaveAgent. This agent allows to query and execute scripts on a running DataWeave Engine.
   *
   */
-class WeaveAgentService(validationService: DataWeaveToolingService, executor: Executor, clientLogger: ClientLogger, project: Project, scenarioManagerService: WeaveScenarioManagerService) extends ToolingService {
+class WeaveAgentService(validationService: DataWeaveToolingService,
+                        executor: Executor,
+                        clientLogger: ClientLogger,
+                        project: Project,
+                        scenarioManagerService: WeaveScenarioManagerService,
+                        client: WeaveLanguageClient
+                       ) extends ToolingService {
 
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
@@ -236,22 +251,44 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
       val inputsPath: String =
         previewScenario.map(_.inputsDirectory().getAbsolutePath).getOrElse("")
       val startTime = System.currentTimeMillis()
-      weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, project.settings.previewTimeout.value().toLong, libs ++ sources ++ targets,
+      val timeout = project.settings.previewTimeout.value().toLong
+      val previewDebugEnabled = project.settings.enablePreviewDebug.value().toBoolean
+      weaveAgentClient.runPreview(inputsPath, content, nameIdentifier.toString(), url, timeout, libs ++ sources ++ targets,
         new DefaultWeaveAgentClientListener {
           override def onPreviewExecuted(result: PreviewExecutedEvent): Unit = {
             val endTime = System.currentTimeMillis()
             result match {
-              case PreviewExecutedFailedEvent(message, messages) => {
+              case PreviewExecutedFailedEvent(message, messages, contextData) => {
+                if (contextData.nonEmpty) {
+                  publishContextData(contextData, url, nameIdentifier)
+                }
                 val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                runResult.set(PreviewResult(errorMessage = message, success = false, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+                runResult.set(
+                  PreviewResult(
+                    errorMessage = message,
+                    success = false,
+                    logs = util.Arrays.asList(logsArray: _*),
+                    uri = url,
+                    timeTaken = endTime - startTime
+                  )
+                )
               }
-              case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages) => {
+              case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages, contextData) => {
                 val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                runResult.set(PreviewResult(content = new String(result, encoding), mimeType = mimeType, success = true, logs = util.Arrays.asList(logsArray: _*), uri = url, timeTaken = endTime - startTime))
+                publishContextData(contextData, url, nameIdentifier)
+                runResult.set(
+                  PreviewResult(content = new String(result, encoding),
+                    mimeType = mimeType,
+                    success = true,
+                    logs = util.Arrays.asList(logsArray: _*),
+                    uri = url,
+                    timeTaken = endTime - startTime
+                  )
+                )
               }
             }
           }
-        })
+        }, previewDebugEnabled)
 
       runResult.get()
         .getOrElse({
@@ -260,6 +297,66 @@ class WeaveAgentService(validationService: DataWeaveToolingService, executor: Ex
     } else {
       PreviewResult(errorMessage = "Unable to Start DataWeave Agent to Run Preview.", success = false, logs = util.Collections.emptyList(), uri = url)
     }
+  }
+
+  private def publishContextData(contextData: Array[ContextValue], url: String, nameIdentifier: NameIdentifier) = {
+    client.clearEditorDecorations()
+    val currentFileAnnotations: Array[ContextValue] = contextData.filter(_.location.start.resourceName == nameIdentifier.toString())
+    val resultsByContextAndLine: Map[Int, Map[Int, ContextValue]] = currentFileAnnotations
+      .groupBy(_.node.frameId)
+      .mapValues((values) => {
+        values.groupBy(_.location.end.line).mapValues(_.last)
+      })
+
+    val leftMargin: Int = {
+      if (resultsByContextAndLine.isEmpty)
+        0
+      else
+        currentFileAnnotations
+          .maxBy((first) => {
+            first.location.end.column
+          }).location.end.column
+    }
+
+
+    val decorations: Array[EditorDecoration] = resultsByContextAndLine.flatMap((frameIdValues) => {
+      frameIdValues._2.map((value) => {
+        val cd = value._2
+        val message = cd match {
+          case ContextException(_, _, message) => {
+            s" // Exception: " + message
+          }
+          case ContextResult(_, _, value, name) => {
+            name match {
+              case Some(name) => s" //${name} = ${trimToMaxLength(value)}"
+              case None => s" // " + trimToMaxLength(value)
+            }
+          }
+          case _ => ""
+        }
+        EditorDecoration(new lsp4j.Range(new Position(cd.location.end.line - 1, leftMargin), new Position(cd.location.end.line - 1, leftMargin)), message)
+      })
+    }).toArray
+
+    client.setEditorDecorations(EditorDecorationsParams(url, util.Arrays.asList(decorations: _*)))
+  }
+
+  private def trimToMaxLength(value: DebuggerValue) = {
+    val result = value.toString
+    if (result.length > 100) {
+      result.substring(0, 97) + "..."
+    } else {
+      result
+    }
+  }
+
+  def toPosition(debuggerPosition: DebuggerPosition): Position = {
+    val position = new lsp4j.Position()
+    val column = if (debuggerPosition.column < 0) 0 else debuggerPosition.column - 1
+    val line = if (debuggerPosition.line < 0) 0 else debuggerPosition.line - 1
+    position.setCharacter(column)
+    position.setLine(line)
+    position
   }
 
   def definedDataFormats(): CompletableFuture[Array[DataFormatDescriptor]] = {

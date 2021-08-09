@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import {Uri} from "vscode";
-import {EditorDecoration, EditorDecorationParams, EditorPosition, EditorRange} from "./interfaces/editorDecoration";
+import {EditorDecoration, EditorDecorationParams} from "./interfaces/editorDecoration";
 
 export function openTextDocument(uri: string) {
     const documentUri = Uri.parse(uri);
@@ -24,25 +24,23 @@ export function clearDecorations() {
     decorationType = vscode.window.createTextEditorDecorationType({});
 }
 
-export function setDecorations(options: EditorDecorationParams) {
-    let editor = findVisibleEditor(options.documentUri);
+export function setDecorations(params: EditorDecorationParams) {
+    let editor = findVisibleEditor(params.documentUri);
     if (editor) {
-        const decorations = toVsDecorations(options.decorations);
+        const decorations = toVsDecorations(params.decorations);
         editor.setDecorations(decorationType, decorations);
     }
 }
 
-function toVsDecorations(editorDecorations: EditorDecoration[]): vscode.Range[] |  vscode.DecorationOptions[] {
+function toVsDecorations(editorDecorations: EditorDecoration[]): vscode.DecorationOptions[] {
     let decorations = [];
     editorDecorations.forEach((editorDecoration) => {
-        const decoration: vscode.Range | vscode.DecorationOptions = {
-            range: toVsRange(editorDecoration.range),
-
+        const decoration: vscode.DecorationOptions = {
+            range: editorDecoration.range,
             renderOptions: {
                 after: {
                     contentText: editorDecoration.text,
-                    color: "gray",
-
+                    color: "grey"
                 }
             }
         };
@@ -51,12 +49,3 @@ function toVsDecorations(editorDecorations: EditorDecoration[]): vscode.Range[] 
     return decorations;
 }
 
-function toVsRange(range: EditorRange): vscode.Range {
-    return new vscode.Range(
-        toVsPosition(range.start),
-        toVsPosition(range.end)
-    );
-}
-function toVsPosition(position: EditorPosition): vscode.Position {
-    return new vscode.Position(position.line, position.column);
-}

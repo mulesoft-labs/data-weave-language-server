@@ -53,11 +53,11 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         return showQuickPick(options);
     });
 
-    client.onRequest(SetEditorDecorations.type, (options) => {
+    client.onNotification(SetEditorDecorations.type, (options) => {
         setDecorations(options);
     });
 
-    client.onRequest(ClearEditorDecorations.type, () => {
+    client.onNotification(ClearEditorDecorations.type, () => {
         clearDecorations();
     });
 

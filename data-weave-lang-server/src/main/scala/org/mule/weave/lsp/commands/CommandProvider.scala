@@ -18,7 +18,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
                       project: Project,
                       projectKind: ProjectKind,
                       jobManagerService: JobManagerService,
-                      validationService: DataWeaveToolingService,
+                      weaveToolingService: DataWeaveToolingService,
                       scenariosManager: WeaveScenarioManagerService,
                       previewService: PreviewService
                      ) {
@@ -38,8 +38,9 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new InstallBatCommand(clientLogger),
     new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient),
     new LaunchWeaveCommand(languageClient),
-    new QuickFixCommand(validationService),
-    new InsertDocumentationCommand(validationService)
+    new QuickFixCommand(weaveToolingService),
+    new InsertDocumentationCommand(weaveToolingService),
+    new InsertWeaveTypeCommand(weaveToolingService, project)
   )
 
   def commandBy(commandId: String): Option[WeaveCommand] = {

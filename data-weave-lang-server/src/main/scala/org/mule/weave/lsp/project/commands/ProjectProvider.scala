@@ -19,9 +19,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
-import scala.compat.java8.FutureConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class ProjectProvider(client: WeaveLanguageClient, project: Project) {
   val icons = Icons.vscode
@@ -133,7 +130,7 @@ class ProjectProvider(client: WeaveLanguageClient, project: Project) {
   }
 
 
-  private def askForWindow(projectPath: URI): Future[Unit] = {
+  private def askForWindow(projectPath: URI): Unit = {
     def openWindow(newWindow: Boolean): Unit = {
       val params = OpenWindowsParams(
         projectPath.toString,
@@ -142,10 +139,10 @@ class ProjectProvider(client: WeaveLanguageClient, project: Project) {
       client.openWindow(params)
     }
 
-    client
+    val item = client
       .showMessageRequest(NewDwProject.askForNewWindowParams())
-      .toScala
-      .map {
+      .get()
+      item match {
         case msg if msg == NewDwProject.no =>
           openWindow(newWindow = false)
         case msg if msg == NewDwProject.yes =>

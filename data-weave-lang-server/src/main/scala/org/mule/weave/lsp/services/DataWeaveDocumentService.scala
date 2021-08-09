@@ -27,9 +27,13 @@ import org.eclipse.lsp4j.InsertTextFormat
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.LocationLink
 import org.eclipse.lsp4j.MarkupContent
+import org.eclipse.lsp4j.ParameterInformation
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.ReferenceParams
 import org.eclipse.lsp4j.RenameParams
+import org.eclipse.lsp4j.SignatureHelp
+import org.eclipse.lsp4j.SignatureHelpParams
+import org.eclipse.lsp4j.SignatureInformation
 import org.eclipse.lsp4j.SymbolInformation
 import org.eclipse.lsp4j.SymbolKind
 import org.eclipse.lsp4j.TextDocumentIdentifier
@@ -245,6 +249,32 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
   }
 
 
+  override def signatureHelp(params: SignatureHelpParams): CompletableFuture[SignatureHelp] = {
+    CompletableFuture.supplyAsync(() => {
+      val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
+      val position = params.getPosition
+      val offset: Int = toolingService.offsetOf(position.getLine, position.getCharacter)
+      val maybeResult = toolingService.signatureInfo(offset)
+      maybeResult match {
+        case Some(signatureResult) => {
+          val signatures = signatureResult.signatures.map((s) => {
+            val informations: Array[ParameterInformation] =
+              s.parameters
+                .map((p) => new ParameterInformation(p.name + ": " + p.wtype.toString(), ""))
+            val documentation: MarkupContent = s.docAsMarkdown().map((d) => new MarkupContent("markdown", d)).orNull
+            val arguments = informations.map((i) => i.getLabel.getLeft).mkString(",")
+            new SignatureInformation(signatureResult.name + "(" + arguments + ")", documentation, util.Arrays.asList(informations: _*))
+          })
+
+          val i = signatureResult.signatures.indexWhere((s) => s.active)
+          new SignatureHelp(util.Arrays.asList(signatures: _*), i, signatureResult.currentArgIndex)
+        }
+        case None => new SignatureHelp()
+      }
+    })
+  }
+
+
   override def codeLens(params: CodeLensParams): CompletableFuture[util.List[_ <: CodeLens]] = {
     CompletableFuture.supplyAsync(() => {
       val uri: String = params.getTextDocument.getUri
@@ -309,6 +339,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
         case "application/json" => ".json"
         case "application/java" => ".json"
         case "application/xml" => ".xml"
+        case "application/yaml" => ".yaml"
         case "application/csv" | "text/csv" => ".csv"
         case "text/plain" => ".txt"
         case _ => ".json"

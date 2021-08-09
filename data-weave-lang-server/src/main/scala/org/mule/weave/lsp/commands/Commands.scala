@@ -19,13 +19,14 @@ object Commands {
   val DW_RUN_MAPPING = "dw.runCommand"
   val DW_QUICK_FIX = "dw.quickFix"
   val DW_GENERATE_WEAVE_DOC = "dw.generateWeaveDoc"
+  val DW_INSERT_WEAVE_TYPE = "dw.insertWeaveType"
   val DW_CREATE_SCENARIO = "dw.createScenario"
   val DW_CREATE_INPUT_SAMPLE = "dw.createInputSample"
   val DW_DELETE_INPUT_SAMPLE = "dw.deleteInputSample"
   val DW_ACTIVE_SCENARIO = "dw.activeScenario"
   val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
-  val DW_INSERT_RETURN_TYPE = "dw.insertReturnType"
+
 
   val ALL_COMMANDS: util.List[String] = util.Arrays.asList(
     BAT_RUN_BAT_TEST,
@@ -43,7 +44,8 @@ object Commands {
     DW_DELETE_INPUT_SAMPLE,
     DW_GENERATE_WEAVE_DOC,
     DW_CREATE_TEST,
-    DW_INSERT_RETURN_TYPE
+    DW_INSERT_WEAVE_TYPE
+
   )
 
   def optionalArgAsString(arguments: util.List[AnyRef], index: Int): Option[String] = {

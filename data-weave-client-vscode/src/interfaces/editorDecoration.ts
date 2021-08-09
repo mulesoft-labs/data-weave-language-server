@@ -1,17 +1,16 @@
-import {RequestType} from "vscode-languageserver-protocol";
+import { Range } from "vscode";
+import {NotificationType, RequestType} from "vscode-languageserver-protocol";
 
 
 export namespace SetEditorDecorations {
-  export const type = new RequestType<
-    EditorDecorationParams,
-    void,
+  export const type = new NotificationType<
+    EditorDecorationParams,    
     void
   >("weave/decorations/set");
 }
 
 export namespace ClearEditorDecorations {
-  export const type = new RequestType<
-      void,
+  export const type = new NotificationType<
       void,
       void
       >("weave/decorations/clear");
@@ -23,16 +22,6 @@ export interface EditorDecorationParams {
 }
 
 export interface EditorDecoration {
-  range: EditorRange;
+  range: Range;
   text: string;
-}
-
-export interface EditorRange {
-  start: EditorPosition;
-  end: EditorPosition;
-}
-
-export interface EditorPosition {
-  line: number;
-  column: number;
 }

@@ -77,6 +77,7 @@ object JavaWeaveLauncher {
     args.add("-Xms64m")
     args.add("-Xmx2G")
     args.add("-XX:+HeapDumpOnOutOfMemoryError")
+    args.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5010")
 
     ///
     args.add("-cp")

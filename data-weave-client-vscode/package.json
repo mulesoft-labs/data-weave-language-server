@@ -20,7 +20,6 @@
     "onCommand:dw.project.create",
     "onDebugResolve:data-weave",
     "onLanguage:data-weave",
-    "workspaceContains:**/*.jar",
     "onFileSystem:jar",
     "onView:weaveDependencies"
   ],
@@ -327,6 +326,16 @@
           "type": "string",
           "default": "1.0.72",
           "markdownDescription": "The version of the BAT to use\n\n**Change only if you know what you're doing**"
+        },
+        "data-weave.previewTimeout": {
+          "type": "number",
+          "default": 50000,
+          "markdownDescription": "The Timeout to be set to each preview execution."
+        },
+        "data-weave.previewDebugEnabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "If enabled debug information is going to be set to each preview execution."
         }
       }
     }

@@ -40,8 +40,22 @@ case class ProjectSettings(eventBus: EventBus,
                            validationLevel: Setting[String] = Setting(VALIDATION_LEVEL_PROP_NAME, TYPE_LEVEL),
                            batVersion: Setting[String] = Setting(BAT_VERSION_PROP_NAME, DEFAULT_BAT_VERSION),
                            batWrapperVersion: Setting[String] = Setting(BAT_WRAPPER_VERSION_PROP_NAME, DEFAULT_BAT_WRAPPER_VERSION),
-                           previewTimeout: Setting[String] = Setting(PREVIEW_TIMEOUT, PREVIEW_TIMEOUT_VALUE)
+                           previewTimeout: Setting[String] = Setting(PREVIEW_TIMEOUT, PREVIEW_TIMEOUT_VALUE),
+                           enablePreviewDebug: Setting[String] = Setting(ENABLE_PREVIEW_DEBUG, false.toString),
+                           useLiteralOnInsertType: Setting[String] = Setting(USE_LITERAL_ON_INSERT, false.toString)
                           ) {
+
+  val PROPERTIES =
+    Seq(
+      wlangVersion,
+      languageLevelVersion,
+      validationLevel,
+      batVersion,
+      batWrapperVersion,
+      previewTimeout,
+      enablePreviewDebug,
+      useLiteralOnInsertType
+    )
 
   def load(settings: AnyRef): Array[String] = {
     val allSettings: JsonObject = settings.asInstanceOf[JsonObject]
@@ -50,21 +64,11 @@ case class ProjectSettings(eventBus: EventBus,
       val weaveSettings = allSettings.getAsJsonObject("data-weave")
 
       if (weaveSettings != null) {
-        if (wlangVersion.updateValue(weaveSettings)) {
-          modifiedProps.+=(wlangVersion.settingName)
-        }
-        if (languageLevelVersion.updateValue(weaveSettings)) {
-          modifiedProps.+=(languageLevelVersion.settingName)
-        }
-        if (validationLevel.updateValue(weaveSettings)) {
-          modifiedProps.+=(validationLevel.settingName)
-        }
-        if (batVersion.updateValue(weaveSettings)) {
-          modifiedProps.+=(batVersion.settingName)
-        }
-        if (batWrapperVersion.updateValue(weaveSettings)) {
-          modifiedProps.+=(batWrapperVersion.settingName)
-        }
+        PROPERTIES.foreach((prop) => {
+          if (prop.updateValue(weaveSettings)) {
+            modifiedProps.+=(prop.settingName)
+          }
+        })
       }
     }
     modifiedProps.toArray
@@ -80,7 +84,7 @@ case class ProjectSettings(eventBus: EventBus,
 
 
 object Settings {
-  val DEFAULT_VERSION: String = "2.4.0-SNAPSHOT"
+  val DEFAULT_VERSION: String = "2.5.0-SNAPSHOT"
   val DEFAULT_BAT_VERSION = "1.0.88"
   val DEFAULT_BAT_WRAPPER_VERSION = "1.0.58"
   val PREVIEW_TIMEOUT_VALUE = 50000.toString
@@ -94,6 +98,8 @@ object Settings {
   val BAT_VERSION_PROP_NAME = "batVersion"
   val BAT_WRAPPER_VERSION_PROP_NAME = "batWrapperVersion"
   val PREVIEW_TIMEOUT = "previewTimeout"
+  val ENABLE_PREVIEW_DEBUG = "previewDebugEnabled"
+  val USE_LITERAL_ON_INSERT = "userLiteralOnInsertAction"
 
 
   def isTypeLevel(settings: ProjectSettings): Boolean = settings.validationLevel.value() == TYPE_LEVEL
