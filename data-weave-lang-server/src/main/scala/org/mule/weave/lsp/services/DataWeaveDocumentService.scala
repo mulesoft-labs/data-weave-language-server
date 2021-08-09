@@ -1,5 +1,6 @@
 package org.mule.weave.lsp.services
 
+import org.apache.commons.io.FilenameUtils
 import org.eclipse.lsp4j
 import org.eclipse.lsp4j.CodeAction
 import org.eclipse.lsp4j.CodeActionParams
@@ -58,6 +59,7 @@ import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.DocumentSavedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters._
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.BAT
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.MAPPING
@@ -78,6 +80,7 @@ import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
 import org.mule.weave.v2.parser.ast.header.directives.InputDirective
 import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
+import org.mule.weave.v2.parser.ast.variables.VariableReferenceNode
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
@@ -494,6 +497,16 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
         link.setTargetSelectionRange(toRange(reference.referencedNode.location()))
         if (reference.isLocalReference) {
           link.setTargetUri(params.getTextDocument.getUri)
+          projectKind.sampleDataManager().map(sampleDataManager => {
+            sampleDataManager.listScenarios(vfs.file(params.getTextDocument.getUri).getNameIdentifier).head.inputs().listFiles().find(file => {
+              FilenameUtils.removeExtension(file.getName).equals(ll.linkLocation.name)
+            }).map(file=>{
+              val position = new Position(0, 0)
+              link.setTargetRange(new lsp4j.Range(position,position))
+              link.setTargetSelectionRange(new lsp4j.Range(position,position))
+              link.setTargetUri(URLUtils.toLSPUrl(file))
+            })
+          })
         } else {
           //Cross module link
           val resourceResolver: WeaveResourceResolver = vfs.asResourceResolver
