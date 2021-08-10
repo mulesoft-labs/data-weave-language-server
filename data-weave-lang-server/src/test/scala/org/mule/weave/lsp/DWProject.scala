@@ -36,12 +36,14 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.JobEndedParams
 import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -377,6 +379,17 @@ class DWProject(val workspaceRoot: Path) {
         * @param job The job information that has ended
         */
       override def notifyJobEnded(job: JobEndedParams): Unit = {}
+
+      /**
+        * This notification is sent from the server to the client to publish current transformation scenarios.
+        *
+        * @param scenariosParam Scenarios Parameter
+        */
+      override def showScenarios(scenariosParam: ShowScenariosParams): Unit = {}
+
+      def setEditorDecorations(params: EditorDecorationsParams): Unit = {}
+
+      def clearEditorDecorations(): Unit = {}
     })
   }
 

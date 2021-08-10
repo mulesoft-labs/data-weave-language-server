@@ -18,6 +18,7 @@ import org.mule.weave.lsp.services.events.OnDocumentOpened
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.URLUtils
+import org.mule.weave.lsp.utils.WeaveASTQueryUtils
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
@@ -28,10 +29,8 @@ import java.util.logging.Logger
 import scala.concurrent.duration.TimeUnit
 
 
-class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project) extends ToolingService {
+class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project, toolingServices: DataWeaveToolingService) extends ToolingService {
   private val logger = Logger.getLogger(getClass.getName)
-
-
   private var eventBus: EventBus = _
 
   @volatile
@@ -69,12 +68,10 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
     eventBus.register(FILE_CHANGED_EVENT, new OnFileChanged {
       override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
         currentVfPreview.map(currentVFPreview => {
-          projectKind.sampleDataManager().map(sampleDataManager => {
-            sampleDataManager.searchSampleDataFolderFor(currentVFPreview.getNameIdentifier).map(scenarioFolder => {
-              if (URLUtils.isChildOf(uri, scenarioFolder)) {
-                runPreview(currentVFPreview)
-              }
-            })
+          projectKind.sampleDataManager().searchSampleDataFolderFor(currentVFPreview.getNameIdentifier).map(scenarioFolder => {
+            if (URLUtils.isChildOf(uri, scenarioFolder)) {
+              runPreview(currentVFPreview)
+            }
           })
         })
       }
@@ -91,11 +88,16 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
   }
 
   def runPreview(vf: VirtualFile): Unit = {
-    //If is the Preview scheme then we should ignore it
     val fileUrl: String = vf.url()
-    if (!URLUtils.isSupportedEditableScheme(fileUrl)) {
+    val maybeAstNode = toolingServices.openDocument(fileUrl).ast()
+    //
+    val isMapping = WeaveASTQueryUtils.fileKind(maybeAstNode)
+      .forall((kind) => kind.equals(WeaveASTQueryUtils.MAPPING))
+
+    if (!URLUtils.isSupportedEditableScheme(fileUrl) || !isMapping) {
       return
     }
+
     if (!project.isStarted()) {
       pendingProjectStart = Some(vf)
       weaveLanguageClient.showPreviewResult(

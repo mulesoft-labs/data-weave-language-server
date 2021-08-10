@@ -20,7 +20,6 @@
     "onCommand:dw.project.create",
     "onDebugResolve:data-weave",
     "onLanguage:data-weave",
-    "workspaceContains:**/*.jar",
     "onFileSystem:jar",
     "onView:weaveDependencies"
   ],
@@ -31,6 +30,10 @@
         {
           "id": "weaveDependencies",
           "name": "Weave Dependencies"
+        },
+        {
+          "id": "weaveScenarios",
+          "name": "Weave Scenarios"
         }
       ]
     },
@@ -196,6 +199,10 @@
         "title": "DataWeave: Create new test"
       },
       {
+        "command": "dw.mapping.create",
+        "title": "DataWeave: Create new mapping"
+      },
+      {
         "command": "dw.preview.run",
         "title": "DataWeave: Run Preview",
         "icon": "$(debug-continue)"
@@ -209,6 +216,32 @@
         "command": "dw.preview.disable",
         "title": "DataWeave: Disable AutoPreview",
         "icon": "$(debug-pause)"
+      },
+      {
+        "command": "dw.scenarios.addScenario",
+        "title": "Add Scenario",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dw.scenarios.deleteScenario",
+        "title": "Delete Scenario",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dw.scenarios.defaultScenario",
+        "title": "Set As Default Scenario",
+        "icon": "$(check)"
+      },
+      {
+        "command": "dw.scenarios.addInput",
+        "title": "Add Input",
+        "shortTitle": "Add Input",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dw.scenarios.deleteInput",
+        "title": "Delete Input",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -217,6 +250,38 @@
           "when": "editorLangId == data-weave",
           "command": "dw.preview.run",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dw.scenarios.addScenario",
+          "when": "view == weaveScenarios && viewItem == transformationItem",
+          "group": "inline"
+        },
+        {
+          "command": "dw.scenarios.addInput",
+          "when": "view == weaveScenarios && viewItem == inputs",
+          "group": "inline"
+        },
+        {
+          "command": "dw.scenarios.deleteScenario",
+          "when": "view == weaveScenarios && viewItem == activeScenario",
+          "group": "inline"
+        },
+        {
+          "command": "dw.scenarios.deleteScenario",
+          "when": "view == weaveScenarios && viewItem == scenario",
+          "group": "inline"
+        },
+        {
+          "command": "dw.scenarios.defaultScenario",
+          "when": "view == weaveScenarios && viewItem == scenario",
+          "group": "inline"
+        },
+        {
+          "command": "dw.scenarios.deleteInput",
+          "when": "view == weaveScenarios && viewItem == inputItem",
+          "group": "inline"
         }
       ],
       "editor/context": [
@@ -265,6 +330,16 @@
           "type": "string",
           "default": "1.0.72",
           "markdownDescription": "The version of the BAT to use\n\n**Change only if you know what you're doing**"
+        },
+        "data-weave.previewTimeout": {
+          "type": "number",
+          "default": 50000,
+          "markdownDescription": "The Timeout to be set to each preview execution."
+        },
+        "data-weave.previewDebugEnabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "If enabled debug information is going to be set to each preview execution."
         }
       }
     }
@@ -281,13 +356,14 @@
     "jszip": "^3.6.0",
     "upath": "^1.1.2",
     "vscode-languageclient": "6.1.3",
-    "vscode-languageserver-protocol": "3.15.3"
+    "vscode-languageserver-protocol": "3.15.3",
+    "vscode-uri": "3.0.2"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.33",
     "@types/node": "^11.13.6",
-    "typescript": "^4.2.2",
     "@types/vscode": "1.43.0",
+    "typescript": "^4.2.2",
     "vsce": "1.88.0"
   },
   "scripts": {

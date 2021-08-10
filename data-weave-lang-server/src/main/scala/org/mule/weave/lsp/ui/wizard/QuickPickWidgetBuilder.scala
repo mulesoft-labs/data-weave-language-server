@@ -11,7 +11,7 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
 
 class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetBuilder[List[String], A] {
 
-  var itemProvider: A => List[(WeaveQuickPickItem, A => WidgetResult[A])] = _
+  var itemProvider: A => Seq[(WeaveQuickPickItem, A => WidgetResult[A])] = _
 
   var totalSteps: Int = _
 
@@ -45,7 +45,7 @@ class QuickPickWidgetBuilder[A](val client: WeaveLanguageClient) extends WidgetB
     this
   }
 
-  def itemProvider(itemProvider: A => List[(WeaveQuickPickItem, A => WidgetResult[A])]): QuickPickWidgetBuilder[A] = {
+  def itemProvider(itemProvider: A => Seq[(WeaveQuickPickItem, A => WidgetResult[A])]): QuickPickWidgetBuilder[A] = {
     this.itemProvider = itemProvider
     this
   }

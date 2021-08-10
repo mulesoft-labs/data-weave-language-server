@@ -26,7 +26,7 @@ class CodeLensesTest extends FreeSpec {
       assert(launchLens.get().getCommand.getArguments.get(1) == "data-weave")
 
       val sampleData: Optional[_ <: CodeLens] = lenses.stream().filter((lense) => {
-        lense.getCommand.getCommand == Commands.DW_DEFINE_SAMPLE_DATA
+        lense.getCommand.getCommand == Commands.DW_CREATE_SCENARIO
       }).findFirst()
       assert(sampleData.isPresent)
     }

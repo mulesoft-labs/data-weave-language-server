@@ -1,11 +1,19 @@
 package org.mule.weave.lsp.project.components
 
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
+import org.mule.weave.lsp.extension.client.SampleInput
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
 import java.io.FilenameFilter
+import scala.collection.JavaConverters.asScalaIteratorConverter
+import scala.collection.mutable
 
 /**
   * Provides the scenarios for Sample Data  for a given mapping
@@ -36,6 +44,7 @@ trait SampleDataManager {
     */
   def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario]
 
+
   /**
     * Searches for a scenario for a given mapping with the given name
     *
@@ -47,7 +56,9 @@ trait SampleDataManager {
 }
 
 
-class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project) extends SampleDataManager {
+class WTFSampleDataManager(projectKind: ProjectKind, project: Project, weaveLanguageClient: WeaveLanguageClient) extends SampleDataManager {
+
+  val activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
   override def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario] = {
     searchSampleDataFolderFor(nameIdentifier)
@@ -62,7 +73,9 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project)
   def searchSampleDataFolderFor(nameIdentifier: NameIdentifier): Option[File] = {
     val options: Array[File] = wtfFolders()
     val result = options
-      .map((dwitFolder) => new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier)))
+      .map((dwitFolder) => {
+        new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
+      })
       .find((scenario) => {
         scenario.exists()
       })
@@ -70,7 +83,7 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project)
   }
 
   private def wtfFolders(): Array[File] = {
-    projectStructure.modules
+    projectKind.structure().modules
       .flatMap((m) => {
         m.roots.flatMap((root) => {
           if (root.kind == RootKind.TEST) {
@@ -100,7 +113,9 @@ class WTFSampleDataManager(projectStructure: ProjectStructure, project: Project)
 }
 
 
-class DefaultSampleDataManager(weaveHome: File) extends SampleDataManager {
+class DefaultSampleDataManager(weaveHome: File, weaveClient: WeaveLanguageClient) extends SampleDataManager {
+
+  val activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
   override def listScenarios(nameIdentifier: NameIdentifier): Array[Scenario] = {
     searchSampleDataFolderFor(nameIdentifier)
@@ -145,8 +160,18 @@ class DefaultSampleDataManager(weaveHome: File) extends SampleDataManager {
 
 case class Scenario(file: File, name: String) {
 
-  def inputs(): File = {
+  def inputsDirectory(): File = {
     new File(file, "inputs")
+  }
+
+  def inputs(): Array[SampleInput] = {
+    val files = FileUtils.listFiles(inputsDirectory(), null, true)
+    files.iterator().asScala
+      .map(file => {
+        val relativePath = inputsDirectory().toPath.relativize(file.toPath)
+        val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
+        SampleInput(URLUtils.toLSPUrl(file), inputName)
+      }).toArray
   }
 
   def expected(): Option[File] = {

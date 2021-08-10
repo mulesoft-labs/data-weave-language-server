@@ -4,6 +4,7 @@ import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenFormatStage
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
 import org.mule.weave.lsp.agent.WeaveAgentService
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
@@ -26,6 +27,7 @@ import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.project.events.OnSettingsChanged
 import org.mule.weave.lsp.project.events.SettingsChangedEvent
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
@@ -34,15 +36,17 @@ import org.mule.weave.v2.deps.DependencyManagerMessageCollector
 import java.io.File
 import scala.collection.immutable
 
-class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService) extends ProjectKind {
+class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKind {
   private val simpleDependencyManager = new SimpleDependencyManager(project, logger, eventBus)
-  private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome())
+  private val defaultSampleDataManager = new DefaultSampleDataManager(WeaveDirectoryUtils.getDWHome(), weaveLanguageClient)
+  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(weaveAgentService, eventBus, weaveScenarioManagerService)
 
   override def name(): String = "DW `Simple`"
 
   override def structure(): ProjectStructure = {
     if (project.hasHome()) {
-      val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
+      val mainSourceFolder = new File(project.home(), "src")
+      val mainRoot = RootStructure(RootKind.MAIN, Array(mainSourceFolder), Array.empty, mainSourceFolder)
       val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot)))
       components.ProjectStructure(modules)
     } else {
@@ -58,23 +62,22 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
     NoBuildManager
   }
 
-  override def sampleDataManager(): Option[SampleDataManager] = {
-
-    Some(defaultSampleDataManager)
+  override def sampleDataManager(): SampleDataManager = {
+    defaultSampleDataManager
   }
 
   override def metadataProvider(): Option[MetadataProvider] = {
-    Some(new SampleBaseMetadataProvider(defaultSampleDataManager, weaveAgentService, eventBus))
+    Some(sampleBaseMetadataProvider)
   }
 }
 
-class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKindDetector {
+class SimpleProjectKindDetector(eventBus: EventBus, logger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKindDetector {
   override def supports(project: Project): Boolean = {
     new File(project.home(), "src").exists()
   }
 
   override def createKind(project: Project): ProjectKind = {
-    new SimpleProjectKind(project, logger, eventBus, weaveAgentService)
+    new SimpleProjectKind(project, logger, eventBus, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
   }
 }
 
@@ -82,7 +85,7 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
 
   var dependenciesArray: Array[DependencyArtifact] = Array.empty
 
-  val messageCollector = new DependencyManagerMessageCollector() {
+  val messageCollector: DependencyManagerMessageCollector = new DependencyManagerMessageCollector() {
     override def onError(id: String, message: String): Unit = {
       logger.logError(s"Unable to resolve ${id}: reason : ${message}")
     }
@@ -150,6 +153,10 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
 
   private def createWeaveArtifactId(module: String, version: String) = {
     s"org.mule.weave:${module}:${version}"
+  }
+
+  override def languageLevel(): String = {
+    project.settings.wlangVersion.value()
   }
 
   override def dependencies(): Array[DependencyArtifact] = {

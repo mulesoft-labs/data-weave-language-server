@@ -27,9 +27,13 @@ import org.eclipse.lsp4j.InsertTextFormat
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.LocationLink
 import org.eclipse.lsp4j.MarkupContent
+import org.eclipse.lsp4j.ParameterInformation
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.ReferenceParams
 import org.eclipse.lsp4j.RenameParams
+import org.eclipse.lsp4j.SignatureHelp
+import org.eclipse.lsp4j.SignatureHelpParams
+import org.eclipse.lsp4j.SignatureInformation
 import org.eclipse.lsp4j.SymbolInformation
 import org.eclipse.lsp4j.SymbolKind
 import org.eclipse.lsp4j.TextDocumentIdentifier
@@ -42,9 +46,11 @@ import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
+import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.services.DidFocusChangeParams
 import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.services.events.DocumentChangedEvent
 import org.mule.weave.lsp.services.events.DocumentClosedEvent
 import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
@@ -69,12 +75,13 @@ import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.AstNodeHelper
 import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
+import org.mule.weave.v2.parser.ast.header.directives.InputDirective
+import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
-import java.io.File
 import java.util
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
@@ -87,6 +94,7 @@ import scala.collection.JavaConverters
 class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
+                               scenariosService: WeaveScenarioManagerService,
                                vfs: VirtualFileSystem) extends WeaveTextDocumentService with ToolingService {
 
 
@@ -200,6 +208,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     maybeVirtualFile match {
       case Some(value) => {
         this.eventBus.fire(new DocumentFocusChangedEvent(value))
+
       }
       case None => {
         //Is not a project VF
@@ -213,7 +222,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
   override def completion(position: CompletionParams): CompletableFuture[messages.Either[util.List[CompletionItem], CompletionList]] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService: WeaveDocumentToolingService = openDocument(position.getTextDocument)
+      val toolingService: WeaveDocumentToolingService = openDocument(position.getTextDocument, withExpectedOutput = true)
       val offset: Int = toolingService.offsetOf(position.getPosition.getLine, position.getPosition.getCharacter)
       val suggestionResult: SuggestionResult = toolingService.completion(offset)
       val result = new util.ArrayList[CompletionItem]()
@@ -240,6 +249,32 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
   }
 
 
+  override def signatureHelp(params: SignatureHelpParams): CompletableFuture[SignatureHelp] = {
+    CompletableFuture.supplyAsync(() => {
+      val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
+      val position = params.getPosition
+      val offset: Int = toolingService.offsetOf(position.getLine, position.getCharacter)
+      val maybeResult = toolingService.signatureInfo(offset)
+      maybeResult match {
+        case Some(signatureResult) => {
+          val signatures = signatureResult.signatures.map((s) => {
+            val informations: Array[ParameterInformation] =
+              s.parameters
+                .map((p) => new ParameterInformation(p.name + ": " + p.wtype.toString(), ""))
+            val documentation: MarkupContent = s.docAsMarkdown().map((d) => new MarkupContent("markdown", d)).orNull
+            val arguments = informations.map((i) => i.getLabel.getLeft).mkString(",")
+            new SignatureInformation(signatureResult.name + "(" + arguments + ")", documentation, util.Arrays.asList(informations: _*))
+          })
+
+          val i = signatureResult.signatures.indexWhere((s) => s.active)
+          new SignatureHelp(util.Arrays.asList(signatures: _*), i, signatureResult.currentArgIndex)
+        }
+        case None => new SignatureHelp()
+      }
+    })
+  }
+
+
   override def codeLens(params: CodeLensParams): CompletableFuture[util.List[_ <: CodeLens]] = {
     CompletableFuture.supplyAsync(() => {
       val uri: String = params.getTextDocument.getUri
@@ -251,13 +286,29 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       maybeString match {
         case Some(MAPPING) => {
-          val maybeSampleDataManager = projectKind.sampleDataManager()
-          if (maybeSampleDataManager.isDefined) {
-            val maybeFile: Option[File] = maybeSampleDataManager.get.searchSampleDataFolderFor(nameIdentifier)
-            if (maybeFile.isEmpty) {
-              val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-              result.add(new CodeLens(range, new Command("Specify Sample Data", Commands.DW_DEFINE_SAMPLE_DATA, util.Arrays.asList(nameIdentifier.name)), null))
+          val maybeScenario: Option[Scenario] = scenariosService.activeScenario(nameIdentifier)
+          val inputDirectives = maybeAstNode
+            .collect({
+              case documentNode: DocumentNode => documentNode
+            })
+            .map((ast) => AstNodeHelper.getInputs(ast)).getOrElse(Seq())
+          if (maybeScenario.isEmpty) {
+            val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
+            if (inputDirectives.isEmpty) {
+              result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_SCENARIO, util.Arrays.asList(nameIdentifier.name)), null))
             }
+            inputDirectives.foreach((id) => {
+              val range = new lsp4j.Range(new Position(id.location().startPosition.line - 1, 0), new Position(id.location().startPosition.line - 1, 0))
+              result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_INPUT_SAMPLE, util.Arrays.asList(nameIdentifier.name, "default", inputFileName(id))), null))
+            })
+          } else {
+            val inputs: Map[String, Array[SampleInput]] = maybeScenario.get.inputs().groupBy(_.name)
+            inputDirectives.foreach((id) => {
+              if (!inputs.contains(id.variable.name)) {
+                val range = new lsp4j.Range(new Position(id.location().startPosition.line - 1, 0), new Position(id.location().startPosition.line - 1, 0))
+                result.add(new CodeLens(range, new Command("Define Sample Data", Commands.DW_CREATE_INPUT_SAMPLE, util.Arrays.asList(nameIdentifier.name, maybeScenario.get.name, inputFileName(id))), null))
+              }
+            })
           }
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
@@ -280,6 +331,23 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       result
     })
+  }
+
+  private def inputFileName(id: InputDirective) = {
+    val extension = id.mime.map((mime) => {
+      mime.mime match {
+        case "application/json" => ".json"
+        case "application/java" => ".json"
+        case "application/xml" => ".xml"
+        case "application/yaml" => ".yaml"
+        case "application/csv" | "text/csv" => ".csv"
+        case "text/plain" => ".txt"
+        case _ => ".json"
+      }
+    }).orElse(id.dataFormat.map((id) => {
+      "." + id.id
+    })).getOrElse(".json")
+    id.variable.name + extension
   }
 
   private def addDocumentationLenses(ast: AstNode, uri: String) = {
@@ -407,14 +475,10 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     }, executor)
   }
 
-  private def openDocument(document: TextDocumentIdentifier): WeaveDocumentToolingService = {
-    val uri = document.getUri
-    openDocument(uri)
+  private def openDocument(document: TextDocumentIdentifier, withExpectedOutput: Boolean = true): WeaveDocumentToolingService = {
+    toolingServices.openDocument(document.getUri, withExpectedOutput)
   }
 
-  private def openDocument(uri: String): WeaveDocumentToolingService = {
-    toolingServices.openDocument(uri)
-  }
 
   override def definition(params: DefinitionParams): CompletableFuture[messages.Either[util.List[_ <: Location], util.List[_ <: LocationLink]]] = {
     CompletableFuture.supplyAsync(() => {
@@ -451,7 +515,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
   override def formatting(params: DocumentFormattingParams): CompletableFuture[java.util.List[_ <: TextEdit]] = {
     CompletableFuture.supplyAsync(() => {
-      val toolingService = openDocument(params.getTextDocument.getUri)
+      val toolingService = openDocument(params.getTextDocument)
       toolingService.formatting() match {
         case None => new util.ArrayList[TextEdit]()
         case Some(value) => {

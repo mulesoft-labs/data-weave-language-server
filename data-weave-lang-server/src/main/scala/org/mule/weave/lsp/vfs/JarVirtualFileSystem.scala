@@ -9,6 +9,8 @@ import org.mule.weave.v2.sdk.WeaveResource
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 
 import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.net.URI
 import java.util
 import java.util.logging.Level
@@ -17,6 +19,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import scala.collection.JavaConverters.asJavaIteratorConverter
 import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
+import scala.io.BufferedSource
 import scala.io.Source
 
 /**
@@ -113,10 +116,14 @@ class JarVirtualFSResourceProvider(vfs: VirtualFileSystem) extends WeaveResource
 class JarVirtualFile(val entryJar: String, var entry: ZipEntry, zipFile: ZipFile, val fs: JarVirtualFileSystem) extends VirtualFile {
 
   private lazy val content: String = {
-    val stream = zipFile.getInputStream(entry)
-    val source = Source.fromInputStream(stream, "UTF-8")
+    val stream: InputStream = zipFile.getInputStream(entry)
+    val source: BufferedSource = Source.fromInputStream(stream, "UTF-8")
     try {
       source.mkString
+    } catch {
+      case io: Exception => {
+        throw new RuntimeException(s"Exception when trying to read: `${entryJar}`. From file: `${fs.jarFile.getAbsolutePath}`.", io)
+      }
     } finally {
       stream.close()
     }
