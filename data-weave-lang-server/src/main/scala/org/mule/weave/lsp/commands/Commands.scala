@@ -26,6 +26,7 @@ object Commands {
   val DW_ACTIVE_SCENARIO = "dw.activeScenario"
   val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
+  val DW_CREATE_MAPPING = "dw.createMapping"
 
 
   val ALL_COMMANDS: util.List[String] = util.Arrays.asList(
@@ -44,7 +45,8 @@ object Commands {
     DW_DELETE_INPUT_SAMPLE,
     DW_GENERATE_WEAVE_DOC,
     DW_CREATE_TEST,
-    DW_INSERT_WEAVE_TYPE
+    DW_INSERT_WEAVE_TYPE,
+    DW_CREATE_MAPPING
 
   )
 

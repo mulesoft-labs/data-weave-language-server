@@ -140,6 +140,10 @@ export function activate(context: ExtensionContext) {
     vscode.commands.executeCommand(ServerWeaveCommands.CREATE_TEST)
   }));
 
+  context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.CREATE_MAPPING, () => {
+    vscode.commands.executeCommand(ServerWeaveCommands.CREATE_MAPPING)
+  }));
+
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
     vscode.window.showTextDocument(resource);
   }));

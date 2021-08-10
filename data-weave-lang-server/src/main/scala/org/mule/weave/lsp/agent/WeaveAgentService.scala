@@ -259,7 +259,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
             val endTime = System.currentTimeMillis()
             result match {
               case PreviewExecutedFailedEvent(message, messages, contextData) => {
-                if (contextData.nonEmpty) {
+                if (contextData != null && contextData.nonEmpty) {
                   publishContextData(contextData, url, nameIdentifier)
                 }
                 val logsArray: Array[String] = messages.map((m) => m.timestamp + " : " + m.message).toArray
@@ -275,7 +275,9 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
               }
               case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages, contextData) => {
                 val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                publishContextData(contextData, url, nameIdentifier)
+                if(contextData != null) {
+                  publishContextData(contextData, url, nameIdentifier)
+                }
                 runResult.set(
                   PreviewResult(content = new String(result, encoding),
                     mimeType = mimeType,

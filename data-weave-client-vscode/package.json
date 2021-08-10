@@ -199,6 +199,10 @@
         "title": "DataWeave: Create new test"
       },
       {
+        "command": "dw.mapping.create",
+        "title": "DataWeave: Create new mapping"
+      },
+      {
         "command": "dw.preview.run",
         "title": "DataWeave: Run Preview",
         "icon": "$(debug-continue)"

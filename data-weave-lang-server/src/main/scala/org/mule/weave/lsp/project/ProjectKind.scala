@@ -1,5 +1,7 @@
 package org.mule.weave.lsp.project
 
+import org.eclipse.lsp4j.ResourceOperation
+import org.eclipse.lsp4j.TextDocumentEdit
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.components.BuildManager
@@ -15,6 +17,8 @@ import org.mule.weave.lsp.project.impl.simple.SimpleProjectKindDetector
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
+
+import java.io.File
 
 /**
   * Detects the Project Kind
@@ -59,6 +63,7 @@ object ProjectKindDetector {
   }
 }
 
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 
 /**
   * A Project Kind is the trait that allows us to support multiple kind of projects with different:
@@ -114,5 +119,13 @@ trait ProjectKind {
     * @return The Metadata Provider if this Project can provide any
     */
   def metadataProvider(): Option[MetadataProvider] = None
+
+  /**
+    * Returns any additional change that needs to be made when a new file is created
+    *
+    * @param folder
+    * @return
+    */
+  def newFile(folder: File, name: String): Array[Either[TextDocumentEdit, ResourceOperation]] = Array.empty
 
 }

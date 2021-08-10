@@ -45,7 +45,8 @@ class SimpleProjectKind(project: Project, logger: ClientLogger, eventBus: EventB
 
   override def structure(): ProjectStructure = {
     if (project.hasHome()) {
-      val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
+      val mainSourceFolder = new File(project.home(), "src")
+      val mainRoot = RootStructure(RootKind.MAIN, Array(mainSourceFolder), Array.empty, mainSourceFolder)
       val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot)))
       components.ProjectStructure(modules)
     } else {

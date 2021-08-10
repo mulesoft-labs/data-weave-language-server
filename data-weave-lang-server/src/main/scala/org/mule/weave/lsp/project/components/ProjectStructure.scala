@@ -28,7 +28,7 @@ case class TargetFolder(kind: String, file: Array[File])
   * src/main -> {kind: main, sources: ["src/main/java","src/main/dw"], resources: [src/main/resources]}
   * src/test -> {kind: test, sources: ["src/test/java","src/test/dwit"], resources: [src/test/resources]}
   */
-case class RootStructure(kind: String, sources: Array[File], resources: Array[File]) {}
+case class RootStructure(kind: String, sources: Array[File], resources: Array[File], defaultSourceFolder: File) {}
 
 
 object ProjectStructure {
@@ -67,6 +67,10 @@ object ProjectStructure {
         }
       })
     })
+  }
+
+  def mainRoot(module: ModuleStructure): Option[RootStructure] = {
+    module.roots.find(_.kind == RootKind.MAIN)
   }
 
   def mainSourceFolders(projectStructure: ProjectStructure): Array[File] = {

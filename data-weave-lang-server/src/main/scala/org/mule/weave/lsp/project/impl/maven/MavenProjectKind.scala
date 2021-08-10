@@ -59,18 +59,20 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
   private def mainRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "main")
 
-    val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "java")).filter(_.exists())
+    val mainSourceFolder = new File(mainDir, "dw")
+    val srcFolders = Array(mainSourceFolder, new File(mainDir, "java")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
 
-    val rootStructure = RootStructure(RootKind.MAIN, srcFolders, resourceFolders)
+    val rootStructure = RootStructure(RootKind.MAIN, srcFolders, resourceFolders, mainSourceFolder)
     rootStructure
   }
 
   private def testRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "test")
-    val srcFolders = Array(new File(mainDir, "dwtest"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
+    val mainSourceFolder = new File(mainDir, "dwtest")
+    val srcFolders = Array(mainSourceFolder, new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
-    val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders)
+    val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders, mainSourceFolder)
     rootStructure
   }
 

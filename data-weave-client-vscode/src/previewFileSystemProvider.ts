@@ -66,9 +66,7 @@ export default class PreviewSystemProvider implements vscode.FileSystemProvider,
             var fileName = Utils.basename(fileUri)
             var scenarioUri = vscode.Uri.parse(this.previewContent?.scenarioUri);
             var scenarioFileName = Utils.basename(scenarioUri)
-            return [new vscode.CodeLens(range, { title: 'Preview on: ' + fileName, command: "vscode.open", arguments: [fileUri] }),
-            new vscode.CodeLens(range, { title: 'Scenario: ' + scenarioFileName, command: "vscode.open", arguments: [scenarioFileName] }),
-            new vscode.CodeLens(range, { title: 'Change scenario', command: "dw.preview.enable" })]
+            return [new vscode.CodeLens(range, { title: 'Preview on: ' + fileName, command: "vscode.open", arguments: [fileUri]})]
         }
     }
 

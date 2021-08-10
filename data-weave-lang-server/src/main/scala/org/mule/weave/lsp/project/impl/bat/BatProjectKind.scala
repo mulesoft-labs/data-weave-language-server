@@ -39,7 +39,8 @@ class BatProjectKind(project: Project, logger: ClientLogger, eventBus: EventBus,
   }
 
   override def structure(): ProjectStructure = {
-    val mainRoot = RootStructure(RootKind.MAIN, Array(new File(project.home(), "src")), Array.empty)
+    val sourceFolder = new File(project.home(), "src")
+    val mainRoot = RootStructure(RootKind.MAIN, Array(sourceFolder), Array.empty, sourceFolder)
     val modules = Array(ModuleStructure(project.home().getName, Array(mainRoot), Array()))
     components.ProjectStructure(modules)
   }

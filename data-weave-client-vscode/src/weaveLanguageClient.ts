@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import {DebugConfiguration, ExtensionContext, OutputChannel, TextEditor, Uri, workspace, WorkspaceFolder} from 'vscode';
+import { DebugConfiguration, ExtensionContext, OutputChannel, TextEditor, Uri, workspace, WorkspaceFolder } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient'
 import { OpenFolder } from './interfaces/openFolder';
 import { WeaveInputBox } from './interfaces/weaveInputBox';
 import { WeaveQuickPick } from './interfaces/weaveQuickPick';
-import {showInputBox, showQuickPick} from './widgets';
+import { showInputBox, showQuickPick } from './widgets';
 import { LaunchConfiguration } from './interfaces/configurations';
 import { OpenTextDocument } from './interfaces/openTextDocument';
 import { ShowPreviewResult } from './interfaces/preview';
@@ -15,8 +15,8 @@ import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
 import { InputItem, InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
 import { ShowScenarios } from './interfaces/scenarioViewer';
-import {ClearEditorDecorations, SetEditorDecorations} from "./interfaces/editorDecoration";
-import {clearDecorations, openTextDocument, setDecorations} from "./document";
+import { ClearEditorDecorations, SetEditorDecorations } from "./interfaces/editorDecoration";
+import { clearDecorations, openTextDocument, setDecorations } from "./document";
 
 
 export function handleCustomMessages(client: LanguageClient, context: ExtensionContext, previewContent: PreviewSystemProvider) {
@@ -194,10 +194,12 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
         //Show logs in debugg console
         //Clear old logs
-        previewLogs.clear()
+        previewLogs.clear()       
+        if (result.logs.length > 0) {
+            previewLogs.show(true)
+        }
         //Only change the focus if there are logs
         previewLogs.appendLine("Preview for " + result.uri + " took " + (result.timeTaken / 1000) + " sec")
-        previewLogs.show(true)
         result.logs.forEach((log) => {
             previewLogs.appendLine(log)
         })
