@@ -101,11 +101,10 @@ class DataWeaveToolingService(project: Project, languageClient: LanguageClient, 
   }
 
   private def findCorrespondingDwFile(str: String): Option[VirtualFile] = {
-    projectKind.sampleDataManager().flatMap(sampleDataManager => {
-      documentService().openEditors().find((oe) => {
-        URLUtils.isChildOfAny(str, sampleDataManager.listScenarios(oe.file.getNameIdentifier).map(scenario => scenario.file))
-      }).map(weaveDocToolingService => weaveDocToolingService.file)
-    })
+    val sampleDataManager = projectKind.sampleDataManager()
+    documentService().openEditors().find((oe) => {
+      URLUtils.isChildOfAny(str, sampleDataManager.listScenarios(oe.file.getNameIdentifier).map(scenario => scenario.file))
+    }).map(weaveDocToolingService => weaveDocToolingService.file)
   }
 
   private def validateAllEditors(reason: String): Unit = {
