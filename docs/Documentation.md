@@ -2,6 +2,12 @@
 
 This doc will show basic how to use the plugin
 
+## Installing the plugin
+
+Please Install The **DataWeave 2.0** Plugin develop by the **DataWeave Team**
+
+![Installation Steps](animations/install_plugin.gif)
+
 ## Create a New Weave Project
 
 To create a new DW Project
@@ -13,6 +19,8 @@ To create a new DW Project
 * Fill the **Version** for the new Project
 
 Once the process has finished It will ask the user if the project wants to be open in a new window or not
+
+![](animations/new_project.gif)
 
 ## Project structure
 
@@ -41,11 +49,48 @@ DataWeave projects uses Maven to build and declare their dependencies.
  
 ```
 
+## Language Edition Features 
+
+### Completion
+
+Completion is provided for any visible functions, variables, types etc. It also
+suggests fields based on the type inference
+
+![](animations/completion.gif)
+
+### Navigation
+
+User can navigate to any definition local or from any imported library
+![](animations/navegation.gif)
+
+
+### Addition Code editing features
+
+* Find all References
+* Refactors (local and cross files)
+* Quick Fixes:
+  * Auto Import when a function is present in a Module
+  * Create a function/variable/type when is not found
+* Outline
+* Show parameters information
+* Hover information with documentation
+
 ## Sample Data
 
 Sample Data is a key part of a DW project development. It is going to be used to run your scripts and also for suggestions.
 
 To Specify Sample Data, just click on the Code Lense _Specify Sample Data_  
+
+![](animations/sample_data.gif)
+
+## Preview/ Live Preview
+
+Once sample data is set a user can have live feedback on how the script is working. There are two ways. 
+One is to trigger it by hand when the user wants to execute it, or can enable AutoPreview by right clicking
+on the editor. 
+
+![](animations/preview.gif)
+
 
 ## Running/Debugging a Mapping
 
@@ -54,18 +99,7 @@ In order to run a Mapping the fastest way is to use the Code Lense _Run Mapping_
 This is going to guide through all the things that are needed. The user can set breakpoints to stop evaluate expressions 
 and all the debugging capabilities that VSCode provides.
 
-## Code editing features
-
-
-* Got to Definition. Navigates to files in project and in dependencies 
-* Find References
-* Refactors (local and cross files)
-* Quick Fixes:
-    * Auto Import when a function is present in a Module
-    * Create a function/variable/type when is not found
-* Outline
-
-
+![](animations/debug.gif)
 
 ## Weave Dependencies
 
