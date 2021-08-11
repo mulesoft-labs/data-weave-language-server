@@ -16,6 +16,8 @@ export class ClientWeaveCommands {
 
     public static ADD_INPUT_COMMAND = "dw.scenarios.addInput"
     public static DELETE_INPUT_COMMAND = "dw.scenarios.deleteInput"
+    public static SAVE_OUTPUT_COMMAND = "dw.scenarios.saveOutput"
+    public static DELETE_OUTPUT_COMMAND = "dw.scenarios.deleteOutput"
 }
 
 export class ServerWeaveCommands {
@@ -30,6 +32,8 @@ export class ServerWeaveCommands {
 
     public static CREATE_INPUT_SAMPLE = "dw.createInputSample"
     public static DELETE_INPUT_SAMPLE = "dw.deleteInputSample"
+    public static SAVE_OUTPUT = "dw.saveOutput"
+    public static DELETE_EXPECTED_OUTPUT = "dw.deleteExpectedOutput"
 
     public static RUN_PREVIEW = "dw.runPreview"
     public static LAUNCH_MAPPING = "dw.launchCommand"

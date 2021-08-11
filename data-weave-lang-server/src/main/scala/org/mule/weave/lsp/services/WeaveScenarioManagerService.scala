@@ -4,16 +4,21 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams
 import org.eclipse.lsp4j.CreateFile
+import org.eclipse.lsp4j.DeleteFile
+import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.ResourceOperation
 import org.eclipse.lsp4j.TextDocumentEdit
+import org.eclipse.lsp4j.TextEdit
+import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.mule.weave.lsp.extension.client
-import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.client.ShowScenariosParams
+import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveScenario
 import org.mule.weave.lsp.project.ProjectKind
+import org.mule.weave.lsp.project.components.SampleDataManager
 import org.mule.weave.lsp.project.components.Scenario
 import org.mule.weave.lsp.services.events.DocumentFocusChangedEvent
 import org.mule.weave.lsp.services.events.DocumentOpenedEvent
@@ -28,6 +33,7 @@ import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
 import java.util
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.collection.JavaConverters.seqAsJavaListConverter
 import scala.collection.mutable
 
@@ -36,6 +42,9 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
 
   var projectKind: ProjectKind = _
 
+  /**
+    * The active scenario for each mapping
+    */
   var activeScenarios: mutable.HashMap[NameIdentifier, Scenario] = mutable.HashMap()
 
   def mapScenarios(maybeActiveScenario: Option[Scenario], allScenarios: Array[Scenario]): util.List[client.WeaveScenario] = {
@@ -105,10 +114,33 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   }
 
   def createInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Option[File] = {
-    val scenario = projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
-      .map(_.file)
-      .getOrElse(createScenario(nameIdentifier, nameOfTheScenario))
-    doCreateInput(nameIdentifier, inputName, scenario)
+    val maybeScenario = projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
+    val maybeFile = maybeScenario
+      .flatMap((scenario) => {
+        doCreateInput(nameIdentifier, inputName, scenario.file)
+      })
+    maybeFile
+
+  }
+
+  def saveOutput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, outputName: String, newContent: String): Option[File] = {
+    val maybeScenario = projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
+    val maybeFile = maybeScenario
+      .flatMap((scenario) => {
+        doSaveOutput(nameIdentifier, outputName, scenario.file, newContent)
+      })
+    maybeFile
+
+  }
+
+  def deleteOutput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, outputUrl: String): Unit = {
+    projectKind.sampleDataManager().searchScenarioByName(nameIdentifier, nameOfTheScenario)
+      .foreach((_) => {
+        URLUtils.toFile(outputUrl)
+          .foreach((f) => f.delete())
+      })
+
+    notifyAllScenarios(nameIdentifier)
   }
 
   def deleteInput(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputUrl: String): Unit = {
@@ -122,21 +154,15 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   }
 
   def createScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Option[File] = {
-    val scenario: File = createScenario(nameIdentifier, nameOfTheScenario)
+    val sampleDataManager: SampleDataManager = projectKind.sampleDataManager()
+    val sampleContainer: File = sampleDataManager.createSampleDataFolderFor(nameIdentifier)
+    val scenario: File = new File(sampleContainer, nameOfTheScenario.trim.replaceAll("\\s", "_"))
     doCreateInput(nameIdentifier, inputName, scenario)
   }
 
-  def createScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String) = {
-    val sampleContainer: File = projectKind.sampleDataManager().createSampleDataFolderFor(nameIdentifier)
-    val scenario: File = new File(sampleContainer, nameOfTheScenario)
-    scenario
-  }
-
-  private def doCreateInput(nameIdentifier: NameIdentifier, inputName: String, scenario: File) = {
+  private def doCreateInput(nameIdentifier: NameIdentifier, inputName: String, scenario: File): Option[File] = {
     val inputFile: File = inputOf(scenario, inputName)
-    val createFile: Either[TextDocumentEdit, ResourceOperation] = Either.forRight[TextDocumentEdit, ResourceOperation](new CreateFile(toLSPUrl(inputFile)))
-    val edits: util.List[Either[TextDocumentEdit, ResourceOperation]] = util.Arrays.asList(createFile)
-    val response = weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits))).get()
+    val response = applyEdits(createFileCmd(inputFile))
     notifyAllScenarios(nameIdentifier)
     if (response.isApplied) {
       Some(inputFile)
@@ -145,12 +171,77 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
     }
   }
 
-  private def inputOf(scenario: File, inputName: String) = {
+  private def deleteFileCmd(destinationFile: File): Either[TextDocumentEdit, ResourceOperation] = {
+    val destinationFileUrl = toLSPUrl(destinationFile)
+    val createFile = Either.forRight[TextDocumentEdit, ResourceOperation](new DeleteFile(destinationFileUrl))
+    createFile
+  }
+
+  private def createFileCmd(destinationFile: File): Either[TextDocumentEdit, ResourceOperation] = {
+    val destinationFileUrl = toLSPUrl(destinationFile)
+    val createFile = Either.forRight[TextDocumentEdit, ResourceOperation](new CreateFile(destinationFileUrl))
+    createFile
+  }
+
+  private def editFileCmd(destinationFile: File, startPos: Position, endPos: Position, newText: String): Either[TextDocumentEdit, ResourceOperation] = {
+    val outputFileUrl = toLSPUrl(destinationFile)
+    val textEdit = new TextEdit(new org.eclipse.lsp4j.Range(startPos, endPos), newText)
+    val textDocumentEdit = new TextDocumentEdit(new VersionedTextDocumentIdentifier(outputFileUrl, 0), util.Arrays.asList(textEdit))
+    val editFile = Either.forLeft[TextDocumentEdit, ResourceOperation](textDocumentEdit)
+    editFile
+  }
+
+  private def applyEdits(edits: Either[TextDocumentEdit, ResourceOperation]*) = {
+    val editsList = util.Arrays.asList(edits:_*)
+    weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(editsList))).get()
+  }
+
+  private def doSaveOutput(nameIdentifier: NameIdentifier, outputName: String, scenario: File, newText: String): Option[File] = {
+    val outputFile: File = outputOf(scenario, outputName)
+
+    val docStart = new Position(0, 0)
+    if (outputFile.exists()) {
+      val result = applyEdits(deleteFileCmd(outputFile))
+      if (!result.isApplied) {
+        return None
+      }
+    }
+    val response = applyEdits(
+      createFileCmd(outputFile),
+      editFileCmd(outputFile, docStart, docStart, newText)
+    )
+    if (response.isApplied) {
+      notifyAllScenarios(nameIdentifier)
+      Some(outputFile)
+    } else {
+      None
+    }
+  }
+
+
+  /**
+    * Gets the output file of a scenario
+    */
+  private def outputOf(scenario: File, outputName: String): File = {
+    new File(scenario, outputName)
+  }
+
+  /**
+    * Gets the input file of a scenario
+    */
+  private def inputOf(scenario: File, inputName: String): File = {
     val inputs: File = new File(scenario, "inputs")
-    val theBaseName: String = FilenameUtils.getBaseName(inputName)
-    val variablePath: String = theBaseName.replace('.', File.separatorChar) + "." + FilenameUtils.getExtension(inputName)
-    val inputFile: File = new File(inputs, variablePath)
-    inputFile
+    new File(inputs, getVariablePath(inputName))
+  }
+
+  /**
+    * This method allows supporting 'vars.varName'
+    */
+  private def getVariablePath(fileName: String): String = {
+    val theBaseName: String = FilenameUtils.getBaseName(fileName)
+    val extension: String = FilenameUtils.getExtension(fileName)
+    val variablePath: String = theBaseName.replace('.', File.separatorChar) + "." + extension
+    variablePath
   }
 
   private def notifyAllScenarios(vf: VirtualFile): Unit = {
