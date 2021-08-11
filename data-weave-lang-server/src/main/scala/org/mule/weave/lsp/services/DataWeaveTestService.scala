@@ -158,4 +158,4 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
 
 }
 
-case class TestEvent(event: String, name: String, message: Option[String], error: Option[String], duration: Option[String], locationHint: Option[String], nodeId: String, status: Option[String], parentNodeId: Option[String], captureStandardOutput: Option[String])
+case class TestEvent(event: String, name: String, message: Option[String], error: Option[String], duration: Option[String], locationHint: Option[String], nodeId: Option[String], status: Option[String], parentNodeId: Option[String], captureStandardOutput: Option[String])

@@ -260,6 +260,9 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
                     run.end
                     run = null
                 }
+            } else if (params.event === "testStdOut") {
+                run.appendOutput(params.message)
+                run.appendOutput("\n")
             }
         })
         await vscode.commands.executeCommand("dw.launchCommand", Utils.basename(request.include[0].uri).slice(0, -4), "data-weave-testing")
