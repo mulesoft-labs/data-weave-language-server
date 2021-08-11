@@ -1,16 +1,23 @@
 package org.mule.weave.lsp.services
 
 import net.liftweb.json.DefaultFormats
+import net.liftweb.json.parseOpt
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.SuffixFileFilter
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.eclipse.lsp4j
 import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.Position
+import org.mule.weave.dsp.OutputListener
 import org.mule.weave.lsp.extension.client.PublishTestItemsParams
+import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveTestItem
+import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.events.OnProjectStarted
+import org.mule.weave.lsp.project.events.ProjectStartedEvent
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
@@ -25,19 +32,12 @@ import org.mule.weave.v2.parser.ast.functions.FunctionCallParametersNode
 import org.mule.weave.v2.parser.ast.structure.StringNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.parser.ast.variables.VariableReferenceNode
-import net.liftweb.json.parseOpt
-import org.apache.commons.io.filefilter.SuffixFileFilter
-import org.mule.weave.lsp.extension.client.PublishTestResultsParams
-import org.mule.weave.lsp.project.Project
-import org.mule.weave.lsp.project.events.OnProjectStarted
-import org.mule.weave.lsp.project.events.ProjectStartedEvent
 
-import java.io.File
 import java.util
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.collection.mutable
 
-class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFileSystem: VirtualFileSystem, dataWeaveToolingService: DataWeaveToolingService) extends ToolingService {
+class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFileSystem: VirtualFileSystem, dataWeaveToolingService: DataWeaveToolingService, clientLogger: ClientLogger) extends ToolingService with OutputListener {
 
   var projectKind: ProjectKind = _
   var testsCache: mutable.HashMap[NameIdentifier, WeaveTestItem] = mutable.HashMap()
@@ -45,7 +45,7 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
   def discoverTests(projectStructure: ProjectStructure): Unit = {
     WeaveDirectoryUtils.wtfUnitTestFolder(projectStructure).flatMap(file => {
       FileUtils.listFiles(file, new SuffixFileFilter(".dwl"), TrueFileFilter.INSTANCE).asScala.toList
-    }).foreach(file =>{
+    }).foreach(file => {
       cacheTest(URLUtils.toLSPUrl(file))
     })
     publishTests()
@@ -53,10 +53,10 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
-    eventBus.register(ProjectStartedEvent.PROJECT_STARTED,new OnProjectStarted {
+    eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
 
       override def onProjectStarted(project: Project): Unit = {
-          discoverTests(projectKind.structure())
+        discoverTests(projectKind.structure())
       }
     })
 
@@ -134,10 +134,10 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
       case Some(WTF) => getWeaveItem(uri, maybeAstNode, None, None)
       case _ => None
     }
-    maybeItem.map(weaveItem => testsCache.put(nameIdentifier,weaveItem))
+    maybeItem.map(weaveItem => testsCache.put(nameIdentifier, weaveItem))
   }
 
-  def publishTests(): Unit ={
+  def publishTests(): Unit = {
     val weaveTestItems: util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem]()
     testsCache.values.foreach(cachedItem => weaveTestItems.add(cachedItem))
     weaveLanguageClient.publishTestItems(PublishTestItemsParams(weaveTestItems))
@@ -145,14 +145,18 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
 
 
   def publishTestResult(event: TestEvent): Unit = {
-    weaveLanguageClient.publishTestResults(PublishTestResultsParams(event.event,event.message.getOrElse(""),event.name,Integer.parseInt(event.duration.getOrElse("0")),event.locationHint.getOrElse(""),event.status.getOrElse("")))
+    weaveLanguageClient.publishTestResults(PublishTestResultsParams(event.event, event.message.getOrElse(""), event.name, Integer.parseInt(event.duration.getOrElse("0")), event.locationHint.getOrElse(""), event.status.getOrElse("")))
   }
 
-  def feedTestResult(jsonLine: String): Unit = {
+  def output(jsonLine: String): Unit = {
     implicit val formats: DefaultFormats.type = DefaultFormats
-    parseOpt(jsonLine) match {
-      case Some(jValue) => publishTestResult(jValue.extract[TestEvent])
-      case None =>
+    try {
+      parseOpt(jsonLine) match {
+        case Some(jValue) => publishTestResult(jValue.extract[TestEvent])
+        case None =>
+      }
+    } catch {
+      case exception: Throwable => clientLogger.logError("[DataWeaveTestService] Error while outputting results", exception)
     }
   }
 

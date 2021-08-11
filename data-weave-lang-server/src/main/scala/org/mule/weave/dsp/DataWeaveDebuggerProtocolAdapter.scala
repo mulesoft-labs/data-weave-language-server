@@ -185,8 +185,12 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
           protocolClient.terminated(new TerminatedEventArguments())
         })
 
-        forwardStream(process.get.getInputStream, OutputEventArgumentsCategory.STDOUT)
-        forwardStream(process.get.getErrorStream, OutputEventArgumentsCategory.STDERR)
+        var listeners: Array[OutputListener] = Array()
+        if (config.testRun){
+          listeners = Array(weaveTestManager)
+        }
+        forwardStream(process.get.getInputStream, OutputEventArgumentsCategory.STDOUT, listeners)
+        forwardStream(process.get.getErrorStream, OutputEventArgumentsCategory.STDERR, listeners)
 
         if (debugMode) {
           connectDebugger(config)
@@ -201,7 +205,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
     })
   }
 
-  private def forwardStream(is: InputStream, kind: String): Unit = {
+  private def forwardStream(is: InputStream, kind: String, listeners: Array[OutputListener]): Unit = {
     executor.execute(() => {
       try {
         val theProcess: Process = process.get
@@ -212,7 +216,7 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
             val output: OutputEventArguments = new OutputEventArguments()
             output.setOutput(line + "\n")
             output.setCategory(kind)
-            weaveTestManager.feedTestResult(line)
+            listeners.foreach(listener => listener.output(line))
             protocolClient.output(output)
           }
         }
@@ -635,6 +639,10 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
   }
 }
 
+
+trait OutputListener {
+  def output(line: String): Unit
+}
 
 class ObjectHolder[T] {
 

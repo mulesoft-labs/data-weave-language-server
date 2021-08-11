@@ -265,7 +265,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
                 run.appendOutput("\n")
             }
         })
-        await vscode.commands.executeCommand("dw.launchCommand", Utils.basename(request.include[0].uri).slice(0, -4), "data-weave-testing")
+        await vscode.commands.executeCommand(ServerWeaveCommands.LAUNCH_MAPPING, Utils.basename(request.include[0].uri).slice(0, -4), "data-weave-testing")
     }
 
     testController.createRunProfile('Run Tests', vscode.TestRunProfileKind.Debug, runHandler, true);
