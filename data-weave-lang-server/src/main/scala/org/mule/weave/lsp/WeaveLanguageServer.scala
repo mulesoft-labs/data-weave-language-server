@@ -148,6 +148,7 @@ class WeaveLanguageServer extends LanguageServer {
           jobManagerService,
           dataWeaveToolingService,
           previewService,
+          scenarioService,
           indexService,
           projectVFS,
           librariesVFS,
