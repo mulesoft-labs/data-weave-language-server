@@ -28,6 +28,9 @@ import org.mule.weave.v2.parser.ast.variables.VariableReferenceNode
 import net.liftweb.json.parseOpt
 import org.apache.commons.io.filefilter.SuffixFileFilter
 import org.mule.weave.lsp.extension.client.PublishTestResultsParams
+import org.mule.weave.lsp.project.Project
+import org.mule.weave.lsp.project.events.OnProjectStarted
+import org.mule.weave.lsp.project.events.ProjectStartedEvent
 
 import java.io.File
 import java.util
@@ -50,7 +53,12 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
-    discoverTests(projectKind.structure())
+    eventBus.register(ProjectStartedEvent.PROJECT_STARTED,new OnProjectStarted {
+
+      override def onProjectStarted(project: Project): Unit = {
+          discoverTests(projectKind.structure())
+      }
+    })
 
     eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
 
@@ -126,10 +134,7 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
       case Some(WTF) => getWeaveItem(uri, maybeAstNode, None, None)
       case _ => None
     }
-
-    val list: util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem]()
     maybeItem.map(weaveItem => testsCache.put(nameIdentifier,weaveItem))
-    weaveLanguageClient.publishTestItems(PublishTestItemsParams(list))
   }
 
   def publishTests(): Unit ={
