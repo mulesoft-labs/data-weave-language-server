@@ -235,29 +235,33 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
 
     const runHandler = async (request: vscode.TestRunRequest, cancellation: vscode.CancellationToken) => {
         if (run) {
-            run.end
+            run.end()
         }
         var queue = tests
         run = testController.createTestRun(new vscode.TestRunRequest(tests));
         queue.forEach(test => run.enqueued(test))
+        var testCounter = 0
         client.onNotification(WeavePushTestResult.type, (params) => {
             const foundItem = queue.find(item => item.label === params.name)
             if (params.event === "testSuiteStarted" || params.event === "testStarted") {
                 run.started(foundItem)
+                testCounter++
             } else if (params.event === "testSuiteFinished" || params.event === "testFinished") {
                 run.passed(foundItem, params.duration)
                 queue = queue.filter(item => item != foundItem)
-                if (queue.length == 0) {
-                    run.end
+                testCounter--
+                if (testCounter == 0) {
+                    run.end()
                     run = null
                 }
             } else if (params.event === "testFailed") {
+                testCounter--
                 const failureMessage = new vscode.TestMessage(params.message);
                 failureMessage.location = new vscode.Location(foundItem.uri, foundItem.range)
                 run.failed(foundItem, failureMessage, params.duration)
                 queue = queue.filter(item => item != foundItem)
-                if (queue.length == 0) {
-                    run.end
+                if (testCounter == 0) {
+                    run.end()
                     run = null
                 }
             } else if (params.event === "testStdOut") {
