@@ -208,6 +208,11 @@
         "icon": "$(debug-continue)"
       },
       {
+        "command": "dw.scenarios.saveOutput",
+        "title": "DataWeave: Save expected output",
+        "icon": "$(save)"
+      },
+      {
         "command": "dw.preview.enable",
         "title": "DataWeave: Enable AutoPreview",
         "icon": "$(debug-continue)"
@@ -242,6 +247,11 @@
         "command": "dw.scenarios.deleteInput",
         "title": "Delete Input",
         "icon": "$(trash)"
+      },
+      {
+        "command": "dw.scenarios.deleteOutput",
+        "title": "Delete Output",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -249,6 +259,11 @@
         {
           "when": "editorLangId == data-weave",
           "command": "dw.preview.run",
+          "group": "navigation"
+        },
+        {
+          "when": "editorLangId == data-weave",
+          "command": "dw.scenarios.saveOutput",
           "group": "navigation"
         }
       ],
