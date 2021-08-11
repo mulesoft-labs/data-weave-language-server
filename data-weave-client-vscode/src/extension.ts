@@ -74,7 +74,7 @@ export function activate(context: ExtensionContext) {
         let options = { cwd: workspace.rootPath }
         let args = [
           '-jar',
-          '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5050',
+          '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5050',
           weaveJarLocation,
           port.toString()
         ]
