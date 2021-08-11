@@ -7,6 +7,7 @@ import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.DataWeaveTestService
 import org.mule.weave.v2.editor.VirtualFileSystem
 
 import java.io.InputStream
@@ -28,6 +29,7 @@ object DataWeaveDebuggerAdapterProtocolLauncher {
              processLauncher: ProcessLauncher,
              projectKind: ProjectKind,
              jobManagerService: JobManagerService,
+             dataWeaveTestService: DataWeaveTestService,
              onServerStarted: () => Unit,
              dapPort: Int): Unit = {
     logger.log(Level.INFO, s"[DataWeaveDebuggerAdapterProtocolLauncher] Starting Adapter Protocol Process at ${dapPort}.")
@@ -45,7 +47,8 @@ object DataWeaveDebuggerAdapterProtocolLauncher {
         launcher = processLauncher,
         projectKind = projectKind,
         executor = IDEExecutors.debuggingExecutor(),
-        jobManagerService = jobManagerService)
+        jobManagerService = jobManagerService,
+        weaveTestManager = dataWeaveTestService)
 
     val launcher = DSPLauncher.createServerLauncher(testDebugServer, in, out)
     testDebugServer.connect(launcher.getRemoteProxy)

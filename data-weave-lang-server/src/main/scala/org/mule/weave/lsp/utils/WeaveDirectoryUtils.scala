@@ -1,5 +1,7 @@
 package org.mule.weave.lsp.utils
 
+import org.mule.weave.lsp.project.components.ProjectStructure
+import org.mule.weave.lsp.project.components.RootKind
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 
 import java.io.File
@@ -95,6 +97,36 @@ object WeaveDirectoryUtils {
 
   def toFolderName(nameIdentifier: NameIdentifier): String = {
     nameIdentifier.name.replaceAll(NameIdentifier.SEPARATOR, "-")
+  }
+
+  def wtfIntegrationTestFolders(projectStructure: ProjectStructure): Array[File] = {
+    projectStructure.modules
+      .flatMap((m) => {
+        m.roots.flatMap((root) => {
+          if (root.kind == RootKind.TEST) {
+            root.sources.find((f) => {
+              f.getName.equals(WeaveDirectoryUtils.DWIT_FOLDER)
+            })
+          } else {
+            None
+          }
+        })
+      })
+  }
+
+  def wtfUnitTestFolder(projectStructure: ProjectStructure): Array[File] = {
+    projectStructure.modules
+      .flatMap((m) => {
+        m.roots.flatMap((root) => {
+          if (root.kind == RootKind.TEST) {
+            root.sources.find((f) => {
+              f.getName.equals(WeaveDirectoryUtils.DWTest_FOLDER)
+            })
+          } else {
+            None
+          }
+        })
+      })
   }
 }
 

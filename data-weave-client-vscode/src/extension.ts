@@ -37,6 +37,9 @@ export function activate(context: ExtensionContext) {
   const previewFS = new PreviewSystemProvider()
   context.subscriptions.push(vscode.workspace.registerFileSystemProvider('preview', previewFS, { isReadonly: true, isCaseSensitive: true }));
 
+  const ctrl = vscode.tests.createTestController('dataWeaveTestController', 'Dataweave Tests');
+  context.subscriptions.push(ctrl);
+
   function createServer(): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
       const server = net.createServer(socket => {
@@ -71,7 +74,7 @@ export function activate(context: ExtensionContext) {
         let options = { cwd: workspace.rootPath }
         let args = [
           '-jar',
-        //  '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5050',
+          '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5050',
           weaveJarLocation,
           port.toString()
         ]
@@ -123,7 +126,7 @@ export function activate(context: ExtensionContext) {
   // Create the language client and start the client.
   const disposableClient = client.start()
   client.onReady().then(() => {
-    handleCustomMessages(client, context, previewFS)
+    handleCustomMessages(client, context, previewFS, ctrl)
   });
   // Push the disposable to the context's subscriptions so that the
   // client can be deactivated on extension deactivation

@@ -11,10 +11,12 @@ trait LauncherConfig {
 
   def buildBefore: Boolean = true
 
+  def testRun: Boolean = false
+
 }
 
 case class RunMappingConfiguration(mayBeMapping: Option[String], scenario: Option[String], override val buildBefore: Boolean, debuggerPort: Int) extends LauncherConfig
 
-case class RunWTFConfiguration(mayBeTests: Option[String], testToRun: Option[String], override val buildBefore: Boolean, debuggerPort: Int) extends LauncherConfig
+case class RunWTFConfiguration(mayBeTests: Option[String], testToRun: Option[String], override val buildBefore: Boolean, debuggerPort: Int, override val testRun: Boolean = true) extends LauncherConfig
 
 case class RunIntegrationTestsConfiguration(module: Boolean, mapping: Boolean, updateResult: Boolean, testToRun: Option[String], debuggerPort: Int) extends LauncherConfig

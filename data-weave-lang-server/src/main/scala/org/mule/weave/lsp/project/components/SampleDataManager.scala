@@ -71,7 +71,7 @@ class WTFSampleDataManager(projectKind: ProjectKind, project: Project, weaveLang
   }
 
   def searchSampleDataFolderFor(nameIdentifier: NameIdentifier): Option[File] = {
-    val options: Array[File] = wtfFolders()
+    val options: Array[File] = WeaveDirectoryUtils.wtfIntegrationTestFolders(projectKind.structure())
     val result = options
       .map((dwitFolder) => {
         new File(dwitFolder, WeaveDirectoryUtils.toFolderName(nameIdentifier))
@@ -80,21 +80,6 @@ class WTFSampleDataManager(projectKind: ProjectKind, project: Project, weaveLang
         scenario.exists()
       })
     result
-  }
-
-  private def wtfFolders(): Array[File] = {
-    projectKind.structure().modules
-      .flatMap((m) => {
-        m.roots.flatMap((root) => {
-          if (root.kind == RootKind.TEST) {
-            root.sources.find((f) => {
-              f.getName.equals(WeaveDirectoryUtils.DWIT_FOLDER)
-            })
-          } else {
-            None
-          }
-        })
-      })
   }
 
   override def searchScenarioByName(nameIdentifier: NameIdentifier, scenarioName: String): Option[Scenario] = {

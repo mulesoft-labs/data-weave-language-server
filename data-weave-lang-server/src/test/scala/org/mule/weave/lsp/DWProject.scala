@@ -44,11 +44,14 @@ import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.extension.client.ShowScenariosParams
+import org.mule.weave.lsp.extension.client.PublishTestItemsParams
+import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
 import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
@@ -71,6 +74,7 @@ import scala.io.Codec
 import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
+
 
   var clientUI: ClientUI = DefaultInputsInteraction
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
@@ -227,6 +231,10 @@ class DWProject(val workspaceRoot: Path) {
       .filter((d) => {
         d.getSeverity == DiagnosticSeverity.Error
       }).collect(Collectors.toList[Diagnostic]())
+  }
+
+  def tests(): Seq[WeaveTestItem] = {
+    lsp().getTestService.testsCache.values.toSeq
   }
 
   private def toString(filePath: Path) = {
@@ -390,6 +398,15 @@ class DWProject(val workspaceRoot: Path) {
       def setEditorDecorations(params: EditorDecorationsParams): Unit = {}
 
       def clearEditorDecorations(): Unit = {}
+
+      override def publishTestItems(job: PublishTestItemsParams): Unit = {}
+
+      /**
+        * This notification is sent from the server to the client to push tests results.
+        *
+        * @param job The job information that has ended
+        */
+      override def publishTestResults(testResults: PublishTestResultsParams): Unit = {}
     })
   }
 

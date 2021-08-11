@@ -19,7 +19,7 @@ export class ClientWeaveCommands {
 }
 
 export class ServerWeaveCommands {
-    
+
     public static CREATE_TEST = "dw.createTest"
     public static CREATE_MAPPING = "dw.createMapping"
     public static ENABLE_PREVIEW = "dw.enablePreview"
@@ -32,5 +32,6 @@ export class ServerWeaveCommands {
     public static DELETE_INPUT_SAMPLE = "dw.deleteInputSample"
 
     public static RUN_PREVIEW = "dw.runPreview"
-    
+    public static LAUNCH_MAPPING = "dw.launchCommand"
+
 }
