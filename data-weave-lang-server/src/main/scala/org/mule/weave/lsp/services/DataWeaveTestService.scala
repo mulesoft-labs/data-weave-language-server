@@ -31,6 +31,7 @@ import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 
 import java.io.File
 import java.util
+import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.collection.mutable
 
 class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFileSystem: VirtualFileSystem, dataWeaveToolingService: DataWeaveToolingService) extends ToolingService {
@@ -40,7 +41,7 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
 
   def discoverTests(projectStructure: ProjectStructure): Unit = {
     WeaveDirectoryUtils.wtfUnitTestFolder(projectStructure).flatMap(file => {
-      FileUtils.listFiles(file, new SuffixFileFilter(".dwl"), TrueFileFilter.INSTANCE).asInstanceOf[Array[File]]
+      FileUtils.listFiles(file, new SuffixFileFilter(".dwl"), TrueFileFilter.INSTANCE).asScala.toList
     }).foreach(file =>{
       cacheTest(URLUtils.toLSPUrl(file))
     })

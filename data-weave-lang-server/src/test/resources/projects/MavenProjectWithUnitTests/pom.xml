@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.mule.weave.module</groupId>
+    <artifactId>weave-module</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>dw-library</packaging>
+
+    <name>DataWeave weave-module Module</name>
+
+    <properties>
+        <weave.version>2.5.0-SNAPSHOT</weave.version>
+        <wtf.version>1.0.6-SNAPSHOT</wtf.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.mule.weave</groupId>
+            <artifactId>wlang</artifactId>
+            <version>${weave.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/dw</directory>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/dwit</directory>
+            </testResource>
+            <testResource>
+                <directory>src/test/dwmit</directory>
+            </testResource>
+            <testResource>
+                <directory>src/test/dwit</directory>
+            </testResource>
+        </testResources>
+        <plugins>
+            <plugin>
+                <groupId>org.mule.weave</groupId>
+                <artifactId>weave-maven-plugin</artifactId>
+                <version>2.5.0-SNAPSHOT</version>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>mule-releases</id>
+            <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases</url>
+        </repository>
+
+        <repository>
+            <id>mule-snapshots</id>
+            <url>https://repository-master.mulesoft.org/nexus/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>mule-releases</id>
+            <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>mule-snapshots</id>
+            <url>https://repository-master.mulesoft.org/nexus/content/repositories/snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>

@@ -51,6 +51,7 @@ import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
 import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
@@ -73,6 +74,7 @@ import scala.io.Codec
 import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
+
 
   var clientUI: ClientUI = DefaultInputsInteraction
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
@@ -229,6 +231,10 @@ class DWProject(val workspaceRoot: Path) {
       .filter((d) => {
         d.getSeverity == DiagnosticSeverity.Error
       }).collect(Collectors.toList[Diagnostic]())
+  }
+
+  def tests(): Seq[WeaveTestItem] = {
+    lsp().getTestService.testsCache.values.toSeq
   }
 
   private def toString(filePath: Path) = {

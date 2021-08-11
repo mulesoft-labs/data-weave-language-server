@@ -16,6 +16,7 @@ import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.extension.services.DependencyManagerService
 import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.indexer.LSPWeaveIndexService
@@ -59,6 +60,8 @@ import scala.collection.mutable.ArrayBuffer
 
 class WeaveLanguageServer extends LanguageServer {
 
+
+
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
   private val eventbus = new EventBus(IDEExecutors.eventsExecutor())
@@ -79,6 +82,7 @@ class WeaveLanguageServer extends LanguageServer {
   private var projectValue: Project = _
   private var jobManagerService: JobManagerService = _
   private var projectKind: ProjectKind = _
+  private var weaveTestManager: DataWeaveTestService = _
 
   private val services: ArrayBuffer[ToolingService] = ArrayBuffer()
 
@@ -131,10 +135,10 @@ class WeaveLanguageServer extends LanguageServer {
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
-      val weaveTestManagerImpl = new DataWeaveTestService(client, projectVFS, dataWeaveToolingService)
+      weaveTestManager = new DataWeaveTestService(client, projectVFS, dataWeaveToolingService)
       val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService,globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManagerImpl)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManager)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
@@ -152,7 +156,7 @@ class WeaveLanguageServer extends LanguageServer {
           indexService,
           projectVFS,
           librariesVFS,
-          weaveTestManagerImpl
+          weaveTestManager
         ))
 
       //Init the Services
@@ -234,6 +238,11 @@ class WeaveLanguageServer extends LanguageServer {
   def getDependencyManager: DependencyManagerService = {
     logger.log(Level.INFO, "getDependencyManager")
     dependencyManagerService
+  }
+
+  def getTestService: DataWeaveTestService = {
+    logger.log(Level.INFO, "getTestService")
+    weaveTestManager
   }
 
   def connect(client: WeaveLanguageClient): Unit = {
