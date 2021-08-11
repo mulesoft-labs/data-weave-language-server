@@ -75,6 +75,10 @@ User can navigate to any definition local or from any imported library
 * Show parameters information
 * Hover information with documentation
 
+![](animations/auto_import.gif)
+
+![](animations/quick_fix.gif)
+
 ## Sample Data
 
 Sample Data is a key part of a DW project development. It is going to be used to run your scripts and also for suggestions.
@@ -82,6 +86,15 @@ Sample Data is a key part of a DW project development. It is going to be used to
 To Specify Sample Data, just click on the Code Lense _Specify Sample Data_  
 
 ![](animations/sample_data.gif)
+
+
+## Create New Mapping
+
+This plugin supports different kind of projects. And each project has different project layouts.
+
+The action of Create New Mapping will create the file in the correct folder.
+
+![](animations/new_mapping.gif)
 
 ## Preview/ Live Preview
 
