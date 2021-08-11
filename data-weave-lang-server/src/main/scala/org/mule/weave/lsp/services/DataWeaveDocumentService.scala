@@ -497,15 +497,13 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
         link.setTargetSelectionRange(toRange(reference.referencedNode.location()))
         if (reference.isLocalReference) {
           link.setTargetUri(params.getTextDocument.getUri)
-          projectKind.sampleDataManager().map(sampleDataManager => {
-            sampleDataManager.listScenarios(vfs.file(params.getTextDocument.getUri).getNameIdentifier).head.inputs().listFiles().find(file => {
-              FilenameUtils.removeExtension(file.getName).equals(ll.linkLocation.name)
-            }).map(file=>{
-              val position = new Position(0, 0)
-              link.setTargetRange(new lsp4j.Range(position,position))
-              link.setTargetSelectionRange(new lsp4j.Range(position,position))
-              link.setTargetUri(URLUtils.toLSPUrl(file))
-            })
+          projectKind.sampleDataManager().listScenarios(vfs.file(params.getTextDocument.getUri).getNameIdentifier).head.inputs().find(sampleInput => {
+              sampleInput.name.equals(ll.linkLocation.name)
+          }).foreach(sampleInput=>{
+            val position = new Position(0, 0)
+            link.setTargetRange(new lsp4j.Range(position,position))
+            link.setTargetSelectionRange(new lsp4j.Range(position,position))
+            link.setTargetUri(sampleInput.uri)
           })
         } else {
           //Cross module link

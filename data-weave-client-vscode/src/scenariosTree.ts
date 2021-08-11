@@ -21,7 +21,7 @@ export class WeaveScenarioProvider implements TreeDataProvider<ScenarioViewerIte
 
 
   private refresh(): void {
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(null);
   }
 
 

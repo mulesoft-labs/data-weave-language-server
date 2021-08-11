@@ -1,9 +1,8 @@
 package org.mule.weave.lsp.services
 
 import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.NoTypeHints
-import net.liftweb.json.Serialization
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.TrueFileFilter
 import org.eclipse.lsp4j
 import org.eclipse.lsp4j.FileChangeType
 import org.eclipse.lsp4j.Position
@@ -27,27 +26,40 @@ import org.mule.weave.v2.parser.ast.structure.StringNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.parser.ast.variables.VariableReferenceNode
 import net.liftweb.json.parseOpt
-import net.liftweb.json.Serialization.{read, write}
-import net.liftweb.json.parse
+import org.apache.commons.io.filefilter.SuffixFileFilter
 import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 
+import java.io.File
 import java.util
+import scala.collection.mutable
 
 class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFileSystem: VirtualFileSystem, dataWeaveToolingService: DataWeaveToolingService) extends ToolingService {
 
   var projectKind: ProjectKind = _
+  var testsCache: mutable.HashMap[NameIdentifier, WeaveTestItem] = mutable.HashMap()
+
+  def discoverTests(projectStructure: ProjectStructure): Unit = {
+    WeaveDirectoryUtils.wtfUnitTestFolder(projectStructure).flatMap(file => {
+      FileUtils.listFiles(file, new SuffixFileFilter(".dwl"), TrueFileFilter.INSTANCE).asInstanceOf[Array[File]]
+    }).foreach(file =>{
+      cacheTest(URLUtils.toLSPUrl(file))
+    })
+    publishTests()
+  }
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
     this.projectKind = projectKind
+    discoverTests(projectKind.structure())
 
     eventBus.register(FileChangedEvent.FILE_CHANGED_EVENT, new OnFileChanged {
 
 
       override def onFileChanged(uri: String, changeType: FileChangeType): Unit = {
         if (
-          ProjectStructure.testsSourceFolders(projectKind.structure()).find((f) => f.getName == WeaveDirectoryUtils.DWTest_FOLDER).exists(file => URLUtils
+          WeaveDirectoryUtils.wtfUnitTestFolder(projectKind.structure()).exists(file => URLUtils
             .isChildOf(uri, file))) {
-          publishTests(uri);
+          cacheTest(uri)
+          publishTests()
         }
       }
     })
@@ -105,16 +117,24 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
     root
   }
 
-  def publishTests(uri: String): Unit = {
+  def cacheTest(uri: String): Unit = {
+    val nameIdentifier = virtualFileSystem.file(uri).getNameIdentifier
     val maybeAstNode = dataWeaveToolingService.openDocument(uri).ast()
     val maybeString = WeaveASTQueryUtils.fileKind(maybeAstNode)
     val maybeItem = maybeString match {
       case Some(WTF) => getWeaveItem(uri, maybeAstNode, None, None)
       case _ => None
     }
+
     val list: util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem]()
-    maybeItem.map(weaveItem => list.add(weaveItem))
+    maybeItem.map(weaveItem => testsCache.put(nameIdentifier,weaveItem))
     weaveLanguageClient.publishTestItems(PublishTestItemsParams(list))
+  }
+
+  def publishTests(): Unit ={
+    val weaveTestItems: util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem]()
+    testsCache.values.foreach(cachedItem => weaveTestItems.add(cachedItem))
+    weaveLanguageClient.publishTestItems(PublishTestItemsParams(weaveTestItems))
   }
 
 
@@ -123,7 +143,7 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
   }
 
   def feedTestResult(jsonLine: String): Unit = {
-    implicit val formats = DefaultFormats
+    implicit val formats: DefaultFormats.type = DefaultFormats
     parseOpt(jsonLine) match {
       case Some(jValue) => publishTestResult(jValue.extract[TestEvent])
       case None =>

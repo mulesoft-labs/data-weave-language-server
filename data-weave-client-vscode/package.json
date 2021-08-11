@@ -8,7 +8,6 @@
   "version": "100.100.100",
   "publisher": "dataweave",
   "readme": "README.md",
-  "enableProposedApi": true,
   "homepage": "https://github.com/mulesoft-labs/data-weave-language-server",
   "icon": "assets/icon.png",
   "engines": {
