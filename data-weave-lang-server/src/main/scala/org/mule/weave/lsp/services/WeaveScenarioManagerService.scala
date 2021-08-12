@@ -83,13 +83,16 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   }
 
   def setActiveScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String): Unit = {
-    projectKind.sampleDataManager()
+    val maybeScenario = projectKind.sampleDataManager()
       .listScenarios(nameIdentifier)
       .find((scenario) => {
         scenario.name.equals(nameOfTheScenario)
       })
 
-    notifyAllScenarios(nameIdentifier)
+    maybeScenario.foreach((s) => {
+      activeScenarios.put(nameIdentifier, s)
+      notifyAllScenarios(nameIdentifier)
+    })
   }
 
   def deleteScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String): Unit = {

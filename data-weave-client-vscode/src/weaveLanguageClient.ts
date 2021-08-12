@@ -117,7 +117,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DEFAULT_SCENARIO_COMMAND, (scenario: ScenariosNode) => {
-        vscode.commands.executeCommand(ServerWeaveCommands.DELETE_SCENARIO, scenario.nameIdentifier, scenario.scenarioName);
+        vscode.commands.executeCommand(ServerWeaveCommands.SET_ACTIVE_SCENARIO, scenario.nameIdentifier, scenario.scenarioName);
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ADD_INPUT_COMMAND, (inputs: InputsItem) => {
