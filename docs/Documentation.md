@@ -49,6 +49,13 @@ DataWeave projects uses Maven to build and declare their dependencies.
  
 ```
 
+## Project initialization
+
+In order for this plugin to be able to provide information, all dependencies need to be loaded and indexed. 
+For this there is a notification when the dependencies are being loaded and indexing is finished.
+
+![](animations/loading.gif)
+
 ## Language Edition Features 
 
 ### Completion
