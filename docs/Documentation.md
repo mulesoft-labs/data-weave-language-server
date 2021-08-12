@@ -84,7 +84,22 @@ User can navigate to any definition local or from any imported library
 
 ![](animations/auto_import.gif)
 
+### Code Inspections
+
+The plugin tries to detect dioms that the user is expressing and suggest best practices when possible
+We have several inspections for example
+
+#### Default Value
+
 ![](animations/quick_fix.gif)
+
+#### TypeOf 
+
+![](animations/type_of_fix.gif)
+
+### Is Empty
+
+![](animations/is_empty.gif)
 
 ## Sample Data
 
