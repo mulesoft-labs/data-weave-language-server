@@ -156,7 +156,7 @@ class WeaveScenarioManagerService(weaveLanguageClient: WeaveLanguageClient, virt
   def createScenario(nameIdentifier: NameIdentifier, nameOfTheScenario: String, inputName: String): Option[File] = {
     val sampleDataManager: SampleDataManager = projectKind.sampleDataManager()
     val sampleContainer: File = sampleDataManager.createSampleDataFolderFor(nameIdentifier)
-    val scenario: File = new File(sampleContainer, nameOfTheScenario.trim.replaceAll("\\s", "_"))
+    val scenario: File = new File(sampleContainer, nameOfTheScenario)
     doCreateInput(nameIdentifier, inputName, scenario)
   }
 
