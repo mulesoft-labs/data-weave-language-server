@@ -23,6 +23,8 @@ object Commands {
   val DW_CREATE_SCENARIO = "dw.createScenario"
   val DW_CREATE_INPUT_SAMPLE = "dw.createInputSample"
   val DW_DELETE_INPUT_SAMPLE = "dw.deleteInputSample"
+  val DW_DELETE_EXPECTED_OUTPUT = "dw.deleteExpectedOutput"
+  val DW_SAVE_OUTPUT = "dw.saveOutput"
   val DW_ACTIVE_SCENARIO = "dw.activeScenario"
   val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
@@ -35,6 +37,8 @@ object Commands {
     BAT_INSTALL_BAT_CLI,
     DW_RUN_MAPPING,
     DW_RUN_PREVIEW,
+    DW_SAVE_OUTPUT,
+    DW_DELETE_EXPECTED_OUTPUT,
     DW_ENABLE_PREVIEW,
     DW_LAUNCH_MAPPING,
     DW_QUICK_FIX,

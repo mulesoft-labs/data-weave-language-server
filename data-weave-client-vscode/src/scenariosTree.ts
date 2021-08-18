@@ -208,6 +208,8 @@ export class InputItem extends ScenarioViewerItem {
 export class OutputItem extends ScenarioViewerItem {
 
   constructor(public readonly label: string,
+    public readonly nameIdentifier: string,
+    public readonly scenarioName: string,
     public readonly uri: Uri,
     readonly icon: ThemeIcon,
     public readonly collapsibleState: TreeItemCollapsibleState) {
@@ -240,7 +242,13 @@ export class OutputsItem extends ScenarioViewerItem {
     const newLocal = this.outputUris;
     if (newLocal) {
       return Promise.resolve(
-        [new OutputItem(Utils.basename(URI.parse(this.outputUris)), URI.parse(this.outputUris), ThemeIcon.File, TreeItemCollapsibleState.Expanded)]
+        [new OutputItem(
+            Utils.basename(URI.parse(this.outputUris)),
+            this.nameIdentifier,
+            this.scenarioName,
+            URI.parse(this.outputUris),
+            ThemeIcon.File,
+            TreeItemCollapsibleState.None)]
       )
     } else {
       return Promise.resolve([])

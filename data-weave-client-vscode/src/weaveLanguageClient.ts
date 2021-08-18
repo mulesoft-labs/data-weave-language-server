@@ -13,7 +13,14 @@ import { WeaveDependenciesProvider } from './dependencyTree';
 import { ClientWeaveCommands, ServerWeaveCommands } from './weaveCommands';
 import PreviewSystemProvider from './previewFileSystemProvider';
 import { JobEnded, JobStarted } from './interfaces/jobs';
-import { InputItem, InputsItem, ScenariosNode, TransformationItem, WeaveScenarioProvider } from './scenariosTree';
+import {
+    InputItem,
+    InputsItem,
+    OutputItem,
+    ScenariosNode,
+    TransformationItem,
+    WeaveScenarioProvider
+} from './scenariosTree';
 import { ShowScenarios } from './interfaces/scenarioViewer';
 import { ClearEditorDecorations, SetEditorDecorations } from "./interfaces/editorDecoration";
 import { clearDecorations, openTextDocument, setDecorations } from "./document";
@@ -107,6 +114,10 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         }
     }));
 
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.SAVE_OUTPUT_COMMAND, () => {
+        const uri = vscode.window.activeTextEditor.document.uri.toString();
+        vscode.commands.executeCommand(ServerWeaveCommands.SAVE_OUTPUT, uri);
+    }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.ADD_SCENARIO_COMMAND, (transform: TransformationItem) => {
         vscode.commands.executeCommand(ServerWeaveCommands.CREATE_SCENARIO, transform.nameIdentifier);
@@ -127,6 +138,11 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_INPUT_COMMAND, (input: InputItem) => {
         const inputUri = input.uri.toString();
         vscode.commands.executeCommand(ServerWeaveCommands.DELETE_INPUT_SAMPLE, input.nameIdentifier, input.scenarioName, inputUri);
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DELETE_OUTPUT_COMMAND, (output: OutputItem) => {
+        const outputUri = output.uri.toString();
+        vscode.commands.executeCommand(ServerWeaveCommands.DELETE_EXPECTED_OUTPUT, output.nameIdentifier, output.scenarioName, outputUri);
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.DISABLE_PREVIEW, () => {
