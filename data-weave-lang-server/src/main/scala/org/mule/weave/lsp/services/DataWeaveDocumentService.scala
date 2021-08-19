@@ -1,6 +1,5 @@
 package org.mule.weave.lsp.services
 
-import org.apache.commons.io.FilenameUtils
 import org.eclipse.lsp4j
 import org.eclipse.lsp4j.CodeAction
 import org.eclipse.lsp4j.CodeActionParams
@@ -59,11 +58,9 @@ import org.mule.weave.lsp.services.events.DocumentOpenedEvent
 import org.mule.weave.lsp.services.events.DocumentSavedEvent
 import org.mule.weave.lsp.utils.EventBus
 import org.mule.weave.lsp.utils.LSPConverters._
-import org.mule.weave.lsp.utils.URLUtils
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.BAT
 import org.mule.weave.lsp.utils.WeaveASTQueryUtils.MAPPING
-import org.mule.weave.lsp.utils.WeaveASTQueryUtils.WTF
 import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionResult
@@ -80,7 +77,6 @@ import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
 import org.mule.weave.v2.parser.ast.header.directives.InputDirective
 import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
-import org.mule.weave.v2.parser.ast.variables.VariableReferenceNode
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
@@ -314,16 +310,12 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
             })
           }
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-          result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME)), null))
-        }
-        case Some(WTF) => {
-          val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
-          result.add(new CodeLens(range, new Command("Run Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.WTF_CONFIG_TYPE_NAME)), null))
+          result.add(new CodeLens(range, new Command("Run Mapping", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.DATA_WEAVE_CONFIG_TYPE_NAME, "false")), null))
         }
         case Some(BAT) => {
           val range = new lsp4j.Range(new Position(0, 0), new Position(0, 0))
           //foo::MyTest
-          result.add(new CodeLens(range, new Command("Run BAT Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.BAT_CONFIG_TYPE_NAME)), null))
+          result.add(new CodeLens(range, new Command("Run BAT Test", Commands.DW_LAUNCH_MAPPING, util.Arrays.asList(nameIdentifier.name, LaunchConfiguration.BAT_CONFIG_TYPE_NAME, "false")), null))
         }
         case _ => {}
       }
@@ -497,13 +489,13 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
         link.setTargetSelectionRange(toRange(reference.referencedNode.location()))
         if (reference.isLocalReference) {
           link.setTargetUri(params.getTextDocument.getUri)
-          scenariosService.activeScenario(vfs.file(params.getTextDocument.getUri).getNameIdentifier).foreach(activeScenario=>{
+          scenariosService.activeScenario(vfs.file(params.getTextDocument.getUri).getNameIdentifier).foreach(activeScenario => {
             activeScenario.inputs().find(sampleInput => {
               sampleInput.name.equals(ll.linkLocation.name)
-            }).foreach(sampleInput=>{
+            }).foreach(sampleInput => {
               val position = new Position(0, 0)
-              link.setTargetRange(new lsp4j.Range(position,position))
-              link.setTargetSelectionRange(new lsp4j.Range(position,position))
+              link.setTargetRange(new lsp4j.Range(position, position))
+              link.setTargetSelectionRange(new lsp4j.Range(position, position))
               link.setTargetUri(sampleInput.uri)
             })
           })

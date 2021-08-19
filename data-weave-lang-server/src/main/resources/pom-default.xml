@@ -15,7 +15,7 @@
 
     <properties>
         <weave.version>2.4.0-SNAPSHOT</weave.version>
-        <wtf.version>1.0.3-SNAPSHOT</wtf.version>
+        <wtf.version>1.0.6-SNAPSHOT</wtf.version>
     </properties>
 
     <dependencies>
