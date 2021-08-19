@@ -246,6 +246,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     });
 
     var tests: vscode.TestItem[] = []
+    var rootTests: vscode.Uri[] = []
 
     var run: vscode.TestRun
 
@@ -253,30 +254,31 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         if (run) {
             run.end()
         }
-        var queue = tests
-        run = testController.createTestRun(new vscode.TestRunRequest(tests));
+        var names = rootTests.map(rootUri => Utils.basename(rootUri).slice(0, -4))
+        var queue = tests.filter(test => !names.includes(test.label))
+        run = testController.createTestRun(new vscode.TestRunRequest(request.include));
+        if (request.include) {
+            const fileUris = request.include.map(test => test.uri.path)
+            queue = queue.filter(test => fileUris.includes(test.uri.path))
+        }
         queue.forEach(test => run.enqueued(test))
-        var testCounter = 0
         client.onNotification(WeavePushTestResult.type, (params) => {
             const foundItem = queue.find(item => item.label === params.name)
             if (params.event === "testSuiteStarted" || params.event === "testStarted") {
                 run.started(foundItem)
-                testCounter++
             } else if (params.event === "testSuiteFinished" || params.event === "testFinished") {
                 run.passed(foundItem, params.duration)
                 queue = queue.filter(item => item != foundItem)
-                testCounter--
-                if (testCounter == 0) {
+                if (queue.length == 0) {
                     run.end()
                     run = null
                 }
             } else if (params.event === "testFailed") {
-                testCounter--
                 const failureMessage = new vscode.TestMessage(params.message);
                 failureMessage.location = new vscode.Location(foundItem.uri, foundItem.range)
                 run.failed(foundItem, failureMessage, params.duration)
                 queue = queue.filter(item => item != foundItem)
-                if (testCounter == 0) {
+                if (queue.length == 0) {
                     run.end()
                     run = null
                 }
@@ -285,17 +287,28 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
                 run.appendOutput("\n")
             }
         })
-        await vscode.commands.executeCommand(ServerWeaveCommands.LAUNCH_MAPPING, Utils.basename(request.include[0].uri).slice(0, -4), "data-weave-testing")
+        const noDebug = request.profile.kind != vscode.TestRunProfileKind.Debug;
+
+        var rootTestsUri;
+        if (!request.include || request.include.length == 0) {
+            rootTestsUri = rootTests
+        } else {
+            rootTestsUri = request.include.map(item => item.uri)
+        }
+        var includedTests = rootTestsUri.map(rootUri => Utils.basename(rootUri).slice(0, -4)).join(',')
+        await vscode.commands.executeCommand(ServerWeaveCommands.LAUNCH_MAPPING, includedTests, "data-weave-testing", noDebug)
     }
 
-    testController.createRunProfile('Run Tests', vscode.TestRunProfileKind.Debug, runHandler, true);
-
+    testController.createRunProfile('Debug Tests', vscode.TestRunProfileKind.Debug, runHandler, false);
+    testController.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, runHandler, true);
 
     client.onNotification(WeavePublishTests.type, (params) => {
         tests = []
+        rootTests = []
         const itemCollection = testController.items
         itemCollection.forEach(item => testController.items.delete(item.id))
         const siblings = params.rootTestItems
+        rootTests = params.rootTestItems.map(test => Uri.parse(test.uri))
         createTestItem(siblings, itemCollection);
     })
 

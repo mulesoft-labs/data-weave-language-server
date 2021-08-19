@@ -122,7 +122,7 @@ case class PublishTestResultsParams(event: String,message: String, name: String,
 
 case class PublishTestItemsParams(rootTestItems: java.util.List[WeaveTestItem])
 
-case class WeaveTestItem(id: String = UUID.randomUUID().toString, label: String, uri: String, children: java.util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem](), range: org.eclipse.lsp4j.Range)
+case class WeaveTestItem(id: String = UUID.randomUUID().toString, label: String, uri: String, children: java.util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem](), @Nullable range: org.eclipse.lsp4j.Range = null)
 
 case class JobStartedParams(id: String = UUID.randomUUID().toString, label: String, description: String)
 

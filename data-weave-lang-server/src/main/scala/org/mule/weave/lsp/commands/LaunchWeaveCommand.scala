@@ -26,6 +26,7 @@ class LaunchWeaveCommand(languageClient: WeaveLanguageClient) extends WeaveComma
   override def execute(params: ExecuteCommandParams): AnyRef = {
     val mappingName: String = Commands.argAsString(params.getArguments(), 0)
     val configType: String = Commands.argAsString(params.getArguments(), 1)
+    val noDebug: Boolean = Commands.argAsBoolean(params.getArguments(),2)
 
     val item = new ConfigurationItem()
     val workspaceFolders: util.List[WorkspaceFolder] = languageClient.workspaceFolders().get()
@@ -63,7 +64,7 @@ class LaunchWeaveCommand(languageClient: WeaveLanguageClient) extends WeaveComma
                         configurationProperties.add(LaunchConfigurationProperty(entry.getKey, entry.getValue.getAsJsonPrimitive.getAsString))
                       }
                     }
-                    results.add(LaunchConfiguration(DATA_WEAVE_CONFIG_TYPE_NAME, theName, theRequest, noDebug = false, configurationProperties))
+                    results.add(LaunchConfiguration(DATA_WEAVE_CONFIG_TYPE_NAME, theName, theRequest, noDebug, configurationProperties))
                   }
                 }
               }
@@ -75,7 +76,7 @@ class LaunchWeaveCommand(languageClient: WeaveLanguageClient) extends WeaveComma
       }
 
       if (results.isEmpty) {
-        val launchConfiguration = createDefaultConfiguration(mappingName, configType)
+        val launchConfiguration = createDefaultConfiguration(mappingName, configType,noDebug)
         languageClient.runConfiguration(launchConfiguration)
       } else if (results.size() == 1) {
         languageClient.runConfiguration(results.get(0))
@@ -97,15 +98,15 @@ class LaunchWeaveCommand(languageClient: WeaveLanguageClient) extends WeaveComma
         }
       }
     } else {
-      val launchConfiguration = createDefaultConfiguration(mappingName, configType)
+      val launchConfiguration = createDefaultConfiguration(mappingName, configType,noDebug)
       languageClient.runConfiguration(launchConfiguration)
     }
     null
   }
 
-  private def createDefaultConfiguration(mappingName: String, configType: String): LaunchConfiguration = {
+  private def createDefaultConfiguration(mappingName: String, configType: String, noDebug: Boolean): LaunchConfiguration = {
     val mapping: LaunchConfigurationProperty = LaunchConfigurationProperty(MAIN_FILE_NAME, mappingName)
-    LaunchConfiguration(configType, "Debugging " + mappingName, LAUNCH_REQUEST_TYPE, noDebug = false, util.Arrays.asList(mapping))
+    LaunchConfiguration(configType, "Debugging " + mappingName, LAUNCH_REQUEST_TYPE, noDebug, util.Arrays.asList(mapping))
   }
 }
 

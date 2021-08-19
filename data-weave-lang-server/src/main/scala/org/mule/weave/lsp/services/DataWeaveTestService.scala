@@ -131,7 +131,13 @@ class DataWeaveTestService(weaveLanguageClient: WeaveLanguageClient, virtualFile
     val maybeAstNode = dataWeaveToolingService.openDocument(uri).ast()
     val maybeString = WeaveASTQueryUtils.fileKind(maybeAstNode)
     val maybeItem = maybeString match {
-      case Some(WTF) => getWeaveItem(uri, maybeAstNode, None, None)
+      case Some(WTF) => {
+        getWeaveItem(uri, maybeAstNode, None, None).map(rootItem => {
+          val fileTestItemChildren: util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem]()
+          fileTestItemChildren.add(rootItem)
+          WeaveTestItem(label = nameIdentifier.name,uri = uri,children = fileTestItemChildren);
+        })
+      }
       case _ => None
     }
     maybeItem.map(weaveItem => testsCache.put(nameIdentifier, weaveItem))

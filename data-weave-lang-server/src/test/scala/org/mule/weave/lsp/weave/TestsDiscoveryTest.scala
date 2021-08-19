@@ -14,10 +14,10 @@ class TestsDiscoveryTest extends FreeSpec {
       assert(items.nonEmpty)
       assert(items.length == 2)
       val item = items.head
-      assert(item.label.equals("FirstTestSuite"))
+      assert(item.label.equals("UnitTest"))
       assert(item.children.size().equals(1))
       val secondItem = items(1)
-      assert(secondItem.label.equals("SecondTestSuite"))
+      assert(secondItem.label.equals("MoreTest"))
       assert(secondItem.children.size().equals(1))
     }
   }

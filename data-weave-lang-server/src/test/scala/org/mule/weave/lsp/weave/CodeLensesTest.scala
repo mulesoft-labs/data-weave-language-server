@@ -21,9 +21,10 @@ class CodeLensesTest extends FreeSpec {
         lense.getCommand.getCommand == Commands.DW_LAUNCH_MAPPING
       }).findFirst()
       assert(launchLens.isPresent)
-      assert(launchLens.get().getCommand.getArguments.size() == 2)
+      assert(launchLens.get().getCommand.getArguments.size() == 3)
       assert(launchLens.get().getCommand.getArguments.get(0) == "MyMapping")
       assert(launchLens.get().getCommand.getArguments.get(1) == "data-weave")
+      assert(launchLens.get().getCommand.getArguments.get(2) == "false")
 
       val sampleData: Optional[_ <: CodeLens] = lenses.stream().filter((lense) => {
         lense.getCommand.getCommand == Commands.DW_CREATE_SCENARIO
