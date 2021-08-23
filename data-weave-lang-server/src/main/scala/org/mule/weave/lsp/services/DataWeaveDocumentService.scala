@@ -89,8 +89,7 @@ import scala.collection.JavaConverters
 class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
                                executor: Executor,
                                projectFS: ProjectVirtualFileSystem,
-                               vfs: VirtualFileSystem,
-                               clientLogger: ClientLogger) extends WeaveTextDocumentService with ToolingService {
+                               vfs: VirtualFileSystem) extends WeaveTextDocumentService with ToolingService {
 
 
   private val codeActions = new CodeActions(toolingServices)
@@ -304,7 +303,6 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
     ast match {
       case md: ModuleNode =>
         val topLevelFunctions: Seq[FunctionDirectiveNode] = AstNodeHelper.collectDirectChildrenWith(md, classOf[FunctionDirectiveNode])
-        clientLogger.logInfo("Adding unit test lens")
         topLevelFunctions
           .foreach((astNode) => {
             val command = CreateUnitTest.createCommand(uri, astNode)

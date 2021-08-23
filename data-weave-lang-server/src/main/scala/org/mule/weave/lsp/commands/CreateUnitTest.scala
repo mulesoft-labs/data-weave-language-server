@@ -15,7 +15,6 @@ import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
-import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.lsp.utils.WeaveDirectoryUtils
@@ -26,11 +25,10 @@ import org.mule.weave.v2.parser.location.WeaveLocation
 import java.io.File
 import java.util
 
-class CreateUnitTest(validationService: DataWeaveToolingService, weaveLanguageClient: WeaveLanguageClient, projectKind: ProjectKind, clientLogger: ClientLogger) extends WeaveCommand {
+class CreateUnitTest(validationService: DataWeaveToolingService, weaveLanguageClient: WeaveLanguageClient, projectKind: ProjectKind) extends WeaveCommand {
   override def commandId(): String = Commands.DW_CREATE_UNIT_TEST
 
   override def execute(params: ExecuteCommandParams): AnyRef = {
-
     val args: util.List[AnyRef] = params.getArguments
 
     val uri: String = Commands.argAsString(args, 0)

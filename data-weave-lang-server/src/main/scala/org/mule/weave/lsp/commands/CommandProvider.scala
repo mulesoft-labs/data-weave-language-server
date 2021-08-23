@@ -33,7 +33,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new LaunchWeaveCommand(languageClient),
     new QuickFixCommand(validationService),
     new InsertDocumentationCommand(validationService),
-    new CreateUnitTest(validationService, languageClient, projectKind, clientLogger),
+    new CreateUnitTest(validationService, languageClient, projectKind),
   )
 
   def commandBy(commandId: String): Option[WeaveCommand] = {
