@@ -225,22 +225,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     })
 
     client.onNotification(OpenTextDocument.type, (params) => {
-        const documentUri = Uri.parse(params.uri);
-        vscode.workspace.openTextDocument(documentUri)
-            .then(document => {
-                console.log("opening " + documentUri);
-                if (
-                    params.startLine == null
-                 || params.startCharacter == null
-                 || params.endLine == null
-                 || params.endCharacter == null) {
-                    vscode.window.showTextDocument(document);
-                } else {
-                    const range = new vscode.Range(params.startLine, params.startCharacter, params.endLine, params.endCharacter);
-                    vscode.window.showTextDocument(document, {selection: range});
-                }
-            });
-        openTextDocument(params.uri);
+        openTextDocument(params.uri, params.startLine, params.startCharacter, params.endLine, params.endCharacter);
     })
 
     client.onNotification(LaunchConfiguration.type, (params) => {

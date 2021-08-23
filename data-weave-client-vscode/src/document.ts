@@ -2,12 +2,26 @@ import * as vscode from "vscode";
 import {Uri} from "vscode";
 import {EditorDecoration, EditorDecorationParams} from "./interfaces/editorDecoration";
 
-export function openTextDocument(uri: string) {
+export function openTextDocument(
+    uri: string,
+    startLine?: number,
+    startCharacter?: number,
+    endLine?: number,
+    endCharacter?: number) {
     const documentUri = Uri.parse(uri);
     vscode.workspace.openTextDocument(documentUri)
         .then(document => {
             console.log("opening " + documentUri);
-            vscode.window.showTextDocument(document);
+            if (
+                startLine == null
+                || startCharacter == null
+                || endLine == null
+                || endCharacter == null) {
+                vscode.window.showTextDocument(document);
+            } else {
+                const range = new vscode.Range(startLine, startCharacter, endLine, endCharacter);
+                vscode.window.showTextDocument(document, {selection: range});
+            }
         });
 }
 
