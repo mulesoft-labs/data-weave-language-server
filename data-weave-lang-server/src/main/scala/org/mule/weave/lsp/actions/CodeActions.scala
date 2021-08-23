@@ -9,6 +9,7 @@ class CodeActions(weaveService: DataWeaveToolingService) {
     new QuickFixAction(weaveService),
     new InsertDocumentationAction(weaveService),
     new InsertWeaveTypeAction(weaveService),
+    new RefactorActionProvider(weaveService)
   )
 
   def actionsFor(params: CodeActionParams): Seq[CodeActionProvider] = {

@@ -41,11 +41,12 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new EnablePreviewModeCommand(previewService, virtualFileSystem),
     new RunPreviewCommand(previewService, virtualFileSystem),
     new InstallBatCommand(clientLogger),
-    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient,dataWeaveTestService),
+    new RunWeaveCommand(virtualFileSystem, projectVirtualFileSystem, project, projectKind, clientLogger, jobManagerService, languageClient, dataWeaveTestService),
     new LaunchWeaveCommand(languageClient),
     new QuickFixCommand(weaveToolingService),
     new InsertDocumentationCommand(weaveToolingService),
-    new InsertWeaveTypeCommand(weaveToolingService, project)
+    new InsertWeaveTypeCommand(weaveToolingService, project),
+    new ExtractVariableCommand(weaveToolingService)
   )
 
   def commandBy(commandId: String): Option[WeaveCommand] = {

@@ -26,6 +26,7 @@ object Commands {
   val DW_DELETE_EXPECTED_OUTPUT = "dw.deleteExpectedOutput"
   val DW_SAVE_OUTPUT = "dw.saveOutput"
   val DW_ACTIVE_SCENARIO = "dw.activeScenario"
+  val DW_EXTRACT_VARIABLE = "dw.extractVariable"
   val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
   val DW_CREATE_MAPPING = "dw.createMapping"
@@ -50,7 +51,8 @@ object Commands {
     DW_GENERATE_WEAVE_DOC,
     DW_CREATE_TEST,
     DW_INSERT_WEAVE_TYPE,
-    DW_CREATE_MAPPING
+    DW_CREATE_MAPPING,
+    DW_EXTRACT_VARIABLE
 
   )
 

@@ -1,19 +1,14 @@
 package org.mule.weave.lsp.commands
 
-import org.eclipse.lsp4j
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams
 import org.eclipse.lsp4j.ExecuteCommandParams
-import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.mule.weave.lsp.commands.Commands.argAsInt
 import org.mule.weave.lsp.commands.Commands.argAsString
 import org.mule.weave.lsp.services.DataWeaveToolingService
-import org.mule.weave.lsp.utils.LSPConverters.toPosition
-import org.mule.weave.v2.completion.Template
 import org.mule.weave.v2.editor.QuickFix
 import org.mule.weave.v2.editor.WeaveDocumentToolingService
-import org.mule.weave.v2.editor.WeaveTextDocument
 
 import java.util
 
@@ -34,37 +29,13 @@ class QuickFixCommand(validationService: DataWeaveToolingService) extends WeaveC
     val quickFixes: Array[QuickFix] = validationService.quickFixesFor(uri, startOffset, endOffset, kind, severity)
     val toolingService: WeaveDocumentToolingService = validationService.openDocument(uri)
     quickFixes.find((qf) => qf.name == qfName).foreach((qf) => {
+      val document = new LSPWeaveTextDocument(toolingService)
+      qf.quickFix.run(document)
       val edit = new WorkspaceEdit()
-      val localChanges = new util.ArrayList[TextEdit]()
-      qf.quickFix.run(new WeaveTextDocument {
-        override def runTemplate(template: Template, location: Int): Unit = {
-          insert(template.toLiteralString, location)
-        }
-
-        override def insert(text: String, location: Int): Unit = {
-          val position: Position = toPosition(toolingService.positionOf(location))
-          val textEdit = new TextEdit(new lsp4j.Range(position, position), text)
-          localChanges.add(textEdit)
-        }
-
-        override def delete(startLocation: Int, endLocation: Int): Unit = {
-          val textEdit = new TextEdit()
-          textEdit.setNewText("")
-          val endPosition: Position = toPosition(toolingService.positionOf(endLocation))
-          val startPosition: Position = toPosition(toolingService.positionOf(startLocation))
-          textEdit.setRange(new org.eclipse.lsp4j.Range(startPosition, endPosition))
-          localChanges.add(textEdit)
-        }
-
-        override def text(startLocation: Int, endLocation: Int): String = {
-          toolingService.file.read().substring(startLocation, endLocation)
-        }
-      })
-
       val changes = new util.HashMap[String, util.List[TextEdit]]()
-      changes.put(uri, localChanges)
+      changes.put(uri, document.edits())
       edit.setChanges(changes)
-      validationService.languageClient().applyEdit(new ApplyWorkspaceEditParams(edit))
+      validationService.languageClient().applyEdit(new ApplyWorkspaceEditParams(edit, qf.description))
     })
     null
   }
