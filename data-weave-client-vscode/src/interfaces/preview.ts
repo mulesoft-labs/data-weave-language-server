@@ -1,4 +1,4 @@
-import { NotificationType, RequestType } from "vscode-languageserver-protocol";
+import { NotificationType } from "vscode-languageserver-protocol";
 
 export namespace ShowPreviewResult {
   export const type = new NotificationType<
@@ -10,9 +10,10 @@ export namespace ShowPreviewResult {
     uri: string,
     success: boolean,
     logs: string[],
-    content: string,    
+    content: string,
     mimeType: string,
-    errorMessage: string, 
-    timeTaken: number
+    errorMessage: string,
+    timeTaken: number,
+    scenarioUri: string
   }
 }

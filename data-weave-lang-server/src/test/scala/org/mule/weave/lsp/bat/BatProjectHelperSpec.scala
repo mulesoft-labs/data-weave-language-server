@@ -7,12 +7,18 @@ import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.PublishDiagnosticsParams
 import org.eclipse.lsp4j.ShowMessageRequestParams
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.JobEndedParams
 import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
+
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
+
+import org.mule.weave.lsp.extension.client.PublishTestItemsParams
+import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
@@ -147,4 +153,29 @@ class LoggerLanguageClient() extends WeaveLanguageClient {
     }
     println("[" + value + "]" + messageParams.getMessage)
   }
+
+  /**
+    * This notification is sent from the server to the client to publish current transformation scenarios.
+    *
+    * @param scenariosParam Scenarios Parameter
+    */
+  override def showScenarios(scenariosParam: ShowScenariosParams): Unit = ???
+
+  def setEditorDecorations(params: EditorDecorationsParams): Unit = ???
+
+  def clearEditorDecorations(): Unit = ???
+
+  /**
+    * This notification is sent from the server to the client to push all the possible tests to run on the project.
+    *
+    * @param job The job information that has ended
+    */
+  override def publishTestItems(job: PublishTestItemsParams): Unit = ???
+
+  /**
+    * This notification is sent from the server to the client to push tests results.
+    *
+    * @param job The job information that has ended
+    */
+  override def publishTestResults(testResults: PublishTestResultsParams): Unit = ???
 }

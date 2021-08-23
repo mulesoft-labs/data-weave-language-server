@@ -36,17 +36,22 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
 import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.jsonrpc.messages
 import org.mule.weave.lsp.extension.client.DependenciesParams
+import org.mule.weave.lsp.extension.client.EditorDecorationsParams
 import org.mule.weave.lsp.extension.client.JobEndedParams
 import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.OpenWindowsParams
 import org.mule.weave.lsp.extension.client.PreviewResult
+import org.mule.weave.lsp.extension.client.ShowScenariosParams
+import org.mule.weave.lsp.extension.client.PublishTestItemsParams
+import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveQuickPickParams
 import org.mule.weave.lsp.extension.client.WeaveQuickPickResult
+import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.OnIndexingFinished
 import org.mule.weave.lsp.project.Project
@@ -69,6 +74,7 @@ import scala.io.Codec
 import scala.io.Source
 
 class DWProject(val workspaceRoot: Path) {
+
 
   var clientUI: ClientUI = DefaultInputsInteraction
   private val logger: Logger = Logger.getLogger("[" + workspaceRoot.toFile.getName + "]")
@@ -227,6 +233,10 @@ class DWProject(val workspaceRoot: Path) {
       }).collect(Collectors.toList[Diagnostic]())
   }
 
+  def tests(): Seq[WeaveTestItem] = {
+    lsp().getTestService.testsCache.values.toSeq
+  }
+
   private def toString(filePath: Path) = {
     val source = Source.fromURI(filePath.toUri)(Codec.UTF8)
     try {
@@ -377,6 +387,26 @@ class DWProject(val workspaceRoot: Path) {
         * @param job The job information that has ended
         */
       override def notifyJobEnded(job: JobEndedParams): Unit = {}
+
+      /**
+        * This notification is sent from the server to the client to publish current transformation scenarios.
+        *
+        * @param scenariosParam Scenarios Parameter
+        */
+      override def showScenarios(scenariosParam: ShowScenariosParams): Unit = {}
+
+      def setEditorDecorations(params: EditorDecorationsParams): Unit = {}
+
+      def clearEditorDecorations(): Unit = {}
+
+      override def publishTestItems(job: PublishTestItemsParams): Unit = {}
+
+      /**
+        * This notification is sent from the server to the client to push tests results.
+        *
+        * @param job The job information that has ended
+        */
+      override def publishTestResults(testResults: PublishTestResultsParams): Unit = {}
     })
   }
 

@@ -31,7 +31,9 @@ class DataWeaveWorkspaceService(
                                  languageClient: WeaveLanguageClient,
                                  dataWeaveToolingService: DataWeaveToolingService,
                                  jobManagerService: JobManagerService,
-                                 previewService: PreviewService
+                                 scenariosManager: WeaveScenarioManagerService,
+                                 previewService: PreviewService,
+                                 dataWeaveTestService: DataWeaveTestService
                                ) extends WorkspaceService with ToolingService {
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -50,7 +52,9 @@ class DataWeaveWorkspaceService(
       projectKind,
       jobManagerService,
       dataWeaveToolingService,
-      previewService)
+      scenariosManager,
+      previewService,
+      dataWeaveTestService)
   }
 
   override def didChangeConfiguration(params: DidChangeConfigurationParams): Unit = {

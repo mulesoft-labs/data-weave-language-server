@@ -24,7 +24,7 @@ export class WeaveDependenciesProvider implements vscode.TreeDataProvider<Depend
 
 
     private refresh(): void {
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(null);
     }
 
     getTreeItem(element: DependencyTreeItem): vscode.TreeItem {
@@ -78,7 +78,7 @@ class DependencyTreeItem extends vscode.TreeItem {
                                 const isDirectory = file[1] == vscode.FileType.Directory;
                                 const kind = isDirectory ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
                                 const icon = isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File
-                                const commnadId = isDirectory ? null : ClientWeaveCommands.OPEN_FILE 
+                                const commnadId = isDirectory ? null : ClientWeaveCommands.OPEN_FILE
                                 return new DependencyTreeItem(file[0], fileUri, icon, commnadId, kind)
                             })
                         })

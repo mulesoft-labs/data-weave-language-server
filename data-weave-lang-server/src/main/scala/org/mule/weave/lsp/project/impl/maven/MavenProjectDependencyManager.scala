@@ -14,10 +14,10 @@ import org.mule.weave.lsp.project.components.ProjectDependencyManager
 import org.mule.weave.lsp.project.events.DependencyArtifactRemovedEvent
 import org.mule.weave.lsp.project.events.DependencyArtifactResolvedEvent
 import org.mule.weave.lsp.services.ClientLogger
-import org.mule.weave.lsp.utils.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.services.events.FileChangedEvent
 import org.mule.weave.lsp.services.events.OnFileChanged
 import org.mule.weave.lsp.utils.EventBus
+import org.mule.weave.lsp.utils.JavaLoggerForwarder.interceptLog
 import org.mule.weave.lsp.utils.URLUtils
 
 import java.io.File
@@ -27,6 +27,7 @@ import scala.collection.immutable
 class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: EventBus, loggerService: ClientLogger) extends ProjectDependencyManager {
 
   var dependenciesArray: Array[DependencyArtifact] = Array.empty
+  var languageVersion: String = project.settings.wlangVersion.value()
 
   override def start(): Unit = {
     reloadArtifacts()
@@ -64,19 +65,30 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
               .groupBy(_.getCoordinate.toCanonicalForm)
               .map(_._2.head)
           eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
-          dependenciesArray = dependencies.map((a) => {
-            DependencyArtifact(a.getCoordinate.toCanonicalForm, a.asFile())
-          }).toArray
+
+          languageVersion = dependencies
+            .find((d) => d.getCoordinate.getArtifactId.equals("wlang"))
+            .map((d) => d.getCoordinate.getVersion)
+            .getOrElse(project.settings.wlangVersion.value())
+
+          dependenciesArray = dependencies
+            .map((a) => {
+              DependencyArtifact(a.getCoordinate.toCanonicalForm, a.asFile())
+            }).toArray
           eventBus.fire(new DependencyArtifactResolvedEvent(dependenciesArray))
           loggerService.logInfo("All dependencies were loaded successfully.")
         } else {
-          loggerService.logInfo("No dependency was detected")
+          loggerService.logInfo("No dependency was detected.")
           eventBus.fire(new DependencyArtifactRemovedEvent(dependenciesArray))
         }
       }
     } catch {
       case e: Exception => loggerService.logError(s"Exception while resolving dependencies from ${pomFile.getAbsolutePath}", e)
     }
+  }
+
+  override def languageLevel(): String = {
+    languageVersion
   }
 
   /**

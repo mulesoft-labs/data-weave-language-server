@@ -7,6 +7,7 @@ import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.ServerCapabilities
+import org.eclipse.lsp4j.SignatureHelpOptions
 import org.eclipse.lsp4j.TextDocumentSyncKind
 import org.eclipse.lsp4j.jsonrpc.services.JsonDelegate
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -15,6 +16,7 @@ import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.extension.services.DependencyManagerService
 import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.indexer.LSPWeaveIndexService
@@ -29,10 +31,12 @@ import org.mule.weave.lsp.project.utils.MavenDependencyManagerUtils
 import org.mule.weave.lsp.services.ClientLogger
 import org.mule.weave.lsp.services.DataWeaveDependencyManagerService
 import org.mule.weave.lsp.services.DataWeaveDocumentService
+import org.mule.weave.lsp.services.DataWeaveTestService
 import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.DataWeaveWorkspaceService
 import org.mule.weave.lsp.services.PreviewService
 import org.mule.weave.lsp.services.ToolingService
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.services.delegate.DependencyManagerServiceDelegate
 import org.mule.weave.lsp.services.delegate.TextDocumentServiceDelegate
 import org.mule.weave.lsp.services.delegate.WorkspaceServiceDelegate
@@ -48,12 +52,15 @@ import org.mule.weave.v2.editor.VirtualFileSystem
 import org.mule.weave.v2.editor.WeaveToolingService
 
 import java.io.File
+import java.util
 import java.util.concurrent.CompletableFuture
 import java.util.logging.Level
 import java.util.logging.Logger
 import scala.collection.mutable.ArrayBuffer
 
 class WeaveLanguageServer extends LanguageServer {
+
+
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
 
@@ -75,6 +82,7 @@ class WeaveLanguageServer extends LanguageServer {
   private var projectValue: Project = _
   private var jobManagerService: JobManagerService = _
   private var projectKind: ProjectKind = _
+  private var weaveTestManager: DataWeaveTestService = _
 
   private val services: ArrayBuffer[ToolingService] = ArrayBuffer()
 
@@ -115,35 +123,41 @@ class WeaveLanguageServer extends LanguageServer {
       val dataWeaveToolingService = new DataWeaveToolingService(projectValue, client, globalFVS, createWeaveToolingService, executorService)
       //TODO should this be enabled for all project kinds??
       //Or we should make the project kind enable it
-      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue)
-      val previewService = new PreviewService(weaveAgentService, client, projectValue)
+      val scenarioService = new WeaveScenarioManagerService(client, globalFVS)
+      val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService, client)
+      val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService)
+
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 
       //Create the project
-      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService)
+      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client, scenarioService)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
-      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, globalFVS)
+      weaveTestManager = new DataWeaveTestService(client, projectVFS, dataWeaveToolingService,clientLogger)
+      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService,globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, previewService)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManager)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
 
-      services.++=(Seq(
-        dependencyManagerImpl,
-        workspaceServiceImpl,
-        documentServiceImpl,
-        weaveAgentService,
-        jobManagerService,
-        dataWeaveToolingService,
-        previewService,
-        indexService,
-        projectVFS,
-        librariesVFS
-      ))
+      services
+        .++=(Seq(
+          dependencyManagerImpl,
+          workspaceServiceImpl,
+          documentServiceImpl,
+          weaveAgentService,
+          jobManagerService,
+          dataWeaveToolingService,
+          previewService,
+          scenarioService,
+          indexService,
+          projectVFS,
+          librariesVFS,
+          weaveTestManager
+        ))
 
       //Init the Services
       services.foreach((service) => {
@@ -162,6 +176,7 @@ class WeaveLanguageServer extends LanguageServer {
       capabilities.setCodeLensProvider(new CodeLensOptions(true))
       capabilities.setRenameProvider(true)
       capabilities.setReferencesProvider(true)
+      capabilities.setSignatureHelpProvider(new SignatureHelpOptions(util.Arrays.asList("("), util.Arrays.asList(",")))
       capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))
       new InitializeResult(capabilities)
     })
@@ -223,6 +238,11 @@ class WeaveLanguageServer extends LanguageServer {
   def getDependencyManager: DependencyManagerService = {
     logger.log(Level.INFO, "getDependencyManager")
     dependencyManagerService
+  }
+
+  def getTestService: DataWeaveTestService = {
+    logger.log(Level.INFO, "getTestService")
+    weaveTestManager
   }
 
   def connect(client: WeaveLanguageClient): Unit = {

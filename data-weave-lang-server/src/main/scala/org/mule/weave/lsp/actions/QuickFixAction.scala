@@ -32,6 +32,8 @@ class QuickFixAction(validationService: DataWeaveToolingService) extends CodeAct
       val quickFixes: Array[QuickFix] = validationService.quickFixesFor(uri, startOffset, endOffset, errorKind, severity)
       quickFixes.map((qf) => {
         val codeAction = new CodeAction(qf.name)
+        codeAction.setIsPreferred(true)
+        codeAction.setKind(CodeActionKind.QuickFix)
         val command = new Command(qf.name, Commands.DW_QUICK_FIX, util.Arrays.asList(
           uri, startOffset: java.lang.Integer, endOffset: java.lang.Integer, errorKind, severity, qf.name
         ))

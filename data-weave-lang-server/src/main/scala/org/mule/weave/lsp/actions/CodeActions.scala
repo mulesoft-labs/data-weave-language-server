@@ -7,7 +7,9 @@ class CodeActions(weaveService: DataWeaveToolingService) {
 
   private val actions = Seq(
     new QuickFixAction(weaveService),
-    new InsertDocumentationAction(weaveService)
+    new InsertDocumentationAction(weaveService),
+    new InsertWeaveTypeAction(weaveService),
+    new RefactorActionProvider(weaveService)
   )
 
   def actionsFor(params: CodeActionParams): Seq[CodeActionProvider] = {

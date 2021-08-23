@@ -30,8 +30,16 @@ trait WeaveLanguageClient extends LanguageClient {
   @JsonRequest("weave/quickPick")
   def weaveQuickPick(params: WeaveQuickPickParams): CompletableFuture[WeaveQuickPickResult]
 
+
+  @JsonNotification("weave/decorations/set")
+  def setEditorDecorations(params: EditorDecorationsParams): Unit
+
+  @JsonNotification("weave/decorations/clear")
+  def clearEditorDecorations(): Unit
+
   /**
     * Opens a folder in a new window
+    *
     * @param params
     */
   @JsonNotification("weave/folder/open")
@@ -69,6 +77,14 @@ trait WeaveLanguageClient extends LanguageClient {
   def publishDependencies(resolvedDependency: DependenciesParams): Unit
 
   /**
+    * This notification is sent from the server to the client to publish current transformation scenarios.
+    *
+    * @param scenariosParam Scenarios Parameter
+    */
+  @JsonNotification("weave/workspace/publishScenarios")
+  def showScenarios(scenariosParam: ShowScenariosParams): Unit
+
+  /**
     * This notification is sent from the server to the client to inform the user that a background job has started.
     *
     * @param job The job information that has started
@@ -83,7 +99,30 @@ trait WeaveLanguageClient extends LanguageClient {
     */
   @JsonNotification("weave/workspace/notifyJobEnded")
   def notifyJobEnded(job: JobEndedParams): Unit
+
+
+  /**
+    * This notification is sent from the server to the client to push all the possible tests to run on the project.
+    *
+    * @param job The job information that has ended
+    */
+  @JsonNotification("weave/tests/publishTestItems")
+  def publishTestItems(job: PublishTestItemsParams): Unit
+
+  /**
+    * This notification is sent from the server to the client to push tests results.
+    *
+    * @param job The job information that has ended
+    */
+  @JsonNotification("weave/tests/publishTestResults")
+  def publishTestResults(testResults: PublishTestResultsParams): Unit
 }
+
+case class PublishTestResultsParams(event: String,message: String, name: String, duration: Int, locationHint: String, status: String)
+
+case class PublishTestItemsParams(rootTestItems: java.util.List[WeaveTestItem])
+
+case class WeaveTestItem(id: String = UUID.randomUUID().toString, label: String, uri: String, children: java.util.List[WeaveTestItem] = new util.ArrayList[WeaveTestItem](), @Nullable range: org.eclipse.lsp4j.Range = null)
 
 case class JobStartedParams(id: String = UUID.randomUUID().toString, label: String, description: String)
 
@@ -109,6 +148,7 @@ case class PreviewResult(
                           content: String = null,
                           mimeType: String = null,
                           errorMessage: String = null,
+                          scenarioUri: String = null,
                           timeTaken: Long = 0
                         )
 
@@ -160,6 +200,16 @@ case class OpenTextDocumentParams(
                                    @Nullable endCharacter: java.lang.Integer = null,
                                  )
 
+
+case class EditorDecoration(
+                             range: org.eclipse.lsp4j.Range,
+                             text: String
+                           )
+
+case class EditorDecorationsParams(
+                                    documentUri: String,
+                                    decorations: java.util.List[EditorDecoration]
+                                  )
 
 case class WeaveInputBoxParams(
                                 //Set title of the input box window.
@@ -258,3 +308,22 @@ case class IconUri(uri: String, override val iconType: String = "URI-ICON") exte
 
 //Icon provided by the client side matched by id.
 case class ThemeIcon(id: String, override val iconType: String = "THEME-ICON") extends ThemeIconPath
+
+case class ShowScenariosParams(
+                                //The name identifier of the Document
+                                nameIdentifier: String,
+                                //Al the scenarios that this document has
+                                @Nullable scenarios: java.util.List[WeaveScenario] = null)
+
+case class WeaveScenario(
+                          active: java.lang.Boolean = false,
+                          name: String,
+                          uri: String,
+                          //All the uri of all the input files
+                          @Nullable inputsUri: Array[SampleInput] = null,
+                          //TODO this should be a single url as just one output is accepted
+                          @Nullable outputsUri: String = null
+                        )
+
+//TODO use something like this for inputs
+case class SampleInput(uri: String, name: String)

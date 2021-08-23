@@ -12,6 +12,7 @@ object WeaveASTQueryUtils {
   val WTF = "WTF"
   val BAT = "BAT"
   val MAPPING = "MAPPING"
+  val MODULE = "MODULE"
 
   def fileKind(maybeAstNode: Option[AstNode]): Option[String] = {
     maybeAstNode
@@ -25,9 +26,13 @@ object WeaveASTQueryUtils {
             Some(MAPPING)
           }
         }
-        case _ => None
+        case _ => {
+          Some(MODULE)
+        }
       })
   }
+
+
 
   def hasImport(dn: DocumentNode, wtfImport: String): Boolean = {
     dn.header.directives.collect({

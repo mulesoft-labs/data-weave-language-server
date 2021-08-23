@@ -12,12 +12,13 @@ shadowJar {
 }
 
 dependencies {
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.9.0'
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j.debug', version: '0.9.0'
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.12.0'
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j.debug', version: '0.12.0'
     compile group: 'org.mule.weave', name: 'parser', version: weaveVersion
     compile group: 'org.mule.weave', name: 'debugger', version: weaveVersion
-    compile group: 'org.mule.weave', name: 'raml-module', version: "1.0.0-SNAPSHOT"
+//    compile group: 'org.mule.weave', name: 'raml-module', version: "1.0.0-SNAPSHOT"
     compile group: 'org.mule.weave', name: 'dependency-manager', version: weaveVersion
+    compile group: 'net.liftweb', name: 'lift-json_2.12', version: "3.4.3"
 
     compile group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-api', version: '3.1.4'
     compile group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-spi', version: '3.1.4'

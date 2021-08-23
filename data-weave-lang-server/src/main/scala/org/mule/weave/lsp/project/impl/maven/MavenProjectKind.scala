@@ -1,6 +1,7 @@
 package org.mule.weave.lsp.project.impl.maven
 
 import org.mule.weave.lsp.agent.WeaveAgentService
+import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
@@ -17,15 +18,16 @@ import org.mule.weave.lsp.project.components.TargetFolder
 import org.mule.weave.lsp.project.components.TargetKind
 import org.mule.weave.lsp.project.components.WTFSampleDataManager
 import org.mule.weave.lsp.services.ClientLogger
+import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.EventBus
 
 import java.io.File
 
 
-class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKindDetector {
+class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKindDetector {
 
   override def createKind(project: Project): ProjectKind = {
-    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger, weaveAgentService)
+    new MavenProjectKind(project, new File(project.home(), "pom.xml"), eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)
   }
 
   override def supports(project: Project): Boolean = {
@@ -33,20 +35,18 @@ class MavenProjectKindDetector(eventBus: EventBus, clientLogger: ClientLogger, w
   }
 }
 
-class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService) extends ProjectKind {
+class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService) extends ProjectKind {
 
   private val projectDependencyManager: ProjectDependencyManager = new MavenProjectDependencyManager(project, pom, eventBus, clientLogger)
   private val mavenBuildManager = new MavenBuildManager(project, pom, clientLogger)
-  private val projectStructure: ProjectStructure = createProjectStructure()
-  private val dataManager = new WTFSampleDataManager(structure(), project)
-  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(dataManager, weaveAgentService, eventBus)
+  private val dataManager = new WTFSampleDataManager(this, project, weaveLanguageClient)
+  private val sampleBaseMetadataProvider = new SampleBaseMetadataProvider(weaveAgentService, eventBus, weaveScenarioManagerService)
 
   override def name(): String = "DW `Maven`"
 
   override def structure(): ProjectStructure = {
-    projectStructure
+    createProjectStructure()
   }
-
 
   private def createProjectStructure() = {
     val projectHome: File = project.home()
@@ -59,18 +59,20 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
   private def mainRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "main")
 
-    val srcFolders = Array(new File(mainDir, "dw"), new File(mainDir, "java")).filter(_.exists())
+    val mainSourceFolder = new File(mainDir, "dw")
+    val srcFolders = Array(mainSourceFolder, new File(mainDir, "java")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
 
-    val rootStructure = RootStructure(RootKind.MAIN, srcFolders, resourceFolders)
+    val rootStructure = RootStructure(RootKind.MAIN, srcFolders, resourceFolders, mainSourceFolder)
     rootStructure
   }
 
   private def testRoot(projectHome: File): RootStructure = {
     val mainDir = new File(projectHome, "src" + File.separator + "test")
-    val srcFolders = Array(new File(mainDir, "dwtest"), new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
+    val mainSourceFolder = new File(mainDir, "dwtest")
+    val srcFolders = Array(mainSourceFolder, new File(mainDir, "dwit"), new File(mainDir, "dwmit")).filter(_.exists())
     val resourceFolders = Array(new File(mainDir, "resources")).filter(_.exists())
-    val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders)
+    val rootStructure = RootStructure(RootKind.TEST, srcFolders, resourceFolders, mainSourceFolder)
     rootStructure
   }
 
@@ -82,8 +84,8 @@ class MavenProjectKind(project: Project, pom: File, eventBus: EventBus, clientLo
     mavenBuildManager
   }
 
-  override def sampleDataManager(): Option[SampleDataManager] = {
-    Some(dataManager)
+  override def sampleDataManager(): SampleDataManager = {
+    dataManager
   }
 
   override def metadataProvider(): Option[MetadataProvider] = {
