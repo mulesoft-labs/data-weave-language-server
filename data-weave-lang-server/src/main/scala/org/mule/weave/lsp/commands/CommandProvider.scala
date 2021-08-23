@@ -47,7 +47,7 @@ class CommandProvider(virtualFileSystem: VirtualFileSystem,
     new InsertDocumentationCommand(weaveToolingService),
     new InsertWeaveTypeCommand(weaveToolingService, project),
     new ExtractVariableCommand(weaveToolingService),
-    new CreateUnitTest(validationService, languageClient, projectKind),
+    new CreateUnitTest(weaveToolingService, languageClient, projectKind),
   )
 
   def commandBy(commandId: String): Option[WeaveCommand] = {
