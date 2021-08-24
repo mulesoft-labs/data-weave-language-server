@@ -5,6 +5,7 @@ import org.eclipse.lsp4j.Command
 import org.eclipse.lsp4j.CreateFile
 import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
 import org.eclipse.lsp4j.ResourceOperation
 import org.eclipse.lsp4j.TextDocumentEdit
 import org.eclipse.lsp4j.TextEdit
@@ -62,11 +63,8 @@ class CreateUnitTest(validationService: DataWeaveToolingService, weaveLanguageCl
           weaveLanguageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(edits))).get()
           weaveLanguageClient.openTextDocument(OpenTextDocumentParams(
             testFileURL,
-            startLine = line,
-            startCharacter = 0,
-            endLine = line + testAddition.test.count(_ == '\n'),
-            endCharacter = 0)
-          )
+            new Range(new Position(line, 0), new Position(line + testAddition.test.count(_ == '\n'), 0)),
+          ))
         }
       } else {
         val maybeTest: Option[String] = documentToolingService.createUnitTestFromDefinition(startOffset, endOffset)

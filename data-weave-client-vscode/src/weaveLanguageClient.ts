@@ -225,7 +225,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     })
 
     client.onNotification(OpenTextDocument.type, (params) => {
-        openTextDocument(params.uri, params.startLine, params.startCharacter, params.endLine, params.endCharacter);
+        openTextDocument(params.uri, params.range);
     })
 
     client.onNotification(LaunchConfiguration.type, (params) => {

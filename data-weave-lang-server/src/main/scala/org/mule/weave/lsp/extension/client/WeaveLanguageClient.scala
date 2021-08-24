@@ -194,10 +194,7 @@ case class OpenTextDocumentParams(
                                    // The uri of the file
                                    uri: String,
                                    // An optional range to select
-                                   @Nullable startLine: java.lang.Integer = null,
-                                   @Nullable startCharacter: java.lang.Integer = null,
-                                   @Nullable endLine: java.lang.Integer = null,
-                                   @Nullable endCharacter: java.lang.Integer = null,
+                                   @Nullable range: org.eclipse.lsp4j.Range = null,
                                  )
 
 

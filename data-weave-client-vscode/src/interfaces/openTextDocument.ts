@@ -1,3 +1,4 @@
+import { Range } from "vscode";
 import { NotificationType, RequestType } from "vscode-languageserver-protocol";
 
 export namespace OpenTextDocument {
@@ -8,9 +9,6 @@ export namespace OpenTextDocument {
 
     export interface OpenTextDocumentParams{
         uri: string;
-        startLine?: number;
-        startCharacter?: number;
-        endLine?: number;
-        endCharacter?: number;
+        range?: Range;
     }
 }

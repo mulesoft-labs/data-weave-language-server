@@ -248,18 +248,14 @@ class DWProject(val workspaceRoot: Path) {
 
 
   def toOffset(text: String, line: Int, column: Int): Int = {
-    val iterator = text.linesIterator
-    var index = 0
-    var cLine = -1
-    while (iterator.hasNext && line != cLine) {
-      val lineText = iterator.next()
-      index = lineText.length + 1
-      cLine = cLine + 1
-      if (line == cLine) {
-        index = index + column
-      }
+    val contentStr: Iterator[String] = text.linesIterator
+    var i = 0
+    var offset = 0
+    while (i < line && contentStr.hasNext) {
+      offset = offset + contentStr.next().length + 1 //Line number
+      i = i + 1
     }
-    index
+    offset + column
   }
 
   def init(diagnosticsListener: (PublishDiagnosticsParams) => Unit): WeaveLanguageServer = {
