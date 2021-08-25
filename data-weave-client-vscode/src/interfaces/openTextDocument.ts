@@ -1,3 +1,4 @@
+import { Range } from "vscode";
 import { NotificationType, RequestType } from "vscode-languageserver-protocol";
 
 export namespace OpenTextDocument {
@@ -7,6 +8,7 @@ export namespace OpenTextDocument {
     >("weave/workspace/openTextDocument");
 
     export interface OpenTextDocumentParams{
-        uri: string
+        uri: string;
+        range?: Range;
     }
 }

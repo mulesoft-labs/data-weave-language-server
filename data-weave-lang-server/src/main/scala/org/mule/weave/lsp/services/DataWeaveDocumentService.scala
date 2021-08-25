@@ -44,6 +44,7 @@ import org.eclipse.lsp4j.jsonrpc.messages
 import org.eclipse.lsp4j.jsonrpc.messages.{Either => JEither}
 import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.commands.Commands
+import org.mule.weave.lsp.commands.CreateUnitTest
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.SampleInput
@@ -65,15 +66,16 @@ import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionResult
 import org.mule.weave.v2.completion.SuggestionType
+import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
-import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.AstNodeHelper
 import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
+import org.mule.weave.v2.parser.ast.module.ModuleNode
 import org.mule.weave.v2.parser.ast.header.directives.InputDirective
 import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
@@ -322,6 +324,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
 
       maybeAstNode.foreach((ast) => {
         result.addAll(addDocumentationLenses(ast, uri))
+        result.addAll(addUnitTestLenses(ast, uri, documentToolingService.file.getNameIdentifier.name, documentToolingService))
       })
 
       result
@@ -355,6 +358,23 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
         val range = new lsp4j.Range(toPosition(astNode.location().startPosition), toPosition(astNode.location().startPosition))
         result.add(new CodeLens(range, command, null))
       })
+    result
+  }
+
+  private def addUnitTestLenses(ast: AstNode, uri: String, module: String, documentToolingService: WeaveDocumentToolingService): util.ArrayList[CodeLens] = {
+    val result = new util.ArrayList[CodeLens]()
+    ast match {
+      case md: ModuleNode =>
+        val topLevelFunctions: Seq[FunctionDirectiveNode] = AstNodeHelper.collectDirectChildrenWith(md, classOf[FunctionDirectiveNode])
+        topLevelFunctions
+          .foreach((astNode) => {
+            val command = CreateUnitTest.createCommand(uri, astNode)
+            val range = new lsp4j.Range(toPosition(astNode.location().startPosition), toPosition(astNode.location().startPosition))
+            result.add(new CodeLens(range, command, null))
+          })
+      case _ =>
+    }
+
     result
   }
 

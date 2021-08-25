@@ -29,8 +29,8 @@ object Commands {
   val DW_EXTRACT_VARIABLE = "dw.extractVariable"
   val DW_DELETE_SCENARIO = "dw.deleteScenario"
   val DW_CREATE_TEST = "dw.createTest"
+  val DW_CREATE_UNIT_TEST = "dw.createUnitTest"
   val DW_CREATE_MAPPING = "dw.createMapping"
-
 
   val ALL_COMMANDS: util.List[String] = util.Arrays.asList(
     BAT_RUN_BAT_TEST,
@@ -52,8 +52,8 @@ object Commands {
     DW_CREATE_TEST,
     DW_INSERT_WEAVE_TYPE,
     DW_CREATE_MAPPING,
-    DW_EXTRACT_VARIABLE
-
+    DW_EXTRACT_VARIABLE,
+    DW_CREATE_UNIT_TEST,
   )
 
   def optionalArgAsString(arguments: util.List[AnyRef], index: Int): Option[String] = {

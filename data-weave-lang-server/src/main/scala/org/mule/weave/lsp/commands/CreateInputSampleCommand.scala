@@ -4,7 +4,6 @@ import org.eclipse.lsp4j.ExecuteCommandParams
 import org.mule.weave.lsp.extension.client.OpenTextDocumentParams
 import org.mule.weave.lsp.extension.client.WeaveInputBoxParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
-import org.mule.weave.lsp.services.DataWeaveToolingService
 import org.mule.weave.lsp.services.WeaveScenarioManagerService
 import org.mule.weave.lsp.utils.URLUtils.toLSPUrl
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier

@@ -1,13 +1,15 @@
 import * as vscode from "vscode";
-import {Uri} from "vscode";
+import {Uri, Range} from "vscode";
 import {EditorDecoration, EditorDecorationParams} from "./interfaces/editorDecoration";
 
-export function openTextDocument(uri: string) {
+export function openTextDocument(
+    uri: string,
+    range?: Range) {
     const documentUri = Uri.parse(uri);
     vscode.workspace.openTextDocument(documentUri)
         .then(document => {
             console.log("opening " + documentUri);
-            vscode.window.showTextDocument(document);
+            vscode.window.showTextDocument(document, {selection: range});
         });
 }
 

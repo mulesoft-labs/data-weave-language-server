@@ -190,7 +190,12 @@ case class LaunchConfigurationProperty(
                                       )
 
 
-case class OpenTextDocumentParams(uri: String)
+case class OpenTextDocumentParams(
+                                   // The uri of the file
+                                   uri: String,
+                                   // An optional range to select
+                                   @Nullable range: org.eclipse.lsp4j.Range = null,
+                                 )
 
 
 case class EditorDecoration(
