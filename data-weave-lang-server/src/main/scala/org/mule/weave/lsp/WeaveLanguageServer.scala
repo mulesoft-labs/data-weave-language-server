@@ -135,7 +135,7 @@ class WeaveLanguageServer extends LanguageServer {
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
       jobManagerService = new JobManagerService(executorService, client)
       //Init The LSP Services And wire the implementation
-      weaveTestManager = new DataWeaveTestService(client, projectVFS, dataWeaveToolingService,clientLogger)
+      weaveTestManager = new DataWeaveTestService(client, projectVFS, clientLogger, jobManagerService)
       val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService,globalFVS)
       textDocumentService.delegate = documentServiceImpl
       val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManager)

@@ -84,7 +84,7 @@ case class ProjectSettings(eventBus: EventBus,
 
 
 object Settings {
-  val DEFAULT_VERSION: String = "2.5.0-SNAPSHOT"
+  val DEFAULT_VERSION: String = "2.4.0-SNAPSHOT"
   val DEFAULT_BAT_VERSION = "1.0.88"
   val DEFAULT_BAT_WRAPPER_VERSION = "1.0.58"
   val PREVIEW_TIMEOUT_VALUE = 50000.toString
