@@ -49,12 +49,13 @@ class DataWeaveTestService(
   var enableTestIndex: Boolean = true
 
   def discoverTests(projectStructure: ProjectStructure): Unit = {
-    val indexers = WeaveDirectoryUtils.wtfUnitTestFolder(projectStructure).flatMap(file => {
+    clientLogger.logInfo("Discovering Tests.")
+
+    WeaveDirectoryUtils.wtfUnitTestFolder(projectStructure).flatMap(file => {
       FileUtils.listFiles(file, new SuffixFileFilter(".dwl"), TrueFileFilter.INSTANCE).asScala.toList
-    }).map(file => {
-      cacheTest(URLUtils.toLSPUrl(file))
+    }).foreach(file => {
+      cacheTest(URLUtils.toLSPUrl(file), async = false)
     })
-    indexers.foreach(_.join())
   }
 
   override def init(projectKind: ProjectKind, eventBus: EventBus): Unit = {
@@ -90,19 +91,24 @@ class DataWeaveTestService(
     publishTests()
   }
 
-  def cacheTest(uri: String): CompletableFuture[Void] = {
-    CompletableFuture.runAsync(() => {
+  def cacheTest(uri: String, async: Boolean = true) = {
+    clientLogger.logInfo(s"Indexing tests of $uri")
+    if (enableTestIndex) {
       val launcher = new WTFLauncher(projectKind, clientLogger, weaveLanguageClient, virtualFileSystem)
       val nameIdentifier = virtualFileSystem.file(uri).getNameIdentifier
 
       val config = RunWTFConfiguration(Some(nameIdentifier.name), None, buildBefore = true, TcpClientProtocol.DEFAULT_PORT, dryRun = true)
 
-      var maybeOutput: Option[String] = None
-      jobManagerService.execute(
+      val jobExecutor: (Runnable, String, String) => Unit = if (async) {
+        jobManagerService.schedule
+      } else {
+        jobManagerService.execute
+      }
+      jobExecutor(
         () => {
           val process = launcher.launch(config, debugging = false)
 
-          maybeOutput = if (process.isDefined) {
+          val maybeOutput = if (process.isDefined) {
             //Block the process
             val exitValue = process.get.waitFor()
             clientLogger.logInfo(s"Process Finished with ${exitValue}")
@@ -116,19 +122,21 @@ class DataWeaveTestService(
           } else {
             None
           }
+
+          maybeOutput
+            .map(s => parseTestEvents(s, uri, nameIdentifier.name))
+            .filter(_.children.size() > 0)
+            .foreach(weaveItem => {
+              testsCache.put(uri, weaveItem)
+              publishTests()
+            })
         },
         "Indexing Tests",
         "Indexing Tests",
       )
-
-      maybeOutput
-        .map(s => parseTestEvents(s, uri, nameIdentifier.name))
-        .filter(_.children.size() > 0)
-        .foreach(weaveItem => {
-          testsCache.put(uri, weaveItem)
-          publishTests()
-        })
-    })
+    } else {
+      clientLogger.logInfo("Skipping test indexing, update wtf dependency.")
+    }
   }
 
   def publishTests(): Unit = {
@@ -163,37 +171,35 @@ class DataWeaveTestService(
     enableTestIndex = finishedEvents
       .forall(event => event.status.contains("SKIP"))
 
-    if (enableTestIndex) {
-      otherEvents
-        .filter(event => event.event == "testStarted" || event.event == "testSuiteStarted")
-        .foreach(event => {
-          val parentId = event.parentNodeId.getOrElse("-1")
-          for {
-            nodeId <- event.nodeId
-            parent <- parentPerId.get(parentId)
+    otherEvents
+      .filter(event => event.event == "testStarted" || event.event == "testSuiteStarted")
+      .foreach(event => {
+        val parentId = event.parentNodeId.getOrElse("-1")
+        for {
+          nodeId <- event.nodeId
+          parent <- parentPerId.get(parentId)
+        } yield {
+          val testLocation = event
+            .location
+            .flatMap(parseOpt)
+            .flatMap(p => {
+              implicit val formats: DefaultFormats.type = DefaultFormats
+              p.extractOpt[TestLocation]
+            })
+          val range = for {
+            testLoc <- testLocation
+            range <- testLoc.toRange
+            source <- testLoc.source
+            weaveResource <- virtualFileSystem.asResourceResolver.resolve(NameIdentifier(source))
+            if (weaveResource.url() == uri)
           } yield {
-            val testLocation = event
-              .location
-              .flatMap(parseOpt)
-              .flatMap(p => {
-                implicit val formats: DefaultFormats.type = DefaultFormats
-                p.extractOpt[TestLocation]
-              })
-            val range = for {
-              testLoc <- testLocation
-              range <- testLoc.toRange
-              source <- testLoc.source
-              weaveResource <- virtualFileSystem.asResourceResolver.resolve(NameIdentifier(source))
-              if (weaveResource.url() == uri)
-            } yield {
-              range
-            }
-            val testItem = WeaveTestItem(label = event.name, uri = uri, range = range.orNull)
-            parent.children.add(testItem)
-            parentPerId += (nodeId -> testItem)
+            range
           }
-        })
-    }
+          val testItem = WeaveTestItem(label = event.name, uri = uri, range = range.orNull)
+          parent.children.add(testItem)
+          parentPerId += (nodeId -> testItem)
+        }
+      })
     rootTestItem
   }
 

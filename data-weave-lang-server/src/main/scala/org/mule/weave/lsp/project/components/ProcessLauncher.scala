@@ -250,15 +250,17 @@ class WTFLauncher(projectKind: ProjectKind,
     if (config.dryRun) {
       props.add("-DskipAll=true")
     }
-    val args: util.ArrayList[String] = buildJavaProcessBaseArgs(projectKind, props.asScala.toSeq)
-
-
     config.testToRun match {
       case Some(testToRun) if (testToRun.nonEmpty) => {
-        args.add(s"-DtestToRun='${testToRun}'")
+        props.add(s"-DtestToRun='${testToRun}'")
       }
       case _ => {}
     }
+
+    val args: util.ArrayList[String] = buildJavaProcessBaseArgs(projectKind, props.asScala.toSeq)
+
+
+
 
     //
     args.add("--wtest")
