@@ -68,7 +68,7 @@ object JavaWeaveLauncher {
 
   val WEAVE_RUNNER_MAIN_CLASS = "org.mule.weave.v2.runtime.utils.WeaveRunner"
 
-  def buildJavaProcessBaseArgs(projectKind: ProjectKind): util.ArrayList[String] = {
+  def buildJavaProcessBaseArgs(projectKind: ProjectKind, properties: Seq[String] = Seq()): util.ArrayList[String] = {
     val javaHome = JavaExecutableHelper.currentJavaHome()
     val javaExec = new File(new File(javaHome, "bin"), "java")
     val args = new util.ArrayList[String]()
@@ -112,6 +112,7 @@ object JavaWeaveLauncher {
     /// Common system properties
     //    args.add(s"-Duser.dir='${projectKind.structure().projectHome.getAbsolutePath}'")
     ///
+    properties.foreach(args.add)
     args.add(WEAVE_RUNNER_MAIN_CLASS)
     args
   }
@@ -244,15 +245,22 @@ class WTFLauncher(projectKind: ProjectKind,
   override def launch(config: RunWTFConfiguration, debugging: Boolean): Option[Process] = {
 
     val builder = new ProcessBuilder()
-    val args: util.ArrayList[String] = buildJavaProcessBaseArgs(projectKind)
 
-
+    var props: util.ArrayList[String] = new util.ArrayList()
+    if (config.dryRun) {
+      props.add("-DskipAll=true")
+    }
     config.testToRun match {
       case Some(testToRun) if (testToRun.nonEmpty) => {
-        args.add(s"-DtestToRun='${testToRun}'")
+        props.add(s"-DtestToRun='${testToRun}'")
       }
       case _ => {}
     }
+
+    val args: util.ArrayList[String] = buildJavaProcessBaseArgs(projectKind, props.asScala.toSeq)
+
+
+
 
     //
     args.add("--wtest")
