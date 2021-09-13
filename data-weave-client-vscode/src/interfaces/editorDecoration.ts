@@ -24,4 +24,5 @@ export interface EditorDecorationParams {
 export interface EditorDecoration {
   range: Range;
   text: string;
+  color: string;
 }

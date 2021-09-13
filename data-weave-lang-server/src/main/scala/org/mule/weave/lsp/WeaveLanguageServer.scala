@@ -175,6 +175,7 @@ class WeaveLanguageServer extends LanguageServer {
       capabilities.setCodeActionProvider(true)
       capabilities.setCodeLensProvider(new CodeLensOptions(true))
       capabilities.setRenameProvider(true)
+      capabilities.setDocumentRangeFormattingProvider(true)
       capabilities.setReferencesProvider(true)
       capabilities.setSignatureHelpProvider(new SignatureHelpOptions(util.Arrays.asList("("), util.Arrays.asList(",")))
       capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(Commands.ALL_COMMANDS))

@@ -72,6 +72,9 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
                         client: WeaveLanguageClient
                        ) extends ToolingService {
 
+  val LIGHT_GREY = "rgb(113, 113, 113)"
+  val RED = "rgb(139, 0, 0)"
+
   private var agentProcess: Process = _
   private var weaveAgentClient: WeaveAgentClient = _
   private var projectKind: ProjectKind = _
@@ -275,7 +278,7 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
               }
               case PreviewExecutedSuccessfulEvent(result, mimeType, extension, encoding, messages, contextData) => {
                 val logsArray = messages.map((m) => m.timestamp + " : " + m.message).toArray
-                if(contextData != null) {
+                if (contextData != null) {
                   publishContextData(contextData, url, nameIdentifier)
                 }
                 runResult.set(
@@ -301,13 +304,14 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
     }
   }
 
-  private def publishContextData(contextData: Array[ContextValue], url: String, nameIdentifier: NameIdentifier) = {
+  private def publishContextData(contextData: Array[ContextValue], url: String, nameIdentifier: NameIdentifier): Unit = {
     client.clearEditorDecorations()
     val currentFileAnnotations: Array[ContextValue] = contextData.filter(_.location.start.resourceName == nameIdentifier.toString())
-    val resultsByContextAndLine: Map[Int, Map[Int, ContextValue]] = currentFileAnnotations
+    val resultsByContextAndLine: Map[Int, Map[Int, Array[ContextValue]]] = currentFileAnnotations
       .groupBy(_.node.frameId)
       .mapValues((values) => {
-        values.groupBy(_.location.end.line).mapValues(_.last)
+        values
+          .groupBy(_.location.end.line)
       })
 
     val leftMargin: Int = {
@@ -323,20 +327,37 @@ class WeaveAgentService(validationService: DataWeaveToolingService,
 
     val decorations: Array[EditorDecoration] = resultsByContextAndLine.flatMap((frameIdValues) => {
       frameIdValues._2.map((value) => {
-        val cd = value._2
+        val allValues = value._2
+        val contextValues = allValues
+          .collect({
+            case cr@ContextResult(_, _, _, Some(_)) => cr
+          })
+          .map((value) => s"${value.name.get} = ${trimToMaxLength(value.value)}")
+          .mkString(", ")
+        val cd: ContextValue = allValues.last
         val message = cd match {
           case ContextException(_, _, message) => {
-            s" // Exception: " + message
+            if (contextValues.trim.isEmpty) {
+              (" || Exception: " + message, RED)
+            }else {
+              (s" || ${contextValues} ==> Exception: " + message, RED)
+            }
           }
           case ContextResult(_, _, value, name) => {
             name match {
-              case Some(name) => s" //${name} = ${trimToMaxLength(value)}"
-              case None => s" // " + trimToMaxLength(value)
+              case Some(name) => (s" || ${name} = ${trimToMaxLength(value)}", LIGHT_GREY)
+              case None => {
+                if (contextValues.trim.isEmpty) {
+                  (" || " + trimToMaxLength(value), LIGHT_GREY)
+                } else {
+                  (s" || ${contextValues} ==> " + trimToMaxLength(value), LIGHT_GREY)
+                }
+              }
             }
           }
-          case _ => ""
+          case _ => ("", LIGHT_GREY)
         }
-        EditorDecoration(new lsp4j.Range(new Position(cd.location.end.line - 1, leftMargin), new Position(cd.location.end.line - 1, leftMargin)), message)
+        EditorDecoration(new lsp4j.Range(new Position(cd.location.end.line - 1, leftMargin), new Position(cd.location.end.line - 1, leftMargin)), message._1, message._2)
       })
     }).toArray
 

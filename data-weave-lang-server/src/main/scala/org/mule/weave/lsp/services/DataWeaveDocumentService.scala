@@ -16,6 +16,7 @@ import org.eclipse.lsp4j.DidCloseTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
 import org.eclipse.lsp4j.DidSaveTextDocumentParams
 import org.eclipse.lsp4j.DocumentFormattingParams
+import org.eclipse.lsp4j.DocumentRangeFormattingParams
 import org.eclipse.lsp4j.DocumentSymbol
 import org.eclipse.lsp4j.DocumentSymbolParams
 import org.eclipse.lsp4j.FoldingRange
@@ -46,6 +47,7 @@ import org.mule.weave.lsp.actions.CodeActions
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.commands.CreateUnitTest
 import org.mule.weave.lsp.commands.InsertDocumentationCommand
+import org.mule.weave.lsp.commands.LSPWeaveTextDocument
 import org.mule.weave.lsp.extension.client.LaunchConfiguration
 import org.mule.weave.lsp.extension.client.SampleInput
 import org.mule.weave.lsp.extension.services.DidFocusChangeParams
@@ -66,25 +68,26 @@ import org.mule.weave.lsp.vfs.ProjectVirtualFileSystem
 import org.mule.weave.v2.completion.Suggestion
 import org.mule.weave.v2.completion.SuggestionResult
 import org.mule.weave.v2.completion.SuggestionType
-import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.Link
 import org.mule.weave.v2.editor.RegionKind
 import org.mule.weave.v2.editor.VirtualFile
 import org.mule.weave.v2.editor.VirtualFileSystem
+import org.mule.weave.v2.editor.WeaveDocumentToolingService
 import org.mule.weave.v2.editor.{SymbolKind => WeaveSymbolKind}
+import org.mule.weave.v2.formatting.FormattingOptions
 import org.mule.weave.v2.parser.ast.AstNode
 import org.mule.weave.v2.parser.ast.AstNodeHelper
 import org.mule.weave.v2.parser.ast.header.directives.FunctionDirectiveNode
-import org.mule.weave.v2.parser.ast.module.ModuleNode
 import org.mule.weave.v2.parser.ast.header.directives.InputDirective
+import org.mule.weave.v2.parser.ast.module.ModuleNode
 import org.mule.weave.v2.parser.ast.structure.DocumentNode
 import org.mule.weave.v2.parser.ast.variables.NameIdentifier
 import org.mule.weave.v2.scope.Reference
 import org.mule.weave.v2.sdk.WeaveResourceResolver
+import org.mule.weave.v2.signature.FunctionSignatureResult
 import org.mule.weave.v2.utils.WeaveTypeEmitterConfig
 
 import java.util
-import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.logging.Level
@@ -255,7 +258,7 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
       val toolingService: WeaveDocumentToolingService = openDocument(params.getTextDocument)
       val position = params.getPosition
       val offset: Int = toolingService.offsetOf(position.getLine, position.getCharacter)
-      val maybeResult = toolingService.signatureInfo(offset)
+      val maybeResult: Option[FunctionSignatureResult] = toolingService.signatureInfo(offset)
       maybeResult match {
         case Some(signatureResult) => {
           val signatures = signatureResult.signatures.map((s) => {
@@ -541,12 +544,22 @@ class DataWeaveDocumentService(toolingServices: DataWeaveToolingService,
   override def formatting(params: DocumentFormattingParams): CompletableFuture[java.util.List[_ <: TextEdit]] = {
     CompletableFuture.supplyAsync(() => {
       val toolingService = openDocument(params.getTextDocument)
-      toolingService.formatting() match {
-        case None => new util.ArrayList[TextEdit]()
-        case Some(value) => {
-          Collections.singletonList(new TextEdit(toRange(value.range), value.newFormat))
-        }
-      }
+      val textDocument = new LSPWeaveTextDocument(toolingService)
+      toolingService.formatDocument(textDocument, FormattingOptions(params.getOptions.getTabSize, params.getOptions.isInsertSpaces))
+      textDocument.edits()
+    }, executor)
+  }
+
+
+  override def rangeFormatting(params: DocumentRangeFormattingParams): CompletableFuture[util.List[_ <: TextEdit]] = {
+    CompletableFuture.supplyAsync(() => {
+      val toolingService = openDocument(params.getTextDocument)
+      val textDocument: LSPWeaveTextDocument = new LSPWeaveTextDocument(toolingService)
+      val range: lsp4j.Range = params.getRange
+      val startOffset: Int = toolingService.offsetOf(range.getStart.getLine, range.getStart.getCharacter)
+      val endOffset: Int = toolingService.offsetOf(range.getEnd.getLine, range.getEnd.getCharacter)
+      toolingService.format(startOffset, endOffset, textDocument, FormattingOptions(params.getOptions.getTabSize, params.getOptions.isInsertSpaces))
+      textDocument.edits()
     }, executor)
   }
 

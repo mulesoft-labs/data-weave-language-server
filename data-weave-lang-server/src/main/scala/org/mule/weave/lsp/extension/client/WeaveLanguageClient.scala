@@ -200,7 +200,8 @@ case class OpenTextDocumentParams(
 
 case class EditorDecoration(
                              range: org.eclipse.lsp4j.Range,
-                             text: String
+                             text: String,
+                             color: String
                            )
 
 case class EditorDecorationsParams(

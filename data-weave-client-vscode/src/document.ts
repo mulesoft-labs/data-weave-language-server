@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import {Uri, Range} from "vscode";
-import {EditorDecoration, EditorDecorationParams} from "./interfaces/editorDecoration";
+import { Uri, Range, DecorationRenderOptions } from "vscode";
+import { EditorDecoration, EditorDecorationParams } from "./interfaces/editorDecoration";
 
 export function openTextDocument(
     uri: string,
@@ -9,7 +9,7 @@ export function openTextDocument(
     vscode.workspace.openTextDocument(documentUri)
         .then(document => {
             console.log("opening " + documentUri);
-            vscode.window.showTextDocument(document, {selection: range});
+            vscode.window.showTextDocument(document, { selection: range });
         });
 }
 
@@ -20,10 +20,15 @@ export function findVisibleEditor(uri: string): vscode.TextEditor | null {
     return foundEditor || null;
 }
 
-let decorationType = vscode.window.createTextEditorDecorationType({});
+
+const decorationSettings: DecorationRenderOptions = {};
+
+
+let decorationType = vscode.window.createTextEditorDecorationType(decorationSettings);
+
 export function clearDecorations() {
     decorationType.dispose();
-    decorationType = vscode.window.createTextEditorDecorationType({});
+    decorationType = vscode.window.createTextEditorDecorationType(decorationSettings);
 }
 
 export function setDecorations(params: EditorDecorationParams) {
@@ -42,7 +47,8 @@ function toVsDecorations(editorDecorations: EditorDecoration[]): vscode.Decorati
             renderOptions: {
                 after: {
                     contentText: editorDecoration.text,
-                    color: "grey"
+                    fontStyle: "italic",                    
+                    color: editorDecoration.color
                 }
             }
         };
