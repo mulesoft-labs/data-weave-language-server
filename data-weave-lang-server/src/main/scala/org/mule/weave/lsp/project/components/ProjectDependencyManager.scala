@@ -18,6 +18,8 @@ trait ProjectDependencyManager {
     */
   def start(): Unit
 
+  def reload(): Unit
+
   /**
     * Returns the list of all the dependencies
     *

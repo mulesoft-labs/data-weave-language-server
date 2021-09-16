@@ -30,8 +30,8 @@ class DefaultProjectCreator() extends ProjectCreator {
       .resolve("java")
     val dwPath = mainPath.resolve("dw")
     val resources = mainPath.resolve("resources")
-    val exampleDw = fromResource("dw-template-module.dwl").mkString
-    val dwFile = dwPath.resolve("transformation.dwl")
+    val exampleDw = fromResource("dw-template-mapping.dwl").mkString
+    val dwFile = dwPath.resolve("MyMapping.dwl")
     val testPath = sourcePath.resolve("test")
     Files.createDirectories(javaPath)
     Files.createDirectories(dwPath)

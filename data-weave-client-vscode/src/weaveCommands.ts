@@ -3,6 +3,7 @@ export class ClientWeaveCommands {
     public static OPEN_FILE = "dw.dependency.openFile"
     public static CREATE_TEST = "dw.test.create"
     public static CREATE_MAPPING = "dw.mapping.create"
+    public static CREATE_MODULE = "dw.module.create"
     public static CREATE_PROJECT = 'dw.project.create';
     public static ENABLE_PREVIEW = "dw.preview.enable"
     public static RUN_PREVIEW = "dw.preview.run"
@@ -24,6 +25,7 @@ export class ServerWeaveCommands {
 
     public static CREATE_TEST = "dw.createTest"
     public static CREATE_MAPPING = "dw.createMapping"
+    public static CREATE_MODULE = "dw.createModule"
     public static ENABLE_PREVIEW = "dw.enablePreview"
     public static CREATE_SCENARIO = "dw.createScenario"
     public static DELETE_SCENARIO = "dw.deleteScenario"
@@ -37,5 +39,6 @@ export class ServerWeaveCommands {
 
     public static RUN_PREVIEW = "dw.runPreview"
     public static LAUNCH_MAPPING = "dw.launchCommand"
+    public static LAUNCH_TEST = "dw.launchTest"
 
 }

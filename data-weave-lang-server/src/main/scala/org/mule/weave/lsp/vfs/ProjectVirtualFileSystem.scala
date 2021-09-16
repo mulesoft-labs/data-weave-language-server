@@ -90,8 +90,8 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
           Some(vf)
         }
         case None => {
-          val virtualFile: ProjectVirtualFile = new ProjectVirtualFile(this, uri, None, Some(content))
-          inMemoryFiles.put(uri, virtualFile)
+          val virtualFile: ProjectVirtualFile = new ProjectVirtualFile(this, URLUtils.toCanonicalString(uri), None, Some(content))
+          doUpdateFile(uri, virtualFile)
           triggerChanges(virtualFile)
           Some(virtualFile)
         }
@@ -102,6 +102,7 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
 
   /**
     * Returns true if this VFS supports this kind of files
+    *
     * @param uri The Uri of the file
     * @return True if this URL is supported by this VFS
     */
@@ -220,8 +221,8 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
       null
     } else {
       //absolute path
-      if (inMemoryFiles.contains(uri)) {
-        inMemoryFiles(uri)
+      if (containsFile(uri)) {
+        doGetFile(uri)
       } else {
         //It may not be a valid url then just try on nextone
         val maybeFile = URLUtils.toFile(uri)
@@ -229,8 +230,8 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
           null
         } else {
           if (maybeFile.get.exists()) {
-            val virtualFile = new ProjectVirtualFile(this, uri, maybeFile)
-            inMemoryFiles.put(uri, virtualFile)
+            val virtualFile = new ProjectVirtualFile(this, URLUtils.toCanonicalString(uri), maybeFile)
+            doUpdateFile(uri, virtualFile)
             virtualFile
           } else {
             null
@@ -238,6 +239,19 @@ class ProjectVirtualFileSystem() extends VirtualFileSystem with ToolingService {
         }
       }
     }
+  }
+
+  private def containsFile(uri: String) = {
+    inMemoryFiles.contains(URLUtils.toCanonicalString(uri))
+  }
+
+  private def doGetFile(uri: String) = {
+    inMemoryFiles(URLUtils.toCanonicalString(uri))
+  }
+
+
+  private def doUpdateFile(uri: String, virtualFile: ProjectVirtualFile) = {
+    inMemoryFiles.put(URLUtils.toCanonicalString(uri), virtualFile)
   }
 
   def routeOf(uri: String): Option[File] = {

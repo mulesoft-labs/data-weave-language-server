@@ -46,6 +46,10 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
     })
   }
 
+  override def reload(): Unit = {
+    reloadArtifacts()
+  }
+
   private def reloadArtifacts(): Unit = {
     try {
       loggerService.logInfo("Loading artifacts from : " + pomFile.getPath)

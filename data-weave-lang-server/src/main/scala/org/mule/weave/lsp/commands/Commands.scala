@@ -14,6 +14,7 @@ object Commands {
   val BAT_RUN_BAT_FOLDER = "bat.runFolder"
   val BAT_INSTALL_BAT_CLI = "bat.installCli"
   val DW_LAUNCH_MAPPING = "dw.launchCommand"
+  val DW_LAUNCH_TEST = "dw.launchTest"
   val DW_ENABLE_PREVIEW = "dw.enablePreview"
   val DW_RUN_PREVIEW = "dw.runPreview"
   val DW_RUN_MAPPING = "dw.runCommand"
@@ -31,6 +32,7 @@ object Commands {
   val DW_CREATE_TEST = "dw.createTest"
   val DW_CREATE_UNIT_TEST = "dw.createUnitTest"
   val DW_CREATE_MAPPING = "dw.createMapping"
+  val DW_CREATE_MODULE = "dw.createModule"
 
   val ALL_COMMANDS: util.List[String] = util.Arrays.asList(
     BAT_RUN_BAT_TEST,
@@ -42,6 +44,7 @@ object Commands {
     DW_DELETE_EXPECTED_OUTPUT,
     DW_ENABLE_PREVIEW,
     DW_LAUNCH_MAPPING,
+    DW_LAUNCH_TEST,
     DW_QUICK_FIX,
     DW_CREATE_SCENARIO,
     DW_DELETE_SCENARIO,
@@ -52,6 +55,7 @@ object Commands {
     DW_CREATE_TEST,
     DW_INSERT_WEAVE_TYPE,
     DW_CREATE_MAPPING,
+    DW_CREATE_MODULE,
     DW_EXTRACT_VARIABLE,
     DW_CREATE_UNIT_TEST,
   )

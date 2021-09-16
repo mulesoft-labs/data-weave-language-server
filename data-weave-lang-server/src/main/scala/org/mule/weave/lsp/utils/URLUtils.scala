@@ -66,4 +66,8 @@ object URLUtils {
   def toLSPUrl(theFile: File): String = {
     "file://" + theFile.toURI.toURL.getPath
   }
+
+  def toCanonicalString(uri: String): String = {
+    URI.create(uri).toString
+  }
 }

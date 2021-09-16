@@ -295,8 +295,9 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         } else {
             rootTestsUri = request.include.map(item => item.uri)
         }
-        var includedTests = rootTestsUri.map(rootUri => Utils.basename(rootUri).slice(0, -4)).join(',')
-        await vscode.commands.executeCommand(ServerWeaveCommands.LAUNCH_MAPPING, includedTests, "data-weave-testing", noDebug)
+        // var includedTests = rootTestsUri.map(rootUri => Utils.basename(rootUri).slice(0, -4)).join(',')
+        var includedTests = rootTestsUri.map(rootUri => rootUri.toString()).join(',')
+        await vscode.commands.executeCommand(ServerWeaveCommands.LAUNCH_TEST, includedTests, noDebug)
     }
 
     testController.createRunProfile('Debug Tests', vscode.TestRunProfileKind.Debug, runHandler, false);

@@ -26,7 +26,6 @@ import java.util.Collections
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
-import scala.concurrent.duration.TimeUnit
 
 
 class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project, toolingServices: DataWeaveToolingService) extends ToolingService {
@@ -110,9 +109,10 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
       .forall((kind) => kind.equals(WeaveASTQueryUtils.MAPPING))
 
     if (!URLUtils.isSupportedEditableScheme(fileUrl) || !isMapping) {
-      return false
+      false
+    } else {
+      true
     }
-    true
   }
 
   def runPreview(vf: VirtualFile): Unit = {

@@ -180,27 +180,31 @@
     "commands": [
       {
         "command": "bat.runCurrentBatTest.invoked",
-        "title": "DataWeave: BAT: Run current file"
+        "title": "BAT: Run current file"
       },
       {
         "command": "bat.runFolder.invoked",
-        "title": "DataWeave: BAT: Run project folder"
+        "title": "BAT: Run project folder"
       },
       {
         "command": "bat.installCli",
-        "title": "DataWeave: BAT: Install BAT command line interface"
+        "title": "BAT: Install BAT command line interface"
       },
       {
         "command": "dw.project.create",
-        "title": "DataWeave: Create new project"
+        "title": "DataWeave: Create New Project"
       },
       {
         "command": "dw.test.create",
-        "title": "DataWeave: Create new test"
+        "title": "DataWeave: Create New Test"
       },
       {
         "command": "dw.mapping.create",
-        "title": "DataWeave: Create new mapping"
+        "title": "DataWeave: Create New Mapping"
+      },
+      {
+        "command": "dw.module.create",
+        "title": "DataWeave: Create New Module"
       },
       {
         "command": "dw.preview.run",
@@ -209,7 +213,7 @@
       },
       {
         "command": "dw.scenarios.saveOutput",
-        "title": "DataWeave: Save expected output",
+        "title": "DataWeave: Save Expected Output",
         "icon": "$(save)"
       },
       {

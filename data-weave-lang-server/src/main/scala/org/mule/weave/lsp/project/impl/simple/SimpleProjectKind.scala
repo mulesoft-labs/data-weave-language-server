@@ -103,6 +103,8 @@ class SimpleDependencyManager(project: Project, logger: ClientLogger, eventBus: 
     reloadDependencies()
   }
 
+  override def reload(): Unit = {}
+
   protected def reloadDependencies(): Unit = {
     val allArtifacts: Array[DependencyArtifact] = loadNewArtifacts()
     dependenciesArray = allArtifacts

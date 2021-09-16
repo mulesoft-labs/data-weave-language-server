@@ -74,7 +74,7 @@ export function activate(context: ExtensionContext) {
         let options = { cwd: workspace.rootPath }
         let args = [
           '-jar',
-          // '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5050',
+          '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5050',
           weaveJarLocation,
           port.toString()
         ]
@@ -145,6 +145,10 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.CREATE_MAPPING, () => {
     vscode.commands.executeCommand(ServerWeaveCommands.CREATE_MAPPING)
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.CREATE_MODULE, () => {
+    vscode.commands.executeCommand(ServerWeaveCommands.CREATE_MODULE)
   }));
 
   context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.OPEN_FILE, (resource) => {
