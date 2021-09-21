@@ -6,6 +6,7 @@ import org.eclipse.lsp4j.MessageType
 import org.mule.weave.dsp.DataWeaveDebuggerAdapterProtocolLauncher.launch
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
@@ -44,7 +45,7 @@ class RunWeaveCommand(virtualFileSystem: VirtualFileSystem,
     } else {
       val port: Int = NetUtils.freePort()
       val latch = new CountDownLatch(1)
-      jobManagerService.schedule(() => {
+      jobManagerService.schedule((status: Status) => {
         val launcher: ProcessLauncher = ProcessLauncher.createLauncherByType(config, projectKind, clientLogger, languageClient, projectVirtualFileSystem)
         launch(virtualFileSystem, clientLogger, languageClient, launcher, projectKind, jobManagerService, dataWeaveTestService, () => latch.countDown(), port)
       }, "Starting Debugger Server", "Starting Debugger Server")

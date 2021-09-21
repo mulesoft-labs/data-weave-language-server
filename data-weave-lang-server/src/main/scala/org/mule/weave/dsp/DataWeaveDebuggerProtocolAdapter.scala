@@ -18,6 +18,7 @@ import org.eclipse.lsp4j.debug.services.IDebugProtocolClient
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProcessLauncher
 import org.mule.weave.lsp.services.ClientLogger
@@ -165,13 +166,13 @@ class DataWeaveDebuggerProtocolAdapter(virtualFileSystem: VirtualFileSystem,
 
       //Trigger build before each run
       if (config.buildBefore) {
-        jobManagerService.execute(() => {
+        jobManagerService.execute((status: Status) => {
           projectKind.buildManager().build()
         }, "Building Project", s"Building `${projectKind.name()}` Project.")
 
       }
 
-      jobManagerService.execute(() => {
+      jobManagerService.execute((status: Status) => {
         process = launcher.launch(config, debugMode)
       }, "Launching Process", s"Launching Process.")
       if (process.isDefined) {

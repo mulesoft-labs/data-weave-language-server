@@ -44,8 +44,10 @@ class JobManagerService(executor: Executor, weaveLanguageClient: WeaveLanguageCl
     * @param theLabel       The label
     * @param theDescription The description
     */
-  def execute(task: Runnable, theLabel: String, theDescription: String): Unit = {
+  def execute(task: Task, theLabel: String, theDescription: String): Unit = {
     execute(new Job {
+      private val status = Status()
+
       override def description(): String = {
         theDescription
       }
@@ -55,7 +57,12 @@ class JobManagerService(executor: Executor, weaveLanguageClient: WeaveLanguageCl
       }
 
       override def doTheJob(): Unit = {
-        task.run()
+        task.run(status)
+      }
+
+      override def cancel(): Unit = {
+        super.cancel()
+        status.canceled = true
       }
     })
   }
@@ -67,8 +74,10 @@ class JobManagerService(executor: Executor, weaveLanguageClient: WeaveLanguageCl
     * @param theLabel       The label
     * @param theDescription The description
     */
-  def schedule(job: Runnable, theLabel: String, theDescription: String): Unit = {
+  def schedule(job: Task, theLabel: String, theDescription: String): Unit = {
     schedule(new Job {
+      private val status = Status()
+
       override def description(): String = {
         theDescription
       }
@@ -78,7 +87,12 @@ class JobManagerService(executor: Executor, weaveLanguageClient: WeaveLanguageCl
       }
 
       override def doTheJob(): Unit = {
-        job.run()
+        job.run(status)
+      }
+
+      override def cancel(): Unit = {
+        super.cancel()
+        status.canceled = true
       }
     })
   }

@@ -37,8 +37,11 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
     client.onNotification(JobStarted.type, (jobId) => {
         jobs[jobId.id] = { label: jobId.label, description: jobId.description }
         statusBar.text = "$(sync~spin) " + jobId.label + " ..."
-        statusBar.tooltip = jobId.description
-        statusBar.command = ClientWeaveCommands.SHOW_LOG
+        var tooltip =  buildJobsTooltip()
+        const markdownLabel = new vscode.MarkdownString(tooltip, true);
+        markdownLabel.isTrusted = true
+        statusBar.tooltip = markdownLabel         
+        statusBar.command = ClientWeaveCommands.SHOW_LOG        
         statusBar.show()
     });
 
@@ -49,11 +52,18 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
             statusBar.hide()
         } else {
             statusBar.text = "$(sync~spin) " + remainingJobs[0].label + " ..."
-            statusBar.tooltip = remainingJobs[0].description
+            var tooltip =  buildJobsTooltip()
+            const markdownLabel = new vscode.MarkdownString(tooltip, true);
+            markdownLabel.isTrusted = true
+            statusBar.tooltip = markdownLabel          
             statusBar.show()
         }
     });
 
+    function buildJobsTooltip() {
+      return Object.values(jobs).map((value) => "$(sync~spin) " + value.description).join("\n");
+    }
+  
     client.onRequest(WeaveInputBox.type, (options, requestToken) => {
         return showInputBox(options);
     });
@@ -312,6 +322,7 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         rootTests = params.rootTestItems.map(test => Uri.parse(test.uri))
         createTestItem(siblings, itemCollection);
     })
+
 
     function createTestItem(siblings: WeavePublishTests.WeaveTestItem[], itemCollection: vscode.TestItemCollection) {
         if (siblings) {

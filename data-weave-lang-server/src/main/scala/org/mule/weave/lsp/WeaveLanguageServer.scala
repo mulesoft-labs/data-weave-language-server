@@ -16,11 +16,11 @@ import org.eclipse.lsp4j.services.WorkspaceService
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.commands.Commands
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
-import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.extension.services.DependencyManagerService
 import org.mule.weave.lsp.extension.services.WeaveTextDocumentService
 import org.mule.weave.lsp.indexer.LSPWeaveIndexService
 import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.ProjectKindDetector
@@ -59,7 +59,6 @@ import java.util.logging.Logger
 import scala.collection.mutable.ArrayBuffer
 
 class WeaveLanguageServer extends LanguageServer {
-
 
 
   private val logger: Logger = Logger.getLogger(getClass.getName)
@@ -125,7 +124,8 @@ class WeaveLanguageServer extends LanguageServer {
       //Or we should make the project kind enable it
       val scenarioService = new WeaveScenarioManagerService(client, globalFVS)
       val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService, client)
-      val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService)
+      jobManagerService = new JobManagerService(executorService, client)
+      val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService, jobManagerService)
 
       indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
 
@@ -133,12 +133,12 @@ class WeaveLanguageServer extends LanguageServer {
       projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client, scenarioService)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
-      jobManagerService = new JobManagerService(executorService, client)
+
       //Init The LSP Services And wire the implementation
       weaveTestManager = new DataWeaveTestService(client, projectVFS, clientLogger, jobManagerService)
-      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService,globalFVS)
+      val documentServiceImpl = new DataWeaveDocumentService(dataWeaveToolingService, executorService, projectVFS, scenarioService, globalFVS)
       textDocumentService.delegate = documentServiceImpl
-      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService,scenarioService, previewService,weaveTestManager)
+      val workspaceServiceImpl = new DataWeaveWorkspaceService(projectValue, globalFVS, projectVFS, clientLogger, client, dataWeaveToolingService, jobManagerService, scenarioService, previewService, weaveTestManager)
       workspaceService.delegate = workspaceServiceImpl
       val dependencyManagerImpl = new DataWeaveDependencyManagerService(client)
       dependencyManagerService.delegate = dependencyManagerImpl
@@ -186,27 +186,25 @@ class WeaveLanguageServer extends LanguageServer {
 
   override def initialized(params: InitializedParams): Unit = {
     //Start the project
-    jobManagerService.schedule(new Runnable {
-      override def run(): Unit = {
-        try {
-          clientLogger.logInfo(s"[DataWeave] Project Kind: ${projectKind.name()} Starting.")
-          projectKind.start()
-          val dependencyManager: ProjectDependencyManager = projectKind.dependencyManager()
-          clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " Starting.")
-          dependencyManager.start()
-          clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " Started.")
-          clientLogger.logInfo("[DataWeave] Starting other services.")
-          //Start the Services
-          services.foreach((service) => {
-            service.start()
-          })
-          //Mark project as initialized
-          projectValue.markStarted
-          eventbus.fire(new ProjectStartedEvent(projectValue))
-        } catch {
-          case e: Exception => {
-            clientLogger.logError("Unable to Start project.", e)
-          }
+    jobManagerService.schedule((status: Status) => {
+      try {
+        clientLogger.logInfo(s"[DataWeave] Project Kind: ${projectKind.name()} Starting.")
+        projectKind.start()
+        val dependencyManager: ProjectDependencyManager = projectKind.dependencyManager()
+        clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " Starting.")
+        dependencyManager.start()
+        clientLogger.logInfo("[DataWeave] Dependency Manager: " + dependencyManager.getClass + " Started.")
+        clientLogger.logInfo("[DataWeave] Starting other services.")
+        //Start the Services
+        services.foreach((service) => {
+          service.start()
+        })
+        //Mark project as initialized
+        projectValue.markStarted
+        eventbus.fire(new ProjectStartedEvent(projectValue))
+      } catch {
+        case e: Exception => {
+          clientLogger.logError("Unable to Start project.", e)
         }
       }
     }, s"Starting DataWeave Project", s"Starting Project of Kind: ${projectKind.name()}.")

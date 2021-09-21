@@ -4,6 +4,8 @@ import org.eclipse.lsp4j.FileChangeType
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.PreviewResult
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.events.OnProjectStarted
@@ -28,7 +30,7 @@ import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 
-class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project, toolingServices: DataWeaveToolingService) extends ToolingService {
+class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, project: Project, toolingServices: DataWeaveToolingService, jobManager: JobManagerService) extends ToolingService {
   private val logger = Logger.getLogger(getClass.getName)
   private var eventBus: EventBus = _
 
@@ -78,7 +80,7 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
 
     eventBus.register(ProjectStartedEvent.PROJECT_STARTED, new OnProjectStarted {
       override def onProjectStarted(project: Project): Unit = {
-        if (enableValue && pendingProjectStart.isDefined) {
+        if (pendingProjectStart.isDefined) {
           runPreview(pendingProjectStart.get)
           pendingProjectStart = None
         }
@@ -128,7 +130,10 @@ class PreviewService(agentService: WeaveAgentService, weaveLanguageClient: Weave
       val identifier: NameIdentifier = vf.getNameIdentifier
       //Debounce the changes for 300ms
       previewDebouncer.debounce(identifier, () => {
-        weaveLanguageClient.showPreviewResult(getPreviewResult(vf))
+        jobManager.execute((status: Status) => {
+          weaveLanguageClient.showPreviewResult(getPreviewResult(vf))
+        }, "Running preview", s"Running preview of ${identifier}"
+        )
       }, 300, TimeUnit.MILLISECONDS);
     }
     currentVfPreview = Some(vf)

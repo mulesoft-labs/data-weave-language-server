@@ -16,6 +16,8 @@ import org.mule.weave.lsp.extension.client.PublishTestResultsParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.extension.client.WeaveTestItem
 import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
+import org.mule.weave.lsp.jobs.Task
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
@@ -99,20 +101,19 @@ class DataWeaveTestService(
 
       val config = RunWTFConfiguration(Some(nameIdentifier.name), None, buildBefore = true, TcpClientProtocol.DEFAULT_PORT, dryRun = true)
 
-      val jobExecutor: (Runnable, String, String) => Unit = if (async) {
+      val jobExecutor: (Task, String, String) => Unit = if (async) {
         jobManagerService.schedule
       } else {
         jobManagerService.execute
       }
       jobExecutor(
-        () => {
+        (status: Status) => {
           val process = launcher.launch(config, debugging = false)
 
           val maybeOutput = if (process.isDefined) {
             //Block the process
             val exitValue = process.get.waitFor()
             clientLogger.logInfo(s"Process Finished with ${exitValue}")
-
             if (exitValue == 0) {
               val outStr = IOUtils.toString(process.get.getInputStream, StandardCharsets.UTF_8)
               Some(outStr)
