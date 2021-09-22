@@ -8,6 +8,8 @@ import org.jboss.shrinkwrap.resolver.api.maven.MavenWorkingSession
 import org.jboss.shrinkwrap.resolver.api.maven.ScopeType
 import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependency
 import org.jboss.shrinkwrap.resolver.impl.maven.MavenStrategyStageImpl
+import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.Project
 import org.mule.weave.lsp.project.components.DependencyArtifact
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
@@ -24,7 +26,7 @@ import java.io.File
 import java.util
 import scala.collection.immutable
 
-class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: EventBus, loggerService: ClientLogger) extends ProjectDependencyManager {
+class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: EventBus, loggerService: ClientLogger, jobManagerService: JobManagerService) extends ProjectDependencyManager {
 
   var dependenciesArray: Array[DependencyArtifact] = Array.empty
   var languageVersion: String = project.settings.wlangVersion.value()
@@ -37,7 +39,7 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
           case FileChangeType.Changed => {
             val maybeFile = URLUtils.toFile(uri)
             if (maybeFile.exists(_.equals(pomFile))) {
-              reloadArtifacts()
+              reload()
             }
           }
           case _ =>
@@ -47,7 +49,9 @@ class MavenProjectDependencyManager(project: Project, pomFile: File, eventBus: E
   }
 
   override def reload(): Unit = {
-    reloadArtifacts()
+    jobManagerService.schedule((status: Status) => {
+      reloadArtifacts()
+    }, "Loading Maven Dependencies", "Loading Maven Dependencies.")
   }
 
   private def reloadArtifacts(): Unit = {

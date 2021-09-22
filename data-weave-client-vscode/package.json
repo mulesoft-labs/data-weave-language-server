@@ -177,7 +177,7 @@
         "path": "./syntaxes/data-weave.tmLanguage"
       }
     ],
-    "commands": [
+    "commands": [     
       {
         "command": "bat.runCurrentBatTest.invoked",
         "title": "BAT: Run current file"
@@ -189,6 +189,11 @@
       {
         "command": "bat.installCli",
         "title": "BAT: Install BAT command line interface"
+      },
+      {
+        "command": "dw.dependencies.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       },
       {
         "command": "dw.project.create",
@@ -259,6 +264,13 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "dw.dependencies.refresh",
+          "when": "view == weaveDependencies",
+          "group": "navigation"
+        }
+      ],
       "editor/title": [
         {
           "when": "editorLangId == data-weave",

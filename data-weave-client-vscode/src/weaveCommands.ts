@@ -8,6 +8,7 @@ export class ClientWeaveCommands {
     public static ENABLE_PREVIEW = "dw.preview.enable"
     public static RUN_PREVIEW = "dw.preview.run"
     public static DISABLE_PREVIEW = "dw.preview.disable"
+    public static RELOAD_DEPENDENCIES = "dw.dependencies.refresh"
     public static SHOW_LOG = "dw.showLog"
 
 
@@ -38,6 +39,7 @@ export class ServerWeaveCommands {
     public static DELETE_EXPECTED_OUTPUT = "dw.deleteExpectedOutput"
 
     public static RUN_PREVIEW = "dw.runPreview"
+    public static RELOAD_DEPENDENCIES = "dw.reloadDependencies"
     public static LAUNCH_MAPPING = "dw.launchCommand"
     public static LAUNCH_TEST = "dw.launchTest"
 

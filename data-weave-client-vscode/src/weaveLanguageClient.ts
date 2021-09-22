@@ -159,6 +159,10 @@ export function handleCustomMessages(client: LanguageClient, context: ExtensionC
         vscode.commands.executeCommand(ServerWeaveCommands.ENABLE_PREVIEW, false);
     }));
 
+    context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.RELOAD_DEPENDENCIES, () => {
+        vscode.commands.executeCommand(ServerWeaveCommands.RELOAD_DEPENDENCIES);
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand(ClientWeaveCommands.SHOW_LOG, () => {
         client.outputChannel.show(true)
     }));

@@ -7,6 +7,8 @@ import org.mule.weave.lsp.extension.client.JobStartedParams
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
 import org.mule.weave.lsp.indexer.events.IndexingFinishedEvent
 import org.mule.weave.lsp.indexer.events.IndexingStartedEvent
+import org.mule.weave.lsp.jobs.JobManagerService
+import org.mule.weave.lsp.jobs.Status
 import org.mule.weave.lsp.project.ProjectKind
 import org.mule.weave.lsp.project.components.ProjectStructure
 import org.mule.weave.lsp.project.components.ProjectStructure.isAProjectFile
@@ -42,7 +44,8 @@ import scala.collection.concurrent.TrieMap
 
 class LSPWeaveIndexService(clientLogger: ClientLogger,
                            weaveLanguageClient: WeaveLanguageClient,
-                           projectVirtualFileSystem: ProjectVirtualFileSystem
+                           projectVirtualFileSystem: ProjectVirtualFileSystem,
+                           jobManagerService: JobManagerService
                           ) extends WeaveIndexService with ToolingService {
 
   private val identifiersInLibraries: TrieMap[VirtualFileSystem, TrieMap[String, Array[LocatedResult[WeaveIdentifier]]]] = TrieMap()
@@ -85,37 +88,38 @@ class LSPWeaveIndexService(clientLogger: ClientLogger,
 
     eventBus.register(LibraryAddedEvent.LIBRARY_ADDED, new OnLibraryAdded {
       override def onLibrariesAdded(libaries: Array[ArtifactVirtualFileSystem]): Unit = {
-        val forks: Array[Callable[ArtifactVirtualFileSystem]] = libaries.map((vfs) => {
-          new Callable[ArtifactVirtualFileSystem] {
-            override def call(): ArtifactVirtualFileSystem = {
-              val virtualFiles: Iterator[VirtualFile] = vfs.listFiles().asScala
-              val vfsIdentifiers: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = identifiersInLibraries.getOrElseUpdate(vfs, TrieMap())
-              val vfsNames: TrieMap[String, LocatedResult[WeaveDocument]] = namesInLibraries.getOrElseUpdate(vfs, TrieMap())
-              clientLogger.logInfo(s"Start Indexing `${vfs.artifactId()}`.")
-              val startTime = System.currentTimeMillis()
-              virtualFiles.foreach((vf) => {
-                val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
-                //Only index DW files for now
-                //TODO figure out how to support other formats like .class or .raml etc
-                if (vf.url().endsWith(".dwl") && indexer.parse(vf, ParsingContextFactory.createParsingContext(false))) {
-                  vfsIdentifiers.put(vf.url(), index(vf, indexer))
-                  vfsNames.put(vf.url(), LocatedResult(vf.getNameIdentifier, indexer.document()))
+        jobManagerService.execute((status: Status) => {
+          val forks: Array[Callable[Unit]] = libaries.map((vfs) => {
+            new Callable[Unit] {
+              override def call(): Unit = {
+                if (status.canceled) {
+                  return
                 }
-              })
-              clientLogger.logInfo(s"Indexing `${vfs.artifactId()}` took ${System.currentTimeMillis() - startTime}ms")
-              vfs
+                val virtualFiles: Iterator[VirtualFile] = vfs.listFiles().asScala
+                val vfsIdentifiers: TrieMap[String, Array[LocatedResult[WeaveIdentifier]]] = identifiersInLibraries.getOrElseUpdate(vfs, TrieMap())
+                val vfsNames: TrieMap[String, LocatedResult[WeaveDocument]] = namesInLibraries.getOrElseUpdate(vfs, TrieMap())
+                clientLogger.logInfo(s"Start Indexing `${vfs.artifactId()}`.")
+                val startTime = System.currentTimeMillis()
+                virtualFiles.foreach((vf) => {
+                  val indexer: DefaultWeaveIndexer = new DefaultWeaveIndexer()
+                  //Only index DW files for now
+                  //TODO figure out how to support other formats like .class or .raml etc
+                  if (vf.url().endsWith(".dwl") && indexer.parse(vf, ParsingContextFactory.createParsingContext(false))) {
+                    vfsIdentifiers.put(vf.url(), index(vf, indexer))
+                    vfsNames.put(vf.url(), LocatedResult(vf.getNameIdentifier, indexer.document()))
+                  }
+                })
+                clientLogger.logInfo(s"Indexing `${vfs.artifactId()}` took ${System.currentTimeMillis() - startTime}ms")
+              }
             }
-          }
-        })
-        val jobId = UUID.randomUUID().toString
-        weaveLanguageClient.notifyJobStarted(JobStartedParams(id = jobId, label = "Indexing Project", description = "Indexing all project dependencies"))
-        val start = System.currentTimeMillis()
-        eventBus.fire(new IndexingStartedEvent())
-        indexedPool.invokeAll(util.Arrays.asList(forks: _*))
-        eventBus.fire(new IndexingFinishedEvent())
-        clientLogger.logInfo(s"Indexing all libraries finished and took ${System.currentTimeMillis() - start}ms.")
-        weaveLanguageClient.notifyJobEnded(JobEndedParams(jobId))
-        weaveLanguageClient.showMessage(new MessageParams(MessageType.Info, "Project Indexed"))
+          })
+          val start = System.currentTimeMillis()
+          eventBus.fire(new IndexingStartedEvent())
+          indexedPool.invokeAll(util.Arrays.asList(forks: _*))
+          eventBus.fire(new IndexingFinishedEvent())
+          clientLogger.logInfo(s"Indexing all libraries finished and took ${System.currentTimeMillis() - start}ms.")
+          weaveLanguageClient.showMessage(new MessageParams(MessageType.Info, "Project Indexed"))
+        }, "Indexing Libraries", "Indexing Libraries")
       }
     })
   }

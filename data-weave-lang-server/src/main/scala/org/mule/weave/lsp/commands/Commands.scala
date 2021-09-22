@@ -16,6 +16,7 @@ object Commands {
   val DW_LAUNCH_MAPPING = "dw.launchCommand"
   val DW_LAUNCH_TEST = "dw.launchTest"
   val DW_ENABLE_PREVIEW = "dw.enablePreview"
+  val DW_RELOAD_DEPENDENCIES = "dw.reloadDependencies"
   val DW_RUN_PREVIEW = "dw.runPreview"
   val DW_RUN_MAPPING = "dw.runCommand"
   val DW_QUICK_FIX = "dw.quickFix"
@@ -43,6 +44,7 @@ object Commands {
     DW_SAVE_OUTPUT,
     DW_DELETE_EXPECTED_OUTPUT,
     DW_ENABLE_PREVIEW,
+    DW_RELOAD_DEPENDENCIES,
     DW_LAUNCH_MAPPING,
     DW_LAUNCH_TEST,
     DW_QUICK_FIX,

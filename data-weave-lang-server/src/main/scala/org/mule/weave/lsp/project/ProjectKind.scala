@@ -4,6 +4,7 @@ import org.eclipse.lsp4j.ResourceOperation
 import org.eclipse.lsp4j.TextDocumentEdit
 import org.mule.weave.lsp.agent.WeaveAgentService
 import org.mule.weave.lsp.extension.client.WeaveLanguageClient
+import org.mule.weave.lsp.jobs.JobManagerService
 import org.mule.weave.lsp.project.components.BuildManager
 import org.mule.weave.lsp.project.components.MetadataProvider
 import org.mule.weave.lsp.project.components.ProjectDependencyManager
@@ -45,10 +46,16 @@ trait ProjectKindDetector {
 }
 
 object ProjectKindDetector {
-  def detectProjectKind(project: Project, eventBus: EventBus, clientLogger: ClientLogger, weaveAgentService: WeaveAgentService, weaveLanguageClient: WeaveLanguageClient, weaveScenarioManagerService: WeaveScenarioManagerService): ProjectKind = {
+  def detectProjectKind(project: Project, eventBus: EventBus,
+                        clientLogger: ClientLogger,
+                        weaveAgentService: WeaveAgentService,
+                        weaveLanguageClient: WeaveLanguageClient,
+                        weaveScenarioManagerService: WeaveScenarioManagerService,
+                        jobManagerService: JobManagerService
+                       ): ProjectKind = {
     if (project.hasHome()) {
       val detectors = Seq(
-        new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService),
+        new MavenProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService, jobManagerService),
         new BatProjectKindDetector(eventBus, clientLogger, weaveLanguageClient),
         new SFDXProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService),
         new SimpleProjectKindDetector(eventBus, clientLogger, weaveAgentService, weaveLanguageClient, weaveScenarioManagerService)

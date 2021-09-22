@@ -126,11 +126,10 @@ class WeaveLanguageServer extends LanguageServer {
       val weaveAgentService = new WeaveAgentService(dataWeaveToolingService, IDEExecutors.defaultExecutor(), clientLogger, projectValue, scenarioService, client)
       jobManagerService = new JobManagerService(executorService, client)
       val previewService = new PreviewService(weaveAgentService, client, projectValue, dataWeaveToolingService, jobManagerService)
-
-      indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS)
+      indexService = new LSPWeaveIndexService(clientLogger, client, projectVFS, jobManagerService)
 
       //Create the project
-      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client, scenarioService)
+      projectKind = ProjectKindDetector.detectProjectKind(projectValue, eventbus, clientLogger, weaveAgentService, client, scenarioService, jobManagerService)
       clientLogger.logInfo("[DataWeave] Detected Project: " + projectKind.name())
       clientLogger.logInfo("[DataWeave] Project: " + projectKind.name() + " initialized ok.")
 
