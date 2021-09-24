@@ -150,13 +150,17 @@ case class Scenario(file: File, name: String) {
   }
 
   def inputs(): Array[SampleInput] = {
-    val files = FileUtils.listFiles(inputsDirectory(), null, true)
-    files.iterator().asScala
-      .map(file => {
-        val relativePath = inputsDirectory().toPath.relativize(file.toPath)
-        val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
-        SampleInput(URLUtils.toLSPUrl(file), inputName)
-      }).toArray
+    if (!inputsDirectory().isDirectory()) {
+      Array()
+    } else {
+      val files = FileUtils.listFiles(inputsDirectory(), null, true)
+      files.iterator().asScala
+        .map(file => {
+          val relativePath = inputsDirectory().toPath.relativize(file.toPath)
+          val inputName = relativePath.iterator().asScala.map((p) => FilenameUtils.getBaseName(p.toFile.getName)).mkString(".")
+          SampleInput(URLUtils.toLSPUrl(file), inputName)
+        }).toArray
+    }
   }
 
   def expected(): Option[File] = {
