@@ -1,28 +1,15 @@
 # DataWeave LSP
 
-This project contains the first basic implementation of a DataWeave LSP
+The code for this project has been moved to a private repository. This repository will be left open to the community to 
+help us improve it and report issues.
 
-## Build Instructions
+## Documentation
 
-1. Build data-weave-lang-server
+To find the complete documentation of the DataWeave 2.0 Language Support extension for VSCode refer to the following links.
 
-```bash
-./gradlew data-weave-lang-server:assembleShadowDist
+* [VSCode Extension Documentation](https://docs.mulesoft.com/dataweave/latest/dataweave-extension-plugin)
+* [Dataweave Share and Reuse Homepage](https://docs.mulesoft.com/dataweave/latest/dataweave-share-reuse)
 
-```
+## Feedback
 
-2. Build the extension
-
-```bash
-./gradlew data-weave-client-vscode:packageExtension
-
-``` 
-This is going to generate the vsix on the `data-weave-client-vscode` directory that you can later install it in your vscode.
-
-3. Release a version
-
-In order to release just create a tag with v<next_version> example if we want to release 0.0.4
-we just need to create v0.0.4 and push the tag. The CI should take care of the rest
-
-
-4. How to copy 
+MuleSoft welcomes you to submit issues, questions, comments, suggestions, and requests in this repository.
