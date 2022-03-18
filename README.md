@@ -1,6 +1,6 @@
 # DataWeave LSP
 
-The code for this project has been moved to a private repository. This repository will be left open to the community to 
+This repository is open to the community to 
 help us improve it and report issues.
 
 ## Documentation
