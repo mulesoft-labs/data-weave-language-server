@@ -1,7 +1,6 @@
 # DataWeave LSP
 
-This repository is open to the community to 
-help us improve our Visual Studio Code support and report issues.
+This repository is open to the community to help us improve our Visual Studio Code support and report issues.
 
 ## Documentation
 
@@ -12,4 +11,4 @@ To find the complete documentation of the DataWeave 2.0 Language Support extensi
 
 ## Feedback
 
-MuleSoft welcomes you to submit issues, questions, comments, suggestions, and requests in this repository.
+MuleSoft welcomes you to submit issues, questions, comments, suggestions, and requests using this repository. Feel free to create Github Issues, and they will be timely reviewed.
