@@ -1,7 +1,7 @@
 # DataWeave LSP
 
 This repository is open to the community to 
-help us improve it and report issues.
+help us improve our Visual Studio Code support and report issues.
 
 ## Documentation
 
